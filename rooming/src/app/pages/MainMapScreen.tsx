@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Map } from "lucide-react";
+import AIPanelScreen from "../components/AIPanel";
 
 export default function MainMapScreen() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export default function MainMapScreen() {
       </div>
 
       {/* 우측 AI 검색 패널 */}
-      <div className="absolute right-6 top-6 z-10 w-[340px] rounded-2xl border border-[#E8E6DD] bg-white/95 backdrop-blur-sm p-5 shadow-lg">
+      {/* <div className="absolute right-6 top-6 z-10 w-[340px] rounded-2xl border border-[#E8E6DD] bg-white/95 backdrop-blur-sm p-5 shadow-lg">
         <h3 className="mb-4 text-lg font-bold text-[#4A4530]">AI 검색</h3>
         <input
           type="text"
@@ -58,7 +59,8 @@ export default function MainMapScreen() {
         >
           AI 검색하기
         </button>
-      </div>
+      </div> */}
+      <AIPanelScreen />
 
       {/* 하단 컨트롤 */}
       <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-3 rounded-full bg-white px-5 py-3 shadow-xl border-2 border-[#EEECCA]">
@@ -114,8 +116,8 @@ function FilterButton({
     <button
       onClick={onClick}
       className={`rounded-full px-4 py-2 text-sm font-medium transition ${active
-          ? "bg-[#4A4530] text-white shadow-lg shadow-[#4A4530]/30"
-          : "bg-[#FDFBD4] text-[#8B8850] hover:bg-[#F5F5E8] hover:text-[#8B89DD]"
+        ? "bg-[#4A4530] text-white shadow-lg shadow-[#4A4530]/30"
+        : "bg-[#FDFBD4] text-[#8B8850] hover:bg-[#F5F5E8] hover:text-[#8B89DD]"
         }`}
     >
       {text}

@@ -2,7 +2,7 @@ import { createBrowserRouter } from "react-router";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import MainMapScreen from "./pages/MainMapScreen";
-import AIPanelScreen from "./pages/AIPanelScreen";
+import AIPanelScreen from "./components/AIPanel";
 import ResultPanelScreen from "./pages/ResultPanelScreen";
 import PropertyDetailScreen from "./pages/PropertyDetailScreen";
 import InfraSearchModal from "./pages/InfraSearchModal";
