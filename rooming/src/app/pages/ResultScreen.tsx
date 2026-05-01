@@ -40,7 +40,7 @@ const properties = [
   },
 ];
 
-export default function ResultPanelScreen() {
+export default function ResultScreen() {
   const navigate = useNavigate();
 
   return (

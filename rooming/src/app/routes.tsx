@@ -3,7 +3,7 @@ import WelcomeScreen from "./pages/WelcomeScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import MainMapScreen from "./pages/MainMapScreen";
 import AIPanelScreen from "./components/AIPanel";
-import ResultPanelScreen from "./pages/ResultPanelScreen";
+import ResultScreen from "./pages/ResultScreen";
 import PropertyDetailScreen from "./pages/PropertyDetailScreen";
 import InfraSearchModal from "./pages/InfraSearchModal";
 import InfraViewScreen from "./pages/InfraViewScreen";
@@ -32,7 +32,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/results",
-    Component: ResultPanelScreen,
+    Component: ResultScreen,
   },
   {
     path: "/property/:id",
