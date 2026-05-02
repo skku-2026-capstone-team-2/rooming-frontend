@@ -1,32 +1,51 @@
-// import { useState } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
-import { Map } from "lucide-react";
 import AIPanelScreen from "../components/AIPanel";
 import PropertyListPanel from "../components/PropertyListPanel";
 
+declare global {
+  interface Window {
+    Tmapv2: any;
+  }
+}
+
 export default function MainMapScreen() {
   const navigate = useNavigate();
-  // const [searchQuery, setSearchQuery] = useState("정문에서 15분 이내, 헬스장 가까운 원룸");
+  const mapInstanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    const waitForTmap = () => {
+      if (window.Tmapv2 && window.Tmapv2.Map) {
+        initMap();
+      } else {
+        setTimeout(waitForTmap, 100);
+      }
+    };
+
+    const initMap = () => {
+      if (!window.Tmapv2) return;
+
+      new window.Tmapv2.Map("map_div", {
+        center: new window.Tmapv2.LatLng(37.5882, 126.9936),
+        width: "100%",
+        height: "100%",
+        zoom: 15,
+      });
+
+      console.log("지도 생성 완료");
+    };
+
+    waitForTmap();
+  }, []);
 
   return (
-    <div className="relative h-screen w-full bg-[#FDFCF8]">
-      {/* 지도 영역 */}
-      <div className="h-full w-full bg-gradient-to-br from-[#E8E6DD]/20 to-[#D8D7F5]/20 flex items-center justify-center">
-        <div className="text-center">
-          <Map className="mx-auto mb-2 h-12 w-12 text-[#6B6847]" />
-          <div className="text-lg font-semibold text-[#4A4530]">지도 영역</div>
-          <div className="mt-1 text-sm text-[#8B8850]">실제로는 인터랙티브 지도가 표시됩니다</div>
-        </div>
-      </div>
+    <div className="relative h-screen w-full overflow-hidden bg-[#FDFCF8]">
+      <div id="map_div" className="absolute inset-0 h-full w-full" />
 
-      {/* 좌측 하단 검색 결과 패널 */}
       <PropertyListPanel />
-
-      {/* 우측 AI 검색 패널 */}
       <AIPanelScreen />
 
-      {/* 하단 컨트롤 */}
-      <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-3 rounded-full bg-white px-5 py-3 shadow-xl border-2 border-[#EEECCA]">
+      <div className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 gap-3 rounded-full border-2 border-[#EEECCA] bg-white px-5 py-3 shadow-xl">
         <FilterButton text="매물 마커" active />
         <FilterButton text="인프라 마커" active />
         <FilterButton text="3D 보기" onClick={() => navigate("/3d-view")} />
@@ -35,7 +54,6 @@ export default function MainMapScreen() {
     </div>
   );
 }
-
 
 function FilterButton({
   text,
