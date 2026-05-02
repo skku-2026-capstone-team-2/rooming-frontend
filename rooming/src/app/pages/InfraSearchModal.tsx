@@ -2,16 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Store, Coffee, Dumbbell, Pill, UtensilsCrossed, Shirt, Hospital, ShoppingCart, Building2, BookOpen } from "lucide-react";
 
-const infraCategories = [
-  { id: "convenience", name: "편의점", Icon: Store },
-  { id: "cafe", name: "카페", Icon: Coffee },
-  { id: "gym", name: "헬스장", Icon: Dumbbell },
-  { id: "pharmacy", name: "약국", Icon: Pill },
-  { id: "restaurant", name: "식당", Icon: UtensilsCrossed },
-  { id: "laundry", name: "세탁소", Icon: Shirt },
-  { id: "hospital", name: "병원", Icon: Hospital },
-  { id: "mart", name: "마트", Icon: ShoppingCart },
-];
+// const infraCategories = [
+//   { id: "convenience", name: "편의점", Icon: Store },
+//   { id: "cafe", name: "카페", Icon: Coffee },
+//   { id: "gym", name: "헬스장", Icon: Dumbbell },
+//   { id: "pharmacy", name: "약국", Icon: Pill },
+//   { id: "restaurant", name: "식당", Icon: UtensilsCrossed },
+//   { id: "laundry", name: "세탁소", Icon: Shirt },
+//   { id: "hospital", name: "병원", Icon: Hospital },
+//   { id: "mart", name: "마트", Icon: ShoppingCart },
+// ];
 
 export default function InfraSearchModal() {
   const navigate = useNavigate();
@@ -19,11 +19,11 @@ export default function InfraSearchModal() {
   const [radius, setRadius] = useState(500);
   const [customSearch, setCustomSearch] = useState("");
 
-  const toggleCategory = (id: string) => {
-    setSelectedCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
-  };
+  // const toggleCategory = (id: string) => {
+  //   setSelectedCategories((prev) =>
+  //     prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+  //   );
+  // };
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] p-6">
@@ -124,8 +124,8 @@ function CategoryButton({
   return (
     <button
       className={`rounded-xl px-4 py-3 text-sm font-medium transition-all border ${selected
-          ? "border-[#BDB96A] bg-[#FDFCF8] text-[#8B8850] shadow-sm"
-          : "border-[#E8E6DD] bg-white text-[#B8B69F] hover:bg-[#FDFCF8] hover:border-[#BDB96A]"
+        ? "border-[#BDB96A] bg-[#FDFCF8] text-[#8B8850] shadow-sm"
+        : "border-[#E8E6DD] bg-white text-[#B8B69F] hover:bg-[#FDFCF8] hover:border-[#BDB96A]"
         }`}
     >
       <Icon className="mx-auto h-5 w-5" />
