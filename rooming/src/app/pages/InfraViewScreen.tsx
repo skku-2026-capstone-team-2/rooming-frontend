@@ -47,7 +47,7 @@ export default function InfraViewScreen() {
           <FilterToggle label="편의점" active />
           <FilterToggle label="카페" active />
           <FilterToggle label="헬스장" active />
-          <FilterToggle label="약국" />
+          <FilterToggle label="약국" active={false} />
         </div>
       </div>
     </div>

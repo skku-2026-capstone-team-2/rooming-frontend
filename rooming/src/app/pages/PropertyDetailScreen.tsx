@@ -1,9 +1,9 @@
-import { useNavigate, useParams } from "react-router";
+import { useNavigate } from "react-router";
 import { Home, Target, Dumbbell, Store, Phone } from "lucide-react";
 
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  // const { id } = useParams();
 
   return (
     <div className="min-h-screen bg-[#FDFCF8]">
