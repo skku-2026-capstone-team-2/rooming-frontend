@@ -2,16 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import PreferenceBoard from "../components/PreferenceBoard";
 
-// ─── Section 헤더 공통 컴포넌트 ───────────────────────────────────────────────
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#B8B69F]">
-      {children}
-    </p>
-  );
-}
-
 // ─── OnboardingScreen ─────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
@@ -19,87 +9,112 @@ export default function OnboardingScreen() {
   const [searchValue, setSearchValue] = useState("");
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8]">
-      <div className="mx-auto max-w-2xl px-6 py-10">
-
+    <div className="h-screen overflow-hidden bg-[#FDFCF8]">
+      <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-6 py-6">
         {/* ── 페이지 헤더 ── */}
-        <div className="mb-10">
-          <div className="mb-2 flex items-center gap-2">
-            {/* <span className="h-1.5 w-6 rounded-full bg-[#BDB96A]" /> */}
-            {/* <span className="h-1.5 w-3 rounded-full bg-[#BDB96A]/40" /> */}
-            {/* <span className="h-1.5 w-1.5 rounded-full bg-[#BDB96A]/20" /> */}
-          </div>
-          <h1 className="text-2xl font-bold text-[#3A3520]">장소 & 선호 조건 설정</h1>
+        <div className="mb-5 shrink-0">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-[#B8B69F]">
+            Onboarding
+          </p>
+          <h1 className="text-2xl font-bold text-[#3A3520]">
+            원하는 방을 찾기 위한 조건을 알려주세요
+          </h1>
           <p className="mt-1.5 text-sm text-[#9B9872]">
-            자주 가는 장소를 등록하고, 원하는 주거 조건을 선택하세요
+            자주 가는 장소와 생활 선호도를 바탕으로 맞춤 매물을 추천해드릴게요.
           </p>
         </div>
 
-        <div className="space-y-8">
+        {/* ── 본문 2단 레이아웃 ── */}
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          {/* ───────────────── 왼쪽: 장소 설정 ───────────────── */}
+          <section className="min-h-0 rounded-3xl border border-[#E8E6DD] bg-white p-5 shadow-sm">
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-[#3A3520]">장소 설정</h2>
+              <p className="mt-1 text-sm text-[#9B9872]">
+                학교, 자주 가는 카페, 편의시설 등 기준이 되는 장소를 등록하세요.
+              </p>
+            </div>
 
-          {/* ── 1. 장소 검색 ── */}
-          <div>
-            <SectionLabel>장소 검색</SectionLabel>
-            <div className="rounded-2xl border border-[#E8E6DD] bg-white p-5 shadow-sm">
+            {/* 장소 검색 */}
+            <div>
+              <label
+                htmlFor="place-search"
+                className="mb-2 block text-sm font-semibold text-[#4A4530]"
+              >
+                기준 장소 검색
+              </label>
               <input
+                id="place-search"
                 type="text"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="장소를 검색하세요 (예: 성균관대 정문)"
-                className="w-full rounded-xl border border-[#E8E6DD] bg-[#FDFCF8] px-4 py-3 text-sm text-[#4A4530] placeholder-[#C8C6AF] focus:border-[#BDB96A] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#BDB96A]/15 transition-all"
+                placeholder="예: 성균관대 정문, 스타벅스 성대점"
+                className="w-full rounded-xl border border-[#E8E6DD] bg-[#FDFCF8] px-4 py-2.5 text-sm text-[#4A4530] placeholder-[#C8C6AF] transition-all focus:border-[#BDB96A] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#BDB96A]/15"
               />
             </div>
-          </div>
 
-          {/* ── 2. 등록된 장소 ── */}
-          <div>
-            <SectionLabel>등록된 장소</SectionLabel>
-            <div className="rounded-2xl border border-[#E8E6DD] bg-white shadow-sm overflow-hidden">
-              {/* 통학 기준 */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EFE8]">
+            {/* 등록된 장소 */}
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center justify-between rounded-2xl bg-[#FDFCF8] px-4 py-3.5">
                 <div>
-                  <p className="text-xs font-medium text-[#B8B69F]">통학 기준 장소</p>
-                  <p className="mt-0.5 text-sm font-semibold text-[#4A4530]">성균관대 정문</p>
+                  <p className="text-xs font-medium text-[#B8B69F]">통학 기준</p>
+                  <p className="mt-0.5 text-sm font-semibold text-[#4A4530]">
+                    성균관대 정문
+                  </p>
                 </div>
-                <button className="rounded-lg border border-[#E8E6DD] px-3 py-1.5 text-xs font-medium text-[#8B8850] hover:border-[#BDB96A] hover:text-[#6B6847] transition-all">
+
+                <button className="rounded-lg border border-[#E8E6DD] bg-white px-3 py-1.5 text-xs font-medium text-[#8B8850] transition-all hover:border-[#BDB96A] hover:text-[#6B6847]">
                   변경
                 </button>
               </div>
-              {/* 생활 기준 */}
-              <div className="flex items-center justify-between px-5 py-4">
+
+              <div className="flex items-center justify-between rounded-2xl bg-[#FDFCF8] px-4 py-3.5">
                 <div>
-                  <p className="text-xs font-medium text-[#B8B69F]">생활 기준 장소</p>
-                  <p className="mt-0.5 text-sm font-semibold text-[#4A4530]">스타벅스 성대점</p>
+                  <p className="text-xs font-medium text-[#B8B69F]">생활 기준</p>
+                  <p className="mt-0.5 text-sm font-semibold text-[#4A4530]">
+                    스타벅스 성대점
+                  </p>
                 </div>
-                <button className="rounded-lg border border-[#E8E6DD] px-3 py-1.5 text-xs font-medium text-[#8B8850] hover:border-[#BDB96A] hover:text-[#6B6847] transition-all">
+
+                <button className="rounded-lg border border-[#E8E6DD] bg-white px-3 py-1.5 text-xs font-medium text-[#8B8850] transition-all hover:border-[#BDB96A] hover:text-[#6B6847]">
                   변경
                 </button>
               </div>
             </div>
-          </div>
+          </section>
 
-          {/* ── 3. 선호 조건 ── */}
-          <div>
-            <SectionLabel>선호 조건</SectionLabel>
-            <PreferenceBoard />
-          </div>
+          {/* ───────────────── 오른쪽: 선호 조건 ───────────────── */}
+          <section className="min-h-0 overflow-hidden rounded-3xl border border-[#E8E6DD] bg-white p-5 shadow-sm">
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-[#3A3520]">
+                선호 조건 설정
+              </h2>
+              <p className="mt-1 text-sm text-[#9B9872]">
+                예산, 거리, 생활 인프라 등 중요하게 생각하는 조건을 선택하세요.
+              </p>
+            </div>
 
-          {/* ── 네비게이션 ── */}
-          <div className="flex items-center justify-between pt-2">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-1.5 rounded-xl border border-[#E8E6DD] bg-white px-5 py-2.5 text-sm font-semibold text-[#6B6847] hover:bg-[#FDFCF8] hover:border-[#D8D6CD] transition-all"
-            >
-              <span>←</span> 이전
-            </button>
-            <button
-              onClick={() => navigate("/map")}
-              className="flex items-center gap-1.5 rounded-xl bg-[#4A4530] px-6 py-2.5 text-sm font-semibold text-white hover:bg-[#3A3520] transition-all shadow-md hover:shadow-lg"
-            >
-              다음 <span>→</span>
-            </button>
-          </div>
+            <div className="min-h-0">
+              <PreferenceBoard />
+            </div>
+          </section>
+        </div>
 
+        {/* ── 네비게이션 ── */}
+        <div className="mt-5 flex shrink-0 items-center justify-between">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-1.5 rounded-xl border border-[#E8E6DD] bg-white px-5 py-2.5 text-sm font-semibold text-[#6B6847] transition-all hover:border-[#D8D6CD] hover:bg-[#FDFCF8]"
+          >
+            뒤로가기
+          </button>
+
+          <button
+            onClick={() => navigate("/map")}
+            className="flex items-center gap-1.5 rounded-xl bg-[#4A4530] px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg"
+          >
+            다음으로
+          </button>
         </div>
       </div>
     </div>
