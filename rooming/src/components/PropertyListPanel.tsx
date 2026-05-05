@@ -1,20 +1,9 @@
 import { useNavigate } from "react-router";
 import { Heart, Sparkles } from "lucide-react";
-
-export type ListMode = "recommended" | "favorites";
-
-export type PropertyListItem = {
-  id: number;
-  title: string;
-  price: string;
-  description?: string;
-  area?: string;
-  distance?: string;
-  lat: number;
-  lng: number;
-  mode: ListMode;
-  matchScore?: number;
-};
+import type {
+  ListMode,
+  PropertyListItem,
+} from "../utils/propertyListItems";
 
 type PropertyListPanelProps = {
   listMode: ListMode;
@@ -31,7 +20,7 @@ export default function PropertyListPanel({
   const isFavoritesMode = listMode === "favorites";
 
   return (
-    <div className="absolute bottom-5 left-5 z-10 flex max-h-[60vh] w-[280px] flex-col rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
+    <div className="absolute bottom-5 left-5 z-10 flex max-h-[60vh] w-[260px] flex-col rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
       <div className="mb-3 flex shrink-0 items-center justify-between">
         <div>
           <h3 className="text-base font-bold text-[#4A4530]">
@@ -50,8 +39,8 @@ export default function PropertyListPanel({
           type="button"
           onClick={() => onChangeListMode("recommended")}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition ${isRecommendedMode
-              ? "bg-white text-[#4A4530] shadow-sm"
-              : "text-[#8B8850] hover:bg-white/70"
+            ? "bg-white text-[#4A4530] shadow-sm"
+            : "text-[#8B8850] hover:bg-white/70"
             }`}
         >
           <Sparkles className="h-3.5 w-3.5" />
@@ -62,8 +51,8 @@ export default function PropertyListPanel({
           type="button"
           onClick={() => onChangeListMode("favorites")}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition ${isFavoritesMode
-              ? "bg-white text-[#4A4530] shadow-sm"
-              : "text-[#8B8850] hover:bg-white/70"
+            ? "bg-white text-[#4A4530] shadow-sm"
+            : "text-[#8B8850] hover:bg-white/70"
             }`}
         >
           <Heart className="h-3.5 w-3.5" />
@@ -86,7 +75,6 @@ type PropertyCardProps = {
 
 function PropertyCard({ property }: PropertyCardProps) {
   const navigate = useNavigate();
-
   const isFavoriteMode = property.mode === "favorites";
 
   return (
@@ -102,8 +90,8 @@ function PropertyCard({ property }: PropertyCardProps) {
 
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${isFavoriteMode
-              ? "bg-[#FFF4F4] text-[#D87070]"
-              : "bg-[#F5F5FF] text-[#8B89DD]"
+            ? "bg-[#FFF4F4] text-[#D87070]"
+            : "bg-[#F5F5FF] text-[#8B89DD]"
             }`}
         >
           {isFavoriteMode ? (
