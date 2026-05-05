@@ -1,9 +1,6 @@
 import { useNavigate } from "react-router";
 import { Heart, Sparkles } from "lucide-react";
-import type {
-  ListMode,
-  PropertyListItem,
-} from "../utils/propertyListItems";
+import type { ListMode, PropertyListItem } from "../utils/propertyListItems";
 
 type PropertyListPanelProps = {
   listMode: ListMode;

@@ -8,6 +8,7 @@ export type PropertyListItem = {
   title: string;
   price: string;
   description?: string;
+  image?: string;
   area?: string;
   distance?: string;
   lat: number;
@@ -26,6 +27,7 @@ function getRecommendedProperties(): PropertyListItem[] {
     title: property.title,
     price: property.price,
     description: property.description,
+    image: property.image,
     area: property.area,
     distance: property.distance,
     lat: property.lat,
@@ -41,11 +43,16 @@ function getFavoriteProperties(): PropertyListItem[] {
     const depositText = formatPriceToManwon(snapshot.price.depositAmount);
     const monthlyRentText = formatPriceToManwon(snapshot.price.monthlyRent);
 
+    const mainImage =
+      snapshot.images.find((image) => image.isMain)?.imageUrl ??
+      snapshot.images[0]?.imageUrl;
+
     return {
       id: snapshot.propertyId,
       title: snapshot.title,
       price: `${depositText} / ${monthlyRentText}`,
       description: snapshot.matchReasons.join(" · "),
+      image: mainImage,
       area: `${snapshot.areaM2}㎡`,
       distance:
         snapshot.keyPlaceRoutes[0]?.routeJson.totalTime !== undefined

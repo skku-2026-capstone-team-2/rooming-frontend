@@ -19,7 +19,10 @@ import {
   loadPropertyMarkers,
   loadSchoolMarker,
 } from "../utils/tmapMarkerUtils";
-import { getPropertiesByListMode, type ListMode } from "../utils/propertyListItems";
+import {
+  getPropertiesByListMode,
+  type ListMode,
+} from "../utils/propertyListItems";
 
 const MAP_CENTER = {
   lat: 37.5882,
@@ -37,6 +40,11 @@ const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
   customKeyword: "",
 };
 
+function getValidListMode(value: string | null): ListMode {
+  if (value === "favorites") return "favorites";
+  return "recommended";
+}
+
 export default function MainMapScreen() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -50,8 +58,8 @@ export default function MainMapScreen() {
 
   const setSearchParamsRef = useRef(setSearchParams);
 
-  const [listMode, setListMode] = useState<ListMode>("recommended");
-  const listModeRef = useRef<ListMode>("recommended");
+  const listMode = getValidListMode(searchParams.get("mode"));
+  const listModeRef = useRef<ListMode>(listMode);
 
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
@@ -77,6 +85,10 @@ export default function MainMapScreen() {
     setSearchParamsRef.current = setSearchParams;
   }, [setSearchParams]);
 
+  useEffect(() => {
+    listModeRef.current = listMode;
+  }, [listMode]);
+
   const renderPropertyMarkers = useCallback(
     (properties = currentProperties) => {
       if (!mapRef.current) return;
@@ -85,7 +97,14 @@ export default function MainMapScreen() {
         map: mapRef.current,
         properties,
         markersRef: propertyMarkersRef,
-        onClickProperty: setSearchParamsRef.current,
+        onClickProperty: (nextParams) => {
+          setSearchParamsRef.current((prev) => {
+            const params = new URLSearchParams(prev);
+            params.set("mode", listModeRef.current);
+            params.set("propertyId", nextParams.propertyId);
+            return params;
+          });
+        },
       });
     },
     [currentProperties]
@@ -109,9 +128,14 @@ export default function MainMapScreen() {
   const handleChangeListMode = (mode: ListMode) => {
     const nextProperties = getPropertiesByListMode(mode);
 
-    setListMode(mode);
     listModeRef.current = mode;
-    setSearchParams({});
+
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set("mode", mode);
+      params.delete("propertyId");
+      return params;
+    });
 
     if (showPropertyMarkersRef.current) {
       renderPropertyMarkers(nextProperties);
@@ -148,7 +172,11 @@ export default function MainMapScreen() {
   };
 
   const handleClosePropertyModal = () => {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.delete("propertyId");
+      return params;
+    });
   };
 
   const handleClickPropertyDetail = () => {
