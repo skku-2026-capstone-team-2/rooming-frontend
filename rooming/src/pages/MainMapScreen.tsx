@@ -283,7 +283,8 @@ export default function MainMapScreen() {
 
         <PropertyMarkerToggle
           enabled={showPropertyMarkers}
-          onToggle={handleTogglePropertyMarkers}
+          listMode={listMode}
+          onToggle={() => setShowPropertyMarkers((prev) => !prev)}
         />
 
         <PropertyDetailModal
