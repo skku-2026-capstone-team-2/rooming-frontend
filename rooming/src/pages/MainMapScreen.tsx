@@ -32,6 +32,55 @@ const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
   customKeyword: "",
 };
 
+type MapCenter = {
+  lat: number;
+  lng: number;
+};
+
+function getLatFromTmapCenter(center: any): number | null {
+  if (!center) return null;
+
+  if (typeof center.lat === "function") {
+    return Number(center.lat());
+  }
+
+  if (typeof center.lat === "number") {
+    return center.lat;
+  }
+
+  if (typeof center.getLat === "function") {
+    return Number(center.getLat());
+  }
+
+  if (typeof center._lat === "number") {
+    return center._lat;
+  }
+
+  return null;
+}
+
+function getLngFromTmapCenter(center: any): number | null {
+  if (!center) return null;
+
+  if (typeof center.lng === "function") {
+    return Number(center.lng());
+  }
+
+  if (typeof center.lng === "number") {
+    return center.lng;
+  }
+
+  if (typeof center.getLng === "function") {
+    return Number(center.getLng());
+  }
+
+  if (typeof center._lng === "number") {
+    return center._lng;
+  }
+
+  return null;
+}
+
 export default function MainMapScreen() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -57,6 +106,31 @@ export default function MainMapScreen() {
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
   }, [setSearchParams]);
+
+  const getCurrentMapCenter = useCallback((): MapCenter => {
+    const map = mapRef.current;
+
+    if (!map || typeof map.getCenter !== "function") {
+      return MAP_CENTER;
+    }
+
+    const center = map.getCenter();
+
+    const lat = getLatFromTmapCenter(center);
+    const lng = getLngFromTmapCenter(center);
+
+    if (
+      lat === null ||
+      lng === null ||
+      Number.isNaN(lat) ||
+      Number.isNaN(lng)
+    ) {
+      console.warn("현재 지도 중심 좌표를 읽지 못해 기본 중심 좌표를 사용합니다.");
+      return MAP_CENTER;
+    }
+
+    return { lat, lng };
+  }, []);
 
   const clearSchoolMarker = useCallback(() => {
     if (!schoolMarkerRef.current) return;
@@ -169,11 +243,13 @@ export default function MainMapScreen() {
       return;
     }
 
+    const currentCenter = getCurrentMapCenter();
+
     loadPoiMarkers({
       map: mapRef.current,
       markersRef: infraMarkersRef,
       condition,
-      center: MAP_CENTER,
+      center: currentCenter,
     });
   };
 
