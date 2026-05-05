@@ -5,6 +5,7 @@ type Property = {
   title: string;
   price: string;
   description?: string;
+  image?: string;
   area?: string;
   distance?: string;
   lat: number;
@@ -37,20 +38,30 @@ export default function PropertyDetailModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 z-20 rounded-full  p-2 text-[#8B8850] hover:text-[#4A4530]"
+          className="absolute right-2 top-2 z-20 rounded-lg bg-white p-2 text-[#8B8850] transition hover:bg-white hover:text-[#4A4530]"
           aria-label="닫기"
         >
           <X className="h-4 w-4" />
         </button>
 
         {/* 매물 사진 + 정보 오버레이 */}
-        <div className="relative mb-3 flex h-52 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30">
-          <div className="text-center">
-            <Home className="mx-auto mb-2 h-14 w-14 text-[#6B6847]" />
-            <p className="text-xs font-medium text-[#6B6847]">
-              매물 사진 영역
-            </p>
-          </div>
+        <div className="relative mb-3 h-52 overflow-hidden rounded-2xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30">
+          {property.image ? (
+            <img
+              src={property.image}
+              alt={property.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="text-center">
+                <Home className="mx-auto mb-2 h-14 w-14 text-[#6B6847]" />
+                <p className="text-xs font-medium text-[#6B6847]">
+                  매물 사진 영역
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* 하단 오버레이 */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 via-black/35 to-transparent px-4 pb-3 pt-12">
@@ -88,7 +99,7 @@ export default function PropertyDetailModal({
             </div>
 
             <p className="shrink-0 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold text-[#8B8850]">
-              정문까지 {property.distance ?? "정문 도보 12분"}
+              정문까지 {property.distance ?? "12분"}
             </p>
           </div>
 

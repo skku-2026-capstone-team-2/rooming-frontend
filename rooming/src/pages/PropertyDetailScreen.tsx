@@ -64,13 +64,23 @@ export default function PropertyDetailScreen() {
             </button>
 
             {/* 매물 사진 + 정보 오버레이 */}
-            <div className="relative flex h-[430px] items-center justify-center overflow-hidden rounded-3xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30 shadow-sm">
-              <div className="text-center">
-                <Home className="mx-auto mb-3 h-20 w-20 text-[#6B6847]" />
-                <div className="text-base font-medium text-[#6B6847]">
-                  매물 사진 영역
+            <div className="relative h-[430px] overflow-hidden rounded-3xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30 shadow-sm">
+              {property.image ? (
+                <img
+                  src={property.image}
+                  alt={property.title}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <div className="text-center">
+                    <Home className="mx-auto mb-3 h-20 w-20 text-[#6B6847]" />
+                    <div className="text-base font-medium text-[#6B6847]">
+                      매물 사진 영역
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 하단 오버레이 */}
               <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent px-6 pb-6 pt-24">
