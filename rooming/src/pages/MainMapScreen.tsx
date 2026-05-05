@@ -8,6 +8,7 @@ import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
 import { createInfraMarkerHTML } from "../utils/createInfraMarkerHTML";
 import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 
+
 declare global {
   interface Window {
     Tmapv2: any;
