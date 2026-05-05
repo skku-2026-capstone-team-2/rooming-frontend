@@ -97,7 +97,7 @@ export default function MainMapScreen() {
           isOpen={!!selectedProperty}
           property={selectedProperty ?? null}
           onClose={() => setSearchParams({})}
-          onClickInfra={() => navigate("/infra-view")}
+          onClickInfra={() => navigate(`/infra-view?propertyId=${selectedProperty?.id}`)}
           onClick3D={() => navigate("/3d-view")}
         />
       </main>
