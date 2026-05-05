@@ -14,6 +14,7 @@ const aiResult = {
     "추천 결과를 종합하면 1번 매물은 학교까지 도보 11분이며, 아르바이트 장소와 가깝고 헬스장, BHC 접근성이 좋습니다.",
   recommendedPropertyNames: ["스테이원룸 101호", "캠퍼스빌 203호"],
   topProperty: {
+    id: 1,
     title: "스테이원룸 101호",
     depositAmount: 10000000,
     monthlyRent: 450000,
@@ -163,8 +164,8 @@ export default function AIPanel() {
                   </div>
 
                   <p className="mt-1 text-[11px] leading-4 text-[#8B8850]">
-                    보증금 {formatPrice(aiResult.topProperty.depositAmount)} · 월세{" "}
-                    {formatPrice(aiResult.topProperty.monthlyRent)}
+                    보증금 {formatPrice(aiResult.topProperty.depositAmount)} ·
+                    월세 {formatPrice(aiResult.topProperty.monthlyRent)}
                   </p>
                 </div>
 
@@ -199,7 +200,7 @@ export default function AIPanel() {
               {aiResult.topProperty.hasProperty3D && (
                 <button
                   type="button"
-                  onClick={() => navigate("/property-detail")}
+                  onClick={() => navigate(`/property/${aiResult.topProperty.id}`)}
                   className="mt-3 w-full rounded-xl border border-[#D8D7F5] bg-[#F8F8FF] px-3 py-2 text-xs font-semibold text-[#5A58AA] transition hover:bg-[#EFEFFF]"
                 >
                   매물 상세 보기
