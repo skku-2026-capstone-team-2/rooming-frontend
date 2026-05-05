@@ -111,7 +111,7 @@ export const favoriteListDummyData: {
         areaM2: 23.5,
         matchScore: 0.94,
         matchReasons: [
-          "학교까지 대중교통 17분",
+          "학교까지 도보 17분",
           "헬스장 도보 4분",
           "BHC 도보 6분",
         ],
