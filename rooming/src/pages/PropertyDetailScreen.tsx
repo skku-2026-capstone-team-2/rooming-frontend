@@ -3,41 +3,22 @@ import { Home, Target, Dumbbell, Store, Phone, Sparkles, ArrowLeft } from "lucid
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
   // const { id } = useParams();
-
   return (
     <div className="min-h-screen bg-[#FDFCF8]">
       <div className="mx-auto max-w-6xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2 rounded-xl border border-[#E8E6DD] bg-white px-5 py-3 text-base font-semibold text-[#6B6847] transition-all hover:bg-[#FDFCF8]"
-          >
-            <ArrowLeft className="h-4 w-4 shrink-0" />
-            돌아가기
-          </button>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => navigate("/infra-view")}
-              className="rounded-xl border border-[#D8D7F5] bg-white px-5 py-3 text-base font-semibold text-[#8B89DD] transition-all hover:bg-[#F8F8FF]"
-            >
-              인프라 보기
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate("/3d-view")}
-              className="rounded-xl bg-[#4A4530] px-5 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg"
-            >
-              3D 보기
-            </button>
-          </div>
-        </div>
-
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           {/* 좌측 메인 영역 */}
           <div className="space-y-6">
+            {/* 돌아가기 버튼: sticky 없음 */}
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="flex w-fit items-center gap-2 rounded-xl border border-[#E8E6DD] bg-white px-5 py-3 text-base font-semibold text-[#6B6847] transition-all hover:bg-[#FDFCF8]"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              돌아가기
+            </button>
+
             {/* 매물 사진 + 정보 오버레이 */}
             <div className="relative flex h-[430px] items-center justify-center overflow-hidden rounded-3xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30 shadow-sm">
               <div className="text-center">
@@ -99,30 +80,51 @@ export default function PropertyDetailScreen() {
             </div>
           </div>
 
-          {/* 우측 상세 정보 */}
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
-                기본 정보
-              </h3>
+          {/* 우측 영역: 버튼 + 기본 정보 + 문의하기 전체 sticky */}
+          <div className="lg:sticky lg:top-8 lg:self-start">
+            <div className="space-y-6">
+              {/* 인프라 보기 / 3D 보기 버튼 */}
+              <div className="flex w-full gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate("/infra-view")}
+                  className="flex-1 rounded-xl border border-[#D8D7F5] bg-white px-5 py-3 text-base font-semibold text-[#8B89DD] shadow-sm transition-all hover:bg-[#F8F8FF]"
+                >
+                  인프라 보기
+                </button>
 
-              <div className="space-y-3">
-                <InfoRow label="면적" value="23.1㎡" />
-                <InfoRow label="층수" value="3/5층" />
-                <InfoRow label="관리비" value="5만원" />
-                <InfoRow label="주소" value="종로구 성균관로" />
+                <button
+                  type="button"
+                  onClick={() => navigate("/3d-view")}
+                  className="flex-1 rounded-xl bg-[#4A4530] px-5 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg"
+                >
+                  3D 보기
+                </button>
               </div>
-            </div>
 
-            <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
-                문의하기
-              </h3>
+              <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
+                <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
+                  기본 정보
+                </h3>
 
-              <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A4530] px-4 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg">
-                <Phone className="h-4 w-4" />
-                부동산 연결하기
-              </button>
+                <div className="space-y-3">
+                  <InfoRow label="면적" value="23.1㎡" />
+                  <InfoRow label="층수" value="3/5층" />
+                  <InfoRow label="관리비" value="5만원" />
+                  <InfoRow label="주소" value="종로구 성균관로" />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
+                <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
+                  문의하기
+                </h3>
+
+                <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A4530] px-4 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg">
+                  <Phone className="h-4 w-4" />
+                  부동산 연결하기
+                </button>
+              </div>
             </div>
           </div>
         </div>
