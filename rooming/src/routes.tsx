@@ -2,13 +2,13 @@ import { createBrowserRouter } from "react-router";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import MainMapScreen from "./pages/MainMapScreen";
-import ResultScreen from "./pages/ResultScreen";
 import PropertyDetailScreen from "./pages/PropertyDetailScreen";
 import InfraSearchModal from "./pages/InfraSearchModal";
 import InfraViewScreen from "./pages/InfraViewScreen";
 import ThreeDViewScreen from "./pages/ThreeDViewScreen";
 import AdminScreen from "./pages/AdminScreen";
 import AIPanel from "./components/AIPanel";
+import AIResultScreen from "./pages/AIResultScreen";
 
 export const router = createBrowserRouter([
   {
@@ -32,8 +32,8 @@ export const router = createBrowserRouter([
     Component: AIPanel,
   },
   {
-    path: "/results",
-    Component: ResultScreen,
+    path: "/ai-result",
+    Component: AIResultScreen,
   },
   {
     path: "/property/:id",
