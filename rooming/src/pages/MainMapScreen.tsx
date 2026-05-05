@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import PropertyListPanel from "../components/PropertyListPanel";
 import InfraSearchWidget from "../components/InfraSearchWidget";
 import AIPanel from "../components/AIPanel";
@@ -17,12 +17,15 @@ declare global {
   }
 }
 
-type Property = (typeof properties)[number];
-
 export default function MainMapScreen() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const selectedPropertyId = searchParams.get("propertyId");
+
+  const selectedProperty = properties.find(
+    (property) => String(property.id) === selectedPropertyId
+  );
 
   useEffect(() => {
     const waitForTmap = () => {
@@ -60,7 +63,7 @@ export default function MainMapScreen() {
         });
 
         marker.addListener("click", () => {
-          setSelectedProperty(property);
+          setSearchParams({ propertyId: String(property.id) });
         });
       });
 
@@ -80,7 +83,7 @@ export default function MainMapScreen() {
     };
 
     waitForTmap();
-  }, []);
+  }, [setSearchParams]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
@@ -92,8 +95,8 @@ export default function MainMapScreen() {
 
         <PropertyDetailModal
           isOpen={!!selectedProperty}
-          property={selectedProperty}
-          onClose={() => setSelectedProperty(null)}
+          property={selectedProperty ?? null}
+          onClose={() => setSearchParams({})}
           onClickInfra={() => navigate("/infra-view")}
           onClick3D={() => navigate("/3d-view")}
         />
