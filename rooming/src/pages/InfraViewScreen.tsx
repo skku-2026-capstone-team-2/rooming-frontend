@@ -8,6 +8,7 @@ import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
 import { createInfraMarkerHTML } from "../utils/createInfraMarkerHTML";
 import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 import { drawDistanceLine } from "../utils/drawDistanceLine";
+import { drawPedestrianRoute } from "../utils/drawPedestrianRoute";
 
 declare global {
   interface Window {
@@ -16,9 +17,9 @@ declare global {
 }
 
 const SCHOOL_PLACE = {
-  label: "성균관대 경영관",
-  lat: 37.5888,
-  lng: 126.9926,
+  label: "성균관대 정문",
+  lat: 37.5849,
+  lng: 126.9953,
 };
 
 const infraCategoryLabel: Record<string, string> = {
@@ -125,17 +126,18 @@ export default function InfraViewScreen() {
         });
 
         // 매물 ↔ 학교 거리선
-        drawDistanceLine({
+        drawPedestrianRoute({
           map,
           from: {
             lat: selectedProperty.lat,
             lng: selectedProperty.lng,
+            name: selectedProperty.title,
           },
           to: {
             lat: SCHOOL_PLACE.lat,
             lng: SCHOOL_PLACE.lng,
+            name: SCHOOL_PLACE.label,
           },
-          label: selectedProperty.distance ?? "도보 12분",
           strokeColor: "#6B67BB",
         });
 
