@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Coffee, Dumbbell, Pill, Store, School } from "lucide-react";
+import { ArrowLeft, Coffee, Dumbbell, Pill, Store, School, Home } from "lucide-react";
 
 import { properties } from "../data/dummyProperties";
 import { infraPlaces } from "../data/dummyInfraPlaces";
@@ -201,7 +201,7 @@ export default function InfraViewScreen() {
           </div>
         </div>
 
-        <div className="max-h-[500px] space-y-3 overflow-y-auto pr-1">
+        <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
           {nearbyInfraPlaces.map((place) => {
             const Icon = infraCategoryIcon[place.type] ?? Store;
 
@@ -235,21 +235,49 @@ export default function InfraViewScreen() {
       </section>
 
       {/* 우측 하단 선택 매물 카드 */}
-      <section className="absolute bottom-6 right-6 z-20 w-[340px] rounded-3xl border border-[#E8E6DD] bg-transparent/90 p-5 shadow-xl backdrop-blur-sm">
-        <h2 className="text-lg font-bold text-[#4A4530]">
-          {selectedProperty.title}
-        </h2>
+      <section className="absolute bottom-6 right-6 z-20 w-[360px] rounded-3xl border border-[#E8E6DD] bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+        {/* 매물 사진 영역 */}
+        <div className="relative mb-4 flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30">
+          <div className="text-center">
+            <Home className="mx-auto mb-2 h-12 w-12 text-[#6B6847]" />
+            <p className="text-xs font-medium text-[#6B6847]">매물 사진 영역</p>
+          </div>
 
-        <div className="mt-2 flex items-center justify-between rounded-2xl bg-[#FDFBD4] px-4 py-3">
-          <span className="text-sm font-medium text-[#8B8850]">가격</span>
+          {/* 하단 오버레이 */}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/35 to-transparent px-4 pb-3 pt-12">
+            <div className="mb-2 flex items-center gap-2">
+              <span className="rounded-full border border-white/40 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#5A58AA]">
+                AI 추천
+              </span>
+              <span className="rounded-full border border-white/40 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#8B8850]">
+                원룸
+              </span>
+            </div>
+
+            <h2 className="line-clamp-1 text-base font-bold text-white">
+              {selectedProperty.title}
+            </h2>
+
+            {selectedProperty.description && (
+              <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-white/85">
+                {selectedProperty.description}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* 가격 */}
+        <div className="flex items-center justify-between rounded-2xl border border-[#EEECCA] bg-[#FDFBD4] px-4 py-3">
+          <span className="text-sm font-medium text-[#8B8850]">보증금 / 월세</span>
           <span className="text-base font-bold text-[#6B6847]">
             {selectedProperty.price}
           </span>
         </div>
 
+        {/* 학교까지 거리 */}
         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[#E8E7FF] bg-[#F8F8FF] px-4 py-3 text-sm text-[#5A58AA]">
-          <School className="h-4 w-4" />
-          <span>
+          <School className="h-4 w-4 shrink-0" />
+          <span className="line-clamp-1">
             {SCHOOL_PLACE.label}까지 {selectedProperty.distance ?? "도보 12분"}
           </span>
         </div>
