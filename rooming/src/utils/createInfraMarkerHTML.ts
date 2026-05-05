@@ -1,4 +1,4 @@
-export type InfraMarkerType = "store" | "cafe" | "gym" | "bus";
+export type InfraMarkerType = "store" | "cafe" | "gym" | "bus" | "default";
 
 function escapeHTML(value: string) {
   return value
@@ -38,6 +38,10 @@ const infraIconSVG: Record<InfraMarkerType, string> = {
     <path d="M6 18h.01" />
     <path d="M18 18h.01" />
     <path d="M5 20h14a2 2 0 0 0 2-2V8a5 5 0 0 0-5-5H8a5 5 0 0 0-5 5v10a2 2 0 0 0 2 2Z" />
+  `,
+  default: `
+    <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
+    <circle cx="12" cy="10" r="3" />
   `,
 };
 

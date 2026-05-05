@@ -1,25 +1,101 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+
 import PropertyListPanel from "../components/PropertyListPanel";
 import InfraSearchWidget from "../components/InfraSearchWidget";
 import AIPanel from "../components/AIPanel";
 import PropertyDetailModal from "../components/PropertyDetailModal";
+import PropertyMarkerToggle from "../components/PropertyMarkerToggle";
 
 import { properties } from "../data/dummyProperties";
-import { infraPlaces } from "../data/dummyInfraPlaces";
 import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
-import { createInfraMarkerHTML } from "../utils/createInfraMarkerHTML";
 import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
+import {
+  clearInfraMarkers,
+  loadPoiMarkers,
+  type InfraSearchCondition,
+} from "../utils/infraPoiMarkers";
 
-declare global {
-  interface Window {
-    Tmapv2: any;
+const MAP_CENTER = {
+  lat: 37.5882,
+  lng: 126.9936,
+};
+
+const SCHOOL_LOCATION = {
+  lat: 37.5849,
+  lng: 126.9953,
+};
+
+const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
+  categories: [],
+  radius: 500,
+  customKeyword: "",
+};
+
+type MapCenter = {
+  lat: number;
+  lng: number;
+};
+
+function getLatFromTmapCenter(center: any): number | null {
+  if (!center) return null;
+
+  if (typeof center.lat === "function") {
+    return Number(center.lat());
   }
+
+  if (typeof center.lat === "number") {
+    return center.lat;
+  }
+
+  if (typeof center.getLat === "function") {
+    return Number(center.getLat());
+  }
+
+  if (typeof center._lat === "number") {
+    return center._lat;
+  }
+
+  return null;
+}
+
+function getLngFromTmapCenter(center: any): number | null {
+  if (!center) return null;
+
+  if (typeof center.lng === "function") {
+    return Number(center.lng());
+  }
+
+  if (typeof center.lng === "number") {
+    return center.lng;
+  }
+
+  if (typeof center.getLng === "function") {
+    return Number(center.getLng());
+  }
+
+  if (typeof center._lng === "number") {
+    return center._lng;
+  }
+
+  return null;
 }
 
 export default function MainMapScreen() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const mapRef = useRef<any>(null);
+  const isMapInitializedRef = useRef(false);
+
+  const infraMarkersRef = useRef<any[]>([]);
+  const schoolMarkerRef = useRef<any>(null);
+  const propertyMarkersRef = useRef<any[]>([]);
+
+  const setSearchParamsRef = useRef(setSearchParams);
+
+  const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
+  const showPropertyMarkersRef = useRef(true);
 
   const selectedPropertyId = searchParams.get("propertyId");
 
@@ -28,62 +104,224 @@ export default function MainMapScreen() {
   );
 
   useEffect(() => {
-    const waitForTmap = () => {
-      if (window.Tmapv2 && window.Tmapv2.Map) {
-        initMap();
-      } else {
-        setTimeout(waitForTmap, 100);
+    setSearchParamsRef.current = setSearchParams;
+  }, [setSearchParams]);
+
+  const getCurrentMapCenter = useCallback((): MapCenter => {
+    const map = mapRef.current;
+
+    if (!map || typeof map.getCenter !== "function") {
+      return MAP_CENTER;
+    }
+
+    const center = map.getCenter();
+
+    const lat = getLatFromTmapCenter(center);
+    const lng = getLngFromTmapCenter(center);
+
+    if (
+      lat === null ||
+      lng === null ||
+      Number.isNaN(lat) ||
+      Number.isNaN(lng)
+    ) {
+      console.warn("현재 지도 중심 좌표를 읽지 못해 기본 중심 좌표를 사용합니다.");
+      return MAP_CENTER;
+    }
+
+    return { lat, lng };
+  }, []);
+
+  const clearSchoolMarker = useCallback(() => {
+    if (!schoolMarkerRef.current) return;
+
+    try {
+      schoolMarkerRef.current.setMap(null);
+    } catch (error) {
+      console.warn("학교 마커 제거 실패:", error);
+    }
+
+    schoolMarkerRef.current = null;
+  }, []);
+
+  const loadSchoolMarker = useCallback((map: any) => {
+    if (!window.Tmapv2 || !map) return;
+
+    if (schoolMarkerRef.current) {
+      return;
+    }
+
+    schoolMarkerRef.current = new window.Tmapv2.Marker({
+      position: new window.Tmapv2.LatLng(
+        SCHOOL_LOCATION.lat,
+        SCHOOL_LOCATION.lng
+      ),
+      map,
+      iconHTML: createSchoolMarkerHTML("성균관대 정문"),
+      zIndex: 40,
+    });
+  }, []);
+
+  const clearPropertyMarkers = useCallback(() => {
+    propertyMarkersRef.current.forEach((marker) => {
+      try {
+        marker.setMap(null);
+      } catch (error) {
+        console.warn("추천 매물 마커 제거 실패:", error);
       }
-    };
+    });
+
+    propertyMarkersRef.current = [];
+  }, []);
+
+  const loadPropertyMarkers = useCallback(
+    (map: any) => {
+      if (!window.Tmapv2 || !map) return;
+
+      clearPropertyMarkers();
+
+      properties.slice(0, 3).forEach((property) => {
+        const propertyMarker = new window.Tmapv2.Marker({
+          position: new window.Tmapv2.LatLng(property.lat, property.lng),
+          map,
+          title: property.title,
+          iconHTML: createPropertyMarkerHTML(property.price),
+          zIndex: 30,
+        });
+
+        propertyMarker.addListener("click", () => {
+          setSearchParamsRef.current({
+            propertyId: String(property.id),
+          });
+        });
+
+        propertyMarkersRef.current.push(propertyMarker);
+      });
+    },
+    [clearPropertyMarkers]
+  );
+
+  const resetMapContainer = useCallback(() => {
+    clearInfraMarkers(infraMarkersRef);
+    clearSchoolMarker();
+    clearPropertyMarkers();
+
+    mapRef.current = null;
+    isMapInitializedRef.current = false;
+
+    const mapContainer = document.getElementById("map_div");
+
+    if (mapContainer) {
+      mapContainer.innerHTML = "";
+    }
+  }, [clearSchoolMarker, clearPropertyMarkers]);
+
+  const handleTogglePropertyMarkers = () => {
+    setShowPropertyMarkers((prev) => {
+      const next = !prev;
+
+      showPropertyMarkersRef.current = next;
+
+      if (next) {
+        if (!mapRef.current) {
+          console.warn("지도 로드 전이라 추천 매물 마커를 표시할 수 없습니다.");
+          return next;
+        }
+
+        loadPropertyMarkers(mapRef.current);
+      } else {
+        clearPropertyMarkers();
+      }
+
+      return next;
+    });
+  };
+
+  const handleApplyInfraSearch = (condition: InfraSearchCondition) => {
+    if (!mapRef.current) {
+      console.warn("지도 로드 전이라 인프라 마커를 생성할 수 없습니다.");
+      return;
+    }
+
+    const currentCenter = getCurrentMapCenter();
+
+    loadPoiMarkers({
+      map: mapRef.current,
+      markersRef: infraMarkersRef,
+      condition,
+      center: currentCenter,
+    });
+  };
+
+  useEffect(() => {
+    let timeoutId: number | null = null;
+    let cancelled = false;
 
     const initMap = () => {
-      if (!window.Tmapv2) return;
+      if (cancelled) return;
+      if (!window.Tmapv2 || !window.Tmapv2.Map) return;
+
+      if (isMapInitializedRef.current || mapRef.current) {
+        return;
+      }
+
+      const mapContainer = document.getElementById("map_div");
+
+      if (!mapContainer) {
+        return;
+      }
+
+      mapContainer.innerHTML = "";
+
+      isMapInitializedRef.current = true;
 
       const map = new window.Tmapv2.Map("map_div", {
-        center: new window.Tmapv2.LatLng(37.5882, 126.9936),
+        center: new window.Tmapv2.LatLng(MAP_CENTER.lat, MAP_CENTER.lng),
         width: "100%",
         height: "100%",
         zoom: 17,
       });
 
-      // 학교 마커
-      new window.Tmapv2.Marker({
-        position: new window.Tmapv2.LatLng(37.5888, 126.9926),
+      mapRef.current = map;
+
+      loadSchoolMarker(map);
+
+      if (showPropertyMarkersRef.current) {
+        loadPropertyMarkers(map);
+      }
+
+      loadPoiMarkers({
         map,
-        iconHTML: createSchoolMarkerHTML("성균관대 경영관"),
-      });
-
-      // 상위 3개 추천 매물 마커
-      properties.slice(0, 3).forEach((property) => {
-        const marker = new window.Tmapv2.Marker({
-          position: new window.Tmapv2.LatLng(property.lat, property.lng),
-          map,
-          title: property.title,
-          iconHTML: createPropertyMarkerHTML(property.price),
-        });
-
-        marker.addListener("click", () => {
-          setSearchParams({ propertyId: String(property.id) });
-        });
-      });
-
-      // 인프라 마커
-      infraPlaces.forEach((place) => {
-        new window.Tmapv2.Marker({
-          position: new window.Tmapv2.LatLng(place.lat, place.lng),
-          map,
-          iconHTML: createInfraMarkerHTML({
-            label: place.label,
-            type: place.type,
-          }),
-        });
+        markersRef: infraMarkersRef,
+        condition: DEFAULT_INFRA_CONDITION,
+        center: MAP_CENTER,
       });
 
       console.log("지도 생성 완료");
     };
 
+    const waitForTmap = () => {
+      if (cancelled) return;
+
+      if (window.Tmapv2 && window.Tmapv2.Map) {
+        initMap();
+      } else {
+        timeoutId = window.setTimeout(waitForTmap, 100);
+      }
+    };
+
     waitForTmap();
-  }, [setSearchParams]);
+
+    return () => {
+      cancelled = true;
+
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
+
+      resetMapContainer();
+    };
+  }, [loadSchoolMarker, loadPropertyMarkers, resetMapContainer]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
@@ -91,13 +329,21 @@ export default function MainMapScreen() {
         <div id="map_div" className="h-full w-full" />
 
         <PropertyListPanel />
-        <InfraSearchWidget />
+
+        <InfraSearchWidget onApply={handleApplyInfraSearch} />
+
+        <PropertyMarkerToggle
+          enabled={showPropertyMarkers}
+          onToggle={handleTogglePropertyMarkers}
+        />
 
         <PropertyDetailModal
           isOpen={!!selectedProperty}
           property={selectedProperty ?? null}
           onClose={() => setSearchParams({})}
-          onClickInfra={() => navigate(`/infra-view?propertyId=${selectedProperty?.id}`)}
+          onClickInfra={() =>
+            navigate(`/infra-view?propertyId=${selectedProperty?.id}`)
+          }
           onClick3D={() => navigate("/3d-view")}
         />
       </main>
