@@ -1,7 +1,7 @@
 import { useEffect } from "react";
-import AIPanelScreen from "../components/AIPanel";
 import PropertyListPanel from "../components/PropertyListPanel";
 import InfraSearchWidget from "../components/InfraSearchWidget";
+import AIPanel from "../components/AIPanel";
 
 declare global {
   interface Window {
@@ -10,9 +10,6 @@ declare global {
 }
 
 export default function MainMapScreen() {
-  // const navigate = useNavigate();
-  // const mapInstanceRef = useRef<any>(null);
-
   useEffect(() => {
     const waitForTmap = () => {
       if (window.Tmapv2 && window.Tmapv2.Map) {
@@ -39,13 +36,17 @@ export default function MainMapScreen() {
   }, []);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#FDFCF8]">
-      <div id="map_div" className="absolute inset-0 h-full w-full" />
+    <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
+      {/* 왼쪽 지도 영역 */}
+      <main className="relative h-full flex-1 overflow-hidden">
+        <div id="map_div" className="h-full w-full" />
 
-      <PropertyListPanel />
-      <AIPanelScreen />
-      <InfraSearchWidget />
+        {/* 지도 위에 필요한 요소만 플로팅 */}
+        <PropertyListPanel />
+        <InfraSearchWidget />
+      </main>
 
+      <AIPanel />
     </div>
   );
 }
