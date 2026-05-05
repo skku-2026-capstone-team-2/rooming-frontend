@@ -1,8 +1,53 @@
-import { useNavigate } from "react-router";
-import { Home, Target, Dumbbell, Store, Phone, Sparkles, ArrowLeft } from "lucide-react";
+import { useNavigate, useParams } from "react-router";
+import {
+  Home,
+  Target,
+  Dumbbell,
+  Store,
+  Phone,
+  Sparkles,
+  ArrowLeft,
+} from "lucide-react";
+
+import { properties } from "../data/dummyProperties";
+
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
-  // const { id } = useParams();
+  const { id } = useParams();
+
+  const property = properties.find((item) => String(item.id) === id);
+
+  if (!property) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#FDFCF8] px-6">
+        <div className="w-full max-w-md rounded-3xl border border-[#E8E6DD] bg-white p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-bold text-[#4A4530]">
+            매물을 찾을 수 없어요
+          </h1>
+
+          <p className="mt-3 text-sm leading-6 text-[#8B8850]">
+            요청한 매물 정보가 존재하지 않거나 삭제되었을 수 있어요.
+          </p>
+
+          <button
+            type="button"
+            onClick={() => navigate("/map")}
+            className="mt-6 rounded-xl bg-[#4A4530] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#3A3520]"
+          >
+            지도로 돌아가기
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const area = property.area ?? "23.1㎡";
+  const distance = property.distance ?? "정문 도보 12분";
+  const description = property.description ?? "생활 인프라가 가까운 추천 매물";
+  const floor = "3/5층";
+  const maintenanceFee = "5만원";
+  const address = "종로구 성균관로";
+
   return (
     <div className="min-h-screen bg-[#FDFCF8]">
       <div className="mx-auto max-w-6xl px-6 py-8">
@@ -40,15 +85,15 @@ export default function PropertyDetailScreen() {
                 </div>
 
                 <h1 className="text-3xl font-bold text-white">
-                  성대 정문 도보권 원룸
+                  {property.title}
                 </h1>
 
                 <p className="mt-2 text-3xl font-bold text-[#FDFBD4]">
-                  500 / 55
+                  {property.price}
                 </p>
 
                 <p className="mt-2 line-clamp-1 text-sm leading-6 text-white/85">
-                  정문까지 도보 12분, 헬스장·편의점 인접
+                  {description}
                 </p>
               </div>
             </div>
@@ -60,9 +105,18 @@ export default function PropertyDetailScreen() {
               </h3>
 
               <div className="space-y-3">
-                <ReasonItem Icon={Target} text="정문까지 도보 12분, 통학 최적화" />
-                <ReasonItem Icon={Dumbbell} text="헬스장 도보 3분, 피트니스 생활권" />
-                <ReasonItem Icon={Store} text="편의점·카페 2분 거리, 생활 편의성 우수" />
+                <ReasonItem
+                  Icon={Target}
+                  text={`${distance}, 통학 접근성이 좋아요`}
+                />
+                <ReasonItem
+                  Icon={Dumbbell}
+                  text="헬스장 등 생활 인프라 접근성이 좋아요"
+                />
+                <ReasonItem
+                  Icon={Store}
+                  text="편의점·카페 등 일상 편의시설을 함께 확인할 수 있어요"
+                />
               </div>
             </div>
 
@@ -72,7 +126,7 @@ export default function PropertyDetailScreen() {
               </h3>
 
               <div className="space-y-2">
-                <DistanceItem place="성균관대 정문" distance="도보 12분" />
+                <DistanceItem place="성균관대 정문" distance={distance} />
                 <DistanceItem place="헬스장" distance="도보 3분" />
                 <DistanceItem place="편의점" distance="도보 2분" />
                 <DistanceItem place="카페" distance="도보 5분" />
@@ -87,15 +141,15 @@ export default function PropertyDetailScreen() {
               <div className="flex w-full gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate("/infra-view")}
-                  className="flex-1 rounded-xl border border-[#D8D7F5] bg-white px-5 py-3 text-base font-semibold text-[#8B89DD] shadow-sm transition-all hover:bg-[#F8F8FF]"
+                  onClick={() => navigate(`/infra-view?propertyId=${property.id}`)}
+                  className="flex-1 rounded-xl bg-[#8B89DD] px-5 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#7471CC] hover:shadow-lg"
                 >
                   인프라 보기
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => navigate("/3d-view")}
+                  onClick={() => navigate(`/3d-view?propertyId=${property.id}`)}
                   className="flex-1 rounded-xl bg-[#4A4530] px-5 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg"
                 >
                   3D 보기
@@ -108,10 +162,10 @@ export default function PropertyDetailScreen() {
                 </h3>
 
                 <div className="space-y-3">
-                  <InfoRow label="면적" value="23.1㎡" />
-                  <InfoRow label="층수" value="3/5층" />
-                  <InfoRow label="관리비" value="5만원" />
-                  <InfoRow label="주소" value="종로구 성균관로" />
+                  <InfoRow label="면적" value={area} />
+                  <InfoRow label="층수" value={floor} />
+                  <InfoRow label="관리비" value={maintenanceFee} />
+                  <InfoRow label="주소" value={address} />
                 </div>
               </div>
 
