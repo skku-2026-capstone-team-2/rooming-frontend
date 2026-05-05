@@ -74,6 +74,10 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
     applySearch(selectedCategories, selectedRadius, customKeyword);
   };
 
+  const searchButtonText = customKeyword.trim()
+    ? `${customKeyword.trim()} 검색하기`
+    : "인프라 검색하기";
+
   return (
     <div className="pointer-events-none absolute left-5 top-5 z-20 flex items-start gap-3">
       <div className="pointer-events-auto w-[260px] rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
@@ -110,6 +114,7 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
 
           <div className="flex items-center gap-2 rounded-xl border border-[#EEECCA] bg-white px-3 py-2">
             <Search className="h-3.5 w-3.5 shrink-0 text-[#8B8850]" />
+
             <input
               value={customKeyword}
               onChange={(e) => setCustomKeyword(e.target.value)}
@@ -129,7 +134,7 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
           onClick={handleApply}
           className="w-full rounded-xl bg-[#4A4530] py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3D3928]"
         >
-          인프라 검색하기
+          {searchButtonText}
         </button>
       </div>
 
