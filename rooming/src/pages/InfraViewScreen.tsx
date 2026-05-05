@@ -1,6 +1,14 @@
 import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Coffee, Dumbbell, Pill, Store, School, Home } from "lucide-react";
+import {
+  ArrowLeft,
+  Coffee,
+  Dumbbell,
+  Store,
+  School,
+  Home,
+  Bus,
+} from "lucide-react";
 
 import { properties } from "../data/dummyProperties";
 import { infraPlaces } from "../data/dummyInfraPlaces";
@@ -23,17 +31,17 @@ const SCHOOL_PLACE = {
 };
 
 const infraCategoryLabel: Record<string, string> = {
-  store: "편의점",
   cafe: "카페",
   gym: "헬스장",
-  pharmacy: "약국",
+  store: "편의점",
+  bus: "버스정류장",
 };
 
 const infraCategoryIcon: Record<string, React.ElementType> = {
-  store: Store,
   cafe: Coffee,
   gym: Dumbbell,
-  pharmacy: Pill,
+  store: Store,
+  bus: Bus,
 };
 
 export default function InfraViewScreen() {
@@ -125,7 +133,7 @@ export default function InfraViewScreen() {
           iconHTML: createPropertyMarkerHTML(selectedProperty.price),
         });
 
-        // 매물 ↔ 학교 거리선
+        // 매물 ↔ 학교 도보 경로
         drawPedestrianRoute({
           map,
           from: {
@@ -141,7 +149,7 @@ export default function InfraViewScreen() {
           strokeColor: "#6B67BB",
         });
 
-        // 인프라 마커 + 매물과의 거리선
+        // 인프라 마커 + 매물과의 점선
         nearbyInfraPlaces.forEach((place) => {
           new window.Tmapv2.Marker({
             position: new window.Tmapv2.LatLng(place.lat, place.lng),
@@ -162,7 +170,6 @@ export default function InfraViewScreen() {
               lat: place.lat,
               lng: place.lng,
             },
-            label: place.distance ?? "도보 5분",
             strokeColor: "#BDB96A",
           });
         });
@@ -226,7 +233,7 @@ export default function InfraViewScreen() {
                 </div>
 
                 <span className="rounded-full border border-[#E8E7FF] bg-[#F8F8FF] px-3 py-1 text-xs font-semibold text-[#5A58AA]">
-                  {place.distance ?? "도보 5분"}
+                  {place.distance}
                 </span>
               </div>
             );
@@ -240,7 +247,9 @@ export default function InfraViewScreen() {
         <div className="relative mb-4 flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30">
           <div className="text-center">
             <Home className="mx-auto mb-2 h-12 w-12 text-[#6B6847]" />
-            <p className="text-xs font-medium text-[#6B6847]">매물 사진 영역</p>
+            <p className="text-xs font-medium text-[#6B6847]">
+              매물 사진 영역
+            </p>
           </div>
 
           {/* 하단 오버레이 */}
@@ -268,7 +277,9 @@ export default function InfraViewScreen() {
 
         {/* 가격 */}
         <div className="flex items-center justify-between rounded-2xl border border-[#EEECCA] bg-[#FDFBD4] px-4 py-3">
-          <span className="text-sm font-medium text-[#8B8850]">보증금 / 월세</span>
+          <span className="text-sm font-medium text-[#8B8850]">
+            보증금 / 월세
+          </span>
           <span className="text-base font-bold text-[#6B6847]">
             {selectedProperty.price}
           </span>

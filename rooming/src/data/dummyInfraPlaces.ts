@@ -62,8 +62,8 @@ export const infraPlaces: InfraPlace[] = [
     id: 7,
     type: "gym",
     label: "필라테스",
-    lat: 37.5900,
-    lng: 126.9939,
+    lat: 37.5902,
+    lng: 126.9934,
     distance: "도보 6분",
   },
   {
