@@ -194,7 +194,7 @@ export default function InfraViewScreen() {
         className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-2xl border border-[#3A3830] bg-[#2A2820] px-5 py-3 text-sm font-semibold text-[#FDFCF8] shadow-lg transition hover:bg-[#3A3830]"
       >
         <ArrowLeft className="h-4 w-4" />
-        돌아가기
+        뒤로가기
       </button>
 
       {/* 좌측 하단 인프라 리스트 */}
@@ -246,13 +246,23 @@ export default function InfraViewScreen() {
       {/* 우측 하단 선택 매물 카드 */}
       <section className="absolute bottom-6 right-6 z-20 w-[360px] rounded-3xl border border-[#E8E6DD] bg-white/95 p-4 shadow-xl backdrop-blur-sm">
         {/* 매물 사진 영역 */}
-        <div className="relative mb-4 flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30">
-          <div className="text-center">
-            <Home className="mx-auto mb-2 h-12 w-12 text-[#6B6847]" />
-            <p className="text-xs font-medium text-[#6B6847]">
-              매물 사진 영역
-            </p>
-          </div>
+        <div className="relative mb-4 h-44 overflow-hidden rounded-2xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30">
+          {selectedProperty.image ? (
+            <img
+              src={selectedProperty.image}
+              alt={selectedProperty.title}
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <div className="text-center">
+                <Home className="mx-auto mb-2 h-12 w-12 text-[#6B6847]" />
+                <p className="text-xs font-medium text-[#6B6847]">
+                  매물 사진 영역
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* 하단 오버레이 */}
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/35 to-transparent px-4 pb-3 pt-12">
@@ -276,7 +286,6 @@ export default function InfraViewScreen() {
             )}
           </div>
         </div>
-
         {/* 가격 */}
         <div className="flex items-center justify-between rounded-2xl border border-[#EEECCA] bg-[#FDFBD4] px-4 py-3">
           <span className="text-sm font-medium text-[#8B8850]">

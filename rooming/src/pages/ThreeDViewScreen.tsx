@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Home, RotateCw, ZoomIn, Ruler, Sun } from "lucide-react";
+import { Home, RotateCw, ZoomIn, Ruler, Sun, ArrowLeft } from "lucide-react";
 
 type ViewMode = "normal" | "floor";
 
@@ -99,10 +99,12 @@ export default function ThreeDViewScreen() {
 
       {/* 닫기 버튼 */}
       <button
+        type="button"
         onClick={() => navigate(-1)}
-        className="absolute left-6 top-6 z-10 rounded-xl border border-[#E8E6DD] bg-[#FDFCF8] px-5 py-3 text-base font-semibold text-[#2A2820] shadow-xl transition-all hover:bg-white"
+        className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-2xl border border-[#3A3830] bg-[#2A2820] px-5 py-3 text-sm font-semibold text-[#FDFCF8] shadow-lg transition hover:bg-[#3A3830]"
       >
-        ← 돌아가기
+        <ArrowLeft className="h-4 w-4" />
+        뒤로가기
       </button>
     </div>
   );

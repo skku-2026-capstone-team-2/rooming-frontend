@@ -9,6 +9,7 @@ import InfraViewScreen from "./pages/InfraViewScreen";
 import ThreeDViewScreen from "./pages/ThreeDViewScreen";
 import AdminScreen from "./pages/AdminScreen";
 import AIPanel from "./components/AIPanel";
+
 export const router = createBrowserRouter([
   {
     path: "/",

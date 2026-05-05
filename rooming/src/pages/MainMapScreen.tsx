@@ -253,6 +253,34 @@ export default function MainMapScreen() {
     });
   };
 
+  const handleClosePropertyModal = () => {
+    setSearchParams({});
+  };
+
+  const handleClickPropertyDetail = () => {
+    if (!selectedProperty) return;
+
+    navigate(`/property/${selectedProperty.id}`);
+  };
+
+  const handleClickInfra = () => {
+    if (!selectedProperty) {
+      navigate("/infra-view");
+      return;
+    }
+
+    navigate(`/infra-view?propertyId=${selectedProperty.id}`);
+  };
+
+  const handleClick3D = () => {
+    if (!selectedProperty) {
+      navigate("/3d-view");
+      return;
+    }
+
+    navigate(`/3d-view?propertyId=${selectedProperty.id}`);
+  };
+
   useEffect(() => {
     let timeoutId: number | null = null;
     let cancelled = false;
@@ -340,11 +368,10 @@ export default function MainMapScreen() {
         <PropertyDetailModal
           isOpen={!!selectedProperty}
           property={selectedProperty ?? null}
-          onClose={() => setSearchParams({})}
-          onClickInfra={() =>
-            navigate(`/infra-view?propertyId=${selectedProperty?.id}`)
-          }
-          onClick3D={() => navigate("/3d-view")}
+          onClose={handleClosePropertyModal}
+          onClickDetail={handleClickPropertyDetail}
+          onClickInfra={handleClickInfra}
+          onClick3D={handleClick3D}
         />
       </main>
 
