@@ -2,8 +2,8 @@ import { createInfraMarkerHTML } from "../utils/createInfraMarkerHTML";
 import {
   searchTmapPoiByKeyword,
   searchTmapPoisByTypes,
+  type PoiCategoryType,
   type PoiPlace,
-  type PoiType,
 } from "../api/tmapPoi";
 
 export type InfraSearchCondition = {
@@ -24,7 +24,7 @@ type LoadPoiMarkersParams = {
   center: MapCenter;
 };
 
-const isPoiType = (value: string): value is PoiType => {
+const isPoiCategoryType = (value: string): value is PoiCategoryType => {
   return ["cafe", "gym", "store", "bus"].includes(value);
 };
 
@@ -60,9 +60,16 @@ export const renderInfraMarkers = ({
       zIndex: 10,
     });
 
-    markersRef.current.push(marker);
+    infraMarkersRefSafePush(markersRef, marker);
   });
 };
+
+function infraMarkersRefSafePush(
+  markersRef: React.MutableRefObject<any[]>,
+  marker: any
+) {
+  markersRef.current.push(marker);
+}
 
 export const loadPoiMarkers = async ({
   map,
@@ -85,7 +92,7 @@ export const loadPoiMarkers = async ({
         radius: condition.radius,
       });
     } else {
-      const poiTypes = condition.categories.filter(isPoiType);
+      const poiTypes = condition.categories.filter(isPoiCategoryType);
 
       if (poiTypes.length === 0) {
         clearInfraMarkers(markersRef);
