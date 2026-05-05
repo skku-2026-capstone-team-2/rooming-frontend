@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router";
+import { useEffect } from "react";
 import AIPanelScreen from "../components/AIPanel";
 import PropertyListPanel from "../components/PropertyListPanel";
+import InfraSearchWidget from "../components/InfraSearchWidget";
 
 declare global {
   interface Window {
@@ -10,8 +10,8 @@ declare global {
 }
 
 export default function MainMapScreen() {
-  const navigate = useNavigate();
-  const mapInstanceRef = useRef<any>(null);
+  // const navigate = useNavigate();
+  // const mapInstanceRef = useRef<any>(null);
 
   useEffect(() => {
     const waitForTmap = () => {
@@ -44,35 +44,8 @@ export default function MainMapScreen() {
 
       <PropertyListPanel />
       <AIPanelScreen />
+      <InfraSearchWidget />
 
-      <div className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 gap-3 rounded-full border-2 border-[#EEECCA] bg-white px-5 py-3 shadow-xl">
-        <FilterButton text="매물 마커" active />
-        <FilterButton text="인프라 마커" active />
-        <FilterButton text="3D 보기" onClick={() => navigate("/3d-view")} />
-        <FilterButton text="인프라 검색" onClick={() => navigate("/infra-search")} />
-      </div>
     </div>
-  );
-}
-
-function FilterButton({
-  text,
-  active = false,
-  onClick,
-}: {
-  text: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full px-4 py-2 text-sm font-medium transition ${active
-        ? "bg-[#4A4530] text-white shadow-lg shadow-[#4A4530]/30"
-        : "bg-[#FDFBD4] text-[#8B8850] hover:bg-[#F5F5E8] hover:text-[#8B89DD]"
-        }`}
-    >
-      {text}
-    </button>
   );
 }
