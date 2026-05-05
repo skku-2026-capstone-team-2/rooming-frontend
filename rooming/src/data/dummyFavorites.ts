@@ -96,11 +96,11 @@ export const favoriteListDummyData: {
       propertyId: 101,
       snapshot: {
         propertyId: 101,
-        title: "성대역 도보권 햇살 원룸",
-        roadAddress: "경기 수원시 장안구 율전동 ...",
+        title: "혜화역 도보권 햇살 원룸",
+        roadAddress: "서울 종로구 명륜4가 ...",
         location: {
-          latitude: 37.2945,
-          longitude: 126.9748,
+          latitude: 37.5826,
+          longitude: 127.0012,
         },
         price: {
           transactionType: "MONTHLY_RENT",
@@ -111,9 +111,9 @@ export const favoriteListDummyData: {
         areaM2: 23.5,
         matchScore: 0.94,
         matchReasons: [
-          "학교까지 도보 17분",
+          "학교까지 도보 12분",
           "헬스장 도보 4분",
-          "BHC 도보 6분",
+          "음식점 도보 6분",
         ],
         images: [
           {
@@ -130,12 +130,12 @@ export const favoriteListDummyData: {
         },
         standardInfra: [
           {
-            name: "스포짐 수원성대점",
+            name: "피트니스 혜화점",
             category: "GYM",
-            roadAddress: "경기 수원시 장안구 ...",
+            roadAddress: "서울 종로구 대학로 ...",
             location: {
-              latitude: 37.2948,
-              longitude: 126.9752,
+              latitude: 37.583,
+              longitude: 127.0017,
             },
             transportMode: "WALK",
             routeJson: {
@@ -154,12 +154,12 @@ export const favoriteListDummyData: {
         ],
         runtimeInfra: [
           {
-            name: "BHC 수원성대점",
+            name: "BHC 혜화대학로점",
             category: "FOOD",
-            roadAddress: "경기 수원시 장안구 ...",
+            roadAddress: "서울 종로구 대학로 ...",
             location: {
-              latitude: 37.2952,
-              longitude: 126.9739,
+              latitude: 37.5821,
+              longitude: 127.0005,
             },
             transportMode: "WALK",
             routeJson: {
@@ -180,25 +180,18 @@ export const favoriteListDummyData: {
         keyPlaceRoutes: [
           {
             userPlaceId: 3,
-            placeName: "성균관대학교 자연과학캠퍼스",
+            placeName: "성균관대학교 인문사회과학캠퍼스",
             placeType: "UNIVERSITY",
-            transportMode: "TRANSIT",
+            transportMode: "WALK",
             routeJson: {
-              totalTime: 17,
-              totalDistance: 3600,
-              payment: 1450,
+              totalTime: 12,
+              totalDistance: 900,
+              payment: 0,
               pathList: [
                 {
                   type: "WALK",
-                  time: 5,
-                  distance: 300,
-                },
-                {
-                  type: "BUS",
                   time: 12,
-                  distance: 3300,
-                  stationCount: 5,
-                  lane: "7770",
+                  distance: 900,
                 },
               ],
             },
@@ -213,11 +206,11 @@ export const favoriteListDummyData: {
       propertyId: 102,
       snapshot: {
         propertyId: 102,
-        title: "율전동 조용한 풀옵션 원룸",
-        roadAddress: "경기 수원시 장안구 율전동 ...",
+        title: "명륜동 조용한 풀옵션 원룸",
+        roadAddress: "서울 종로구 명륜2가 ...",
         location: {
-          latitude: 37.2961,
-          longitude: 126.9729,
+          latitude: 37.5862,
+          longitude: 126.9988,
         },
         price: {
           transactionType: "MONTHLY_RENT",
@@ -228,7 +221,7 @@ export const favoriteListDummyData: {
         areaM2: 21.8,
         matchScore: 0.91,
         matchReasons: [
-          "학교까지 버스 14분",
+          "학교까지 도보 8분",
           "편의점 도보 2분",
           "카페 도보 5분",
         ],
@@ -247,12 +240,12 @@ export const favoriteListDummyData: {
         },
         standardInfra: [
           {
-            name: "CU 수원율전점",
+            name: "CU 명륜성대점",
             category: "CONVENIENCE_STORE",
-            roadAddress: "경기 수원시 장안구 ...",
+            roadAddress: "서울 종로구 명륜길 ...",
             location: {
-              latitude: 37.2964,
-              longitude: 126.9733,
+              latitude: 37.5865,
+              longitude: 126.9993,
             },
             transportMode: "WALK",
             routeJson: {
@@ -271,12 +264,12 @@ export const favoriteListDummyData: {
         ],
         runtimeInfra: [
           {
-            name: "메가커피 수원성대점",
+            name: "메가커피 혜화역점",
             category: "CAFE",
-            roadAddress: "경기 수원시 장안구 ...",
+            roadAddress: "서울 종로구 대학로 ...",
             location: {
-              latitude: 37.2959,
-              longitude: 126.9747,
+              latitude: 37.5848,
+              longitude: 127.0002,
             },
             transportMode: "WALK",
             routeJson: {
@@ -297,25 +290,18 @@ export const favoriteListDummyData: {
         keyPlaceRoutes: [
           {
             userPlaceId: 3,
-            placeName: "성균관대학교 자연과학캠퍼스",
+            placeName: "성균관대학교 인문사회과학캠퍼스",
             placeType: "UNIVERSITY",
-            transportMode: "TRANSIT",
+            transportMode: "WALK",
             routeJson: {
-              totalTime: 14,
-              totalDistance: 3100,
-              payment: 1450,
+              totalTime: 8,
+              totalDistance: 650,
+              payment: 0,
               pathList: [
                 {
                   type: "WALK",
-                  time: 4,
-                  distance: 260,
-                },
-                {
-                  type: "BUS",
-                  time: 10,
-                  distance: 2840,
-                  stationCount: 4,
-                  lane: "62-1",
+                  time: 8,
+                  distance: 650,
                 },
               ],
             },
@@ -330,11 +316,11 @@ export const favoriteListDummyData: {
       propertyId: 103,
       snapshot: {
         propertyId: 103,
-        title: "정문 가까운 깔끔한 분리형 원룸",
-        roadAddress: "경기 수원시 장안구 천천동 ...",
+        title: "성대 정문 가까운 깔끔한 분리형 원룸",
+        roadAddress: "서울 종로구 명륜3가 ...",
         location: {
-          latitude: 37.2928,
-          longitude: 126.9762,
+          latitude: 37.5891,
+          longitude: 126.9956,
         },
         price: {
           transactionType: "MONTHLY_RENT",
@@ -345,7 +331,7 @@ export const favoriteListDummyData: {
         areaM2: 24.7,
         matchScore: 0.89,
         matchReasons: [
-          "학교까지 도보 13분",
+          "학교까지 도보 5분",
           "버스정류장 도보 3분",
           "헬스장 도보 7분",
         ],
@@ -360,12 +346,12 @@ export const favoriteListDummyData: {
         property3D: null,
         standardInfra: [
           {
-            name: "성대앞 버스정류장",
+            name: "성대입구 버스정류장",
             category: "BUS_STOP",
-            roadAddress: "경기 수원시 장안구 ...",
+            roadAddress: "서울 종로구 성균관로 ...",
             location: {
-              latitude: 37.2931,
-              longitude: 126.9766,
+              latitude: 37.5886,
+              longitude: 126.9961,
             },
             transportMode: "WALK",
             routeJson: {
@@ -384,12 +370,12 @@ export const favoriteListDummyData: {
         ],
         runtimeInfra: [
           {
-            name: "GS25 수원성대점",
+            name: "GS25 성대입구점",
             category: "CONVENIENCE_STORE",
-            roadAddress: "경기 수원시 장안구 ...",
+            roadAddress: "서울 종로구 성균관로 ...",
             location: {
-              latitude: 37.2935,
-              longitude: 126.9756,
+              latitude: 37.5882,
+              longitude: 126.995,
             },
             transportMode: "WALK",
             routeJson: {
@@ -410,18 +396,18 @@ export const favoriteListDummyData: {
         keyPlaceRoutes: [
           {
             userPlaceId: 3,
-            placeName: "성균관대학교 자연과학캠퍼스",
+            placeName: "성균관대학교 인문사회과학캠퍼스",
             placeType: "UNIVERSITY",
             transportMode: "WALK",
             routeJson: {
-              totalTime: 13,
-              totalDistance: 980,
+              totalTime: 5,
+              totalDistance: 380,
               payment: 0,
               pathList: [
                 {
                   type: "WALK",
-                  time: 13,
-                  distance: 980,
+                  time: 5,
+                  distance: 380,
                 },
               ],
             },

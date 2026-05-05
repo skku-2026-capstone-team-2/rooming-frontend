@@ -1,13 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
-import PropertyListPanel from "../components/PropertyListPanel";
+import PropertyListPanel, {
+  type ListMode,
+  type PropertyListItem,
+} from "../components/PropertyListPanel";
 import InfraSearchWidget from "../components/InfraSearchWidget";
 import AIPanel from "../components/AIPanel";
 import PropertyDetailModal from "../components/PropertyDetailModal";
 import PropertyMarkerToggle from "../components/PropertyMarkerToggle";
 
-import { properties } from "../data/dummyProperties";
+import { properties as dummyProperties } from "../data/dummyProperties";
+import { favoriteListDummyData } from "../data/dummyFavorites";
 import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
 import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 import {
@@ -81,6 +85,57 @@ function getLngFromTmapCenter(center: any): number | null {
   return null;
 }
 
+function formatPriceToManwon(value: number) {
+  return `${Math.floor(value / 10000)}`;
+}
+
+function getRecommendedProperties(): PropertyListItem[] {
+  return dummyProperties.slice(0, 3).map((property) => ({
+    id: property.id,
+    title: property.title,
+    price: property.price,
+    description: property.description,
+    area: property.area,
+    distance: property.distance,
+    lat: property.lat,
+    lng: property.lng,
+    mode: "recommended",
+  }));
+}
+
+function getFavoriteProperties(): PropertyListItem[] {
+  return favoriteListDummyData.data.slice(0, 3).map((favorite) => {
+    const { snapshot } = favorite;
+
+    const depositText = formatPriceToManwon(snapshot.price.depositAmount);
+    const monthlyRentText = formatPriceToManwon(snapshot.price.monthlyRent);
+
+    return {
+      id: snapshot.propertyId,
+      title: snapshot.title,
+      price: `${depositText} / ${monthlyRentText}`,
+      description: snapshot.matchReasons.join(" · "),
+      area: `${snapshot.areaM2}㎡`,
+      distance:
+        snapshot.keyPlaceRoutes[0]?.routeJson.totalTime !== undefined
+          ? `${snapshot.keyPlaceRoutes[0].routeJson.totalTime}분`
+          : undefined,
+      lat: snapshot.location.latitude,
+      lng: snapshot.location.longitude,
+      mode: "favorites",
+      matchScore: snapshot.matchScore,
+    };
+  });
+}
+
+function getPropertiesByListMode(listMode: ListMode): PropertyListItem[] {
+  if (listMode === "recommended") {
+    return getRecommendedProperties();
+  }
+
+  return getFavoriteProperties();
+}
+
 export default function MainMapScreen() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -94,14 +149,28 @@ export default function MainMapScreen() {
 
   const setSearchParamsRef = useRef(setSearchParams);
 
+  const [listMode, setListMode] = useState<ListMode>("recommended");
+  const listModeRef = useRef<ListMode>("recommended");
+
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
 
+  const currentProperties = useMemo(
+    () => getPropertiesByListMode(listMode),
+    [listMode]
+  );
+
   const selectedPropertyId = searchParams.get("propertyId");
 
-  const selectedProperty = properties.find(
-    (property) => String(property.id) === selectedPropertyId
-  );
+  const selectedProperty = useMemo(() => {
+    if (!selectedPropertyId) return null;
+
+    return (
+      currentProperties.find(
+        (property) => String(property.id) === selectedPropertyId
+      ) ?? null
+    );
+  }, [currentProperties, selectedPropertyId]);
 
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
@@ -167,7 +236,7 @@ export default function MainMapScreen() {
       try {
         marker.setMap(null);
       } catch (error) {
-        console.warn("추천 매물 마커 제거 실패:", error);
+        console.warn("매물 마커 제거 실패:", error);
       }
     });
 
@@ -175,12 +244,12 @@ export default function MainMapScreen() {
   }, []);
 
   const loadPropertyMarkers = useCallback(
-    (map: any) => {
+    (map: any, properties: PropertyListItem[]) => {
       if (!window.Tmapv2 || !map) return;
 
       clearPropertyMarkers();
 
-      properties.slice(0, 3).forEach((property) => {
+      properties.forEach((property) => {
         const propertyMarker = new window.Tmapv2.Marker({
           position: new window.Tmapv2.LatLng(property.lat, property.lng),
           map,
@@ -216,6 +285,19 @@ export default function MainMapScreen() {
     }
   }, [clearSchoolMarker, clearPropertyMarkers]);
 
+  const handleChangeListMode = (mode: ListMode) => {
+    const nextProperties = getPropertiesByListMode(mode);
+
+    setListMode(mode);
+    listModeRef.current = mode;
+    setSearchParams({});
+
+    if (!showPropertyMarkersRef.current) return;
+    if (!mapRef.current) return;
+
+    loadPropertyMarkers(mapRef.current, nextProperties);
+  };
+
   const handleTogglePropertyMarkers = () => {
     setShowPropertyMarkers((prev) => {
       const next = !prev;
@@ -224,11 +306,12 @@ export default function MainMapScreen() {
 
       if (next) {
         if (!mapRef.current) {
-          console.warn("지도 로드 전이라 추천 매물 마커를 표시할 수 없습니다.");
+          console.warn("지도 로드 전이라 매물 마커를 표시할 수 없습니다.");
           return next;
         }
 
-        loadPropertyMarkers(mapRef.current);
+        const nextProperties = getPropertiesByListMode(listModeRef.current);
+        loadPropertyMarkers(mapRef.current, nextProperties);
       } else {
         clearPropertyMarkers();
       }
@@ -315,7 +398,7 @@ export default function MainMapScreen() {
       loadSchoolMarker(map);
 
       if (showPropertyMarkersRef.current) {
-        loadPropertyMarkers(map);
+        loadPropertyMarkers(map, currentProperties);
       }
 
       loadPoiMarkers({
@@ -349,14 +432,18 @@ export default function MainMapScreen() {
 
       resetMapContainer();
     };
-  }, [loadSchoolMarker, loadPropertyMarkers, resetMapContainer]);
+  }, [currentProperties, loadSchoolMarker, loadPropertyMarkers, resetMapContainer]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
       <main className="relative h-full flex-1 overflow-hidden">
         <div id="map_div" className="h-full w-full" />
 
-        <PropertyListPanel />
+        <PropertyListPanel
+          listMode={listMode}
+          properties={currentProperties}
+          onChangeListMode={handleChangeListMode}
+        />
 
         <InfraSearchWidget onApply={handleApplyInfraSearch} />
 
@@ -367,7 +454,7 @@ export default function MainMapScreen() {
 
         <PropertyDetailModal
           isOpen={!!selectedProperty}
-          property={selectedProperty ?? null}
+          property={selectedProperty}
           onClose={handleClosePropertyModal}
           onClickDetail={handleClickPropertyDetail}
           onClickInfra={handleClickInfra}
