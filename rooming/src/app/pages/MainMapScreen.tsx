@@ -36,9 +36,9 @@ export default function MainMapScreen() {
 
       // 학교 마커
       new window.Tmapv2.Marker({
-        position: new window.Tmapv2.LatLng(37.5882, 126.9936),
+        position: new window.Tmapv2.LatLng(37.5888, 126.9926),
         map,
-        title: "성균관대 경영관",
+        // title: "성균관대 경영관",
         iconHTML: createSchoolMarkerHTML("성균관대 경영관"),
       });
 
@@ -57,7 +57,7 @@ export default function MainMapScreen() {
         new window.Tmapv2.Marker({
           position: new window.Tmapv2.LatLng(place.lat, place.lng),
           map,
-          title: place.label,
+          // title: place.label,
           iconHTML: createInfraMarkerHTML({
             label: place.label,
             type: place.type,

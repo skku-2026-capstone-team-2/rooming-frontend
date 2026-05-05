@@ -57,9 +57,9 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
   };
 
   return (
-    <div className="absolute left-5 top-5 z-20 flex items-start gap-3">
+    <div className="pointer-events-none absolute left-5 top-5 z-20 flex items-start gap-3">
       {/* 왼쪽: 인프라 검색 위젯 */}
-      <div className="w-[260px] rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
+      <div className="pointer-events-auto w-[260px] rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
         {/* <div className="mb-3">
           <h3 className="text-base font-bold text-[#4A4530]">인프라 검색</h3>
         </div> */}
@@ -132,7 +132,7 @@ function InfraCategoryFloatingButtons({
   onToggleCategory,
 }: InfraCategoryFloatingButtonsProps) {
   return (
-    <div className="bg-transparent px-3 py-2.5">
+    <div className="pointer-events-auto bg-transparent px-3 py-2.5">
       <div className="flex items-center gap-2">
         {infraCategories.map((category) => {
           const isSelected = selectedCategories.includes(category.id);
