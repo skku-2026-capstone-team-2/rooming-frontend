@@ -76,12 +76,12 @@ export default function ThreeDViewScreen() {
 
       {/* 닫기 버튼 */}
       <button
-        onClick={() => navigate("/property-detail")}
-        className="absolute left-6 top-6 z-10 rounded-xl border border-[#3A3830] bg-[#2A2820] px-5 py-3 text-base font-semibold text-[#FDFCF8] hover:bg-[#3A3830] transition-all"
+        onClick={() => navigate(-1)}
+        className="absolute left-6 top-6 z-10 rounded-xl border border-[#E8E6DD] bg-[#FDFCF8] px-5 py-3 text-base font-semibold text-[#2A2820] shadow-xl transition-all hover:bg-white"
       >
-        ← 매물 상세로
+        ← 지도로 돌아가기
       </button>
-    </div>
+    </div >
   );
 }
 
