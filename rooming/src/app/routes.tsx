@@ -2,7 +2,7 @@ import { createBrowserRouter } from "react-router";
 import WelcomeScreen from "./pages/WelcomeScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import MainMapScreen from "./pages/MainMapScreen";
-import AIPanelScreen from "./components/AIPanel";
+import AIPanel from "./components/AIPanel";
 import ResultScreen from "./pages/ResultScreen";
 import PropertyDetailScreen from "./pages/PropertyDetailScreen";
 import InfraSearchModal from "./pages/InfraSearchModal";
@@ -24,11 +24,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/ai-search",
-    Component: AIPanelScreen,
+    Component: AIPanel,
   },
   {
     path: "/ai-panel",
-    Component: AIPanelScreen,
+    Component: AIPanel,
   },
   {
     path: "/results",

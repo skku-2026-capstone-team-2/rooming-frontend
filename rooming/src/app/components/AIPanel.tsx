@@ -7,7 +7,7 @@ export default function AIPanel() {
   const [query, setQuery] = useState("");
 
   return (
-    <aside className="absolute bottom-5 right-5 top-5 z-20 flex w-[300px] flex-col rounded-2xl border border-[#E8E6DD] bg-white/95 px-4 py-4 shadow-lg backdrop-blur-sm">
+    <aside className="flex h-full w-[320px] shrink-0 flex-col border-l border-[#E8E6DD] bg-white px-4 py-5 shadow-lg">
       <div className="shrink-0">
         <h2 className="text-xl font-bold text-[#4A4530]">AI 자연어 검색</h2>
         <p className="mt-1.5 text-xs leading-5 text-[#6B6847]">

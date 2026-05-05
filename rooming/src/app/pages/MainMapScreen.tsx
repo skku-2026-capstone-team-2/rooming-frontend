@@ -1,7 +1,12 @@
-import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router";
-import AIPanelScreen from "../components/AIPanel";
+import { useEffect } from "react";
 import PropertyListPanel from "../components/PropertyListPanel";
+import InfraSearchWidget from "../components/InfraSearchWidget";
+import AIPanel from "../components/AIPanel";
+import { properties } from "../data/dummyProperties";
+import { infraPlaces } from "../data/dummyInfraPlaces";
+import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
+import { createInfraMarkerHTML } from "../utils/createInfraMarkerHTML";
+import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 
 declare global {
   interface Window {
@@ -10,9 +15,6 @@ declare global {
 }
 
 export default function MainMapScreen() {
-  const navigate = useNavigate();
-  const mapInstanceRef = useRef<any>(null);
-
   useEffect(() => {
     const waitForTmap = () => {
       if (window.Tmapv2 && window.Tmapv2.Map) {
@@ -25,11 +27,42 @@ export default function MainMapScreen() {
     const initMap = () => {
       if (!window.Tmapv2) return;
 
-      new window.Tmapv2.Map("map_div", {
+      const map = new window.Tmapv2.Map("map_div", {
         center: new window.Tmapv2.LatLng(37.5882, 126.9936),
         width: "100%",
         height: "100%",
-        zoom: 15,
+        zoom: 17,
+      });
+
+      // 학교 마커
+      new window.Tmapv2.Marker({
+        position: new window.Tmapv2.LatLng(37.5888, 126.9926),
+        map,
+        // title: "성균관대 경영관",
+        iconHTML: createSchoolMarkerHTML("성균관대 경영관"),
+      });
+
+      // 상위 3개 추천 매물 마커
+      properties.slice(0, 3).forEach((property) => {
+        new window.Tmapv2.Marker({
+          position: new window.Tmapv2.LatLng(property.lat, property.lng),
+          map,
+          title: property.title,
+          iconHTML: createPropertyMarkerHTML(property.price),
+        });
+      });
+
+      // 인프라 마커
+      infraPlaces.forEach((place) => {
+        new window.Tmapv2.Marker({
+          position: new window.Tmapv2.LatLng(place.lat, place.lng),
+          map,
+          // title: place.label,
+          iconHTML: createInfraMarkerHTML({
+            label: place.label,
+            type: place.type,
+          }),
+        });
       });
 
       console.log("지도 생성 완료");
@@ -39,40 +72,15 @@ export default function MainMapScreen() {
   }, []);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#FDFCF8]">
-      <div id="map_div" className="absolute inset-0 h-full w-full" />
+    <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
+      <main className="relative h-full flex-1 overflow-hidden">
+        <div id="map_div" className="h-full w-full" />
 
-      <PropertyListPanel />
-      <AIPanelScreen />
+        <PropertyListPanel />
+        <InfraSearchWidget />
+      </main>
 
-      <div className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 gap-3 rounded-full border-2 border-[#EEECCA] bg-white px-5 py-3 shadow-xl">
-        <FilterButton text="매물 마커" active />
-        <FilterButton text="인프라 마커" active />
-        <FilterButton text="3D 보기" onClick={() => navigate("/3d-view")} />
-        <FilterButton text="인프라 검색" onClick={() => navigate("/infra-search")} />
-      </div>
+      <AIPanel />
     </div>
-  );
-}
-
-function FilterButton({
-  text,
-  active = false,
-  onClick,
-}: {
-  text: string;
-  active?: boolean;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`rounded-full px-4 py-2 text-sm font-medium transition ${active
-        ? "bg-[#4A4530] text-white shadow-lg shadow-[#4A4530]/30"
-        : "bg-[#FDFBD4] text-[#8B8850] hover:bg-[#F5F5E8] hover:text-[#8B89DD]"
-        }`}
-    >
-      {text}
-    </button>
   );
 }
