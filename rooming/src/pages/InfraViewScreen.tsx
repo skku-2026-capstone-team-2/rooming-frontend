@@ -131,6 +131,7 @@ export default function InfraViewScreen() {
           map,
           title: selectedProperty.title,
           iconHTML: createPropertyMarkerHTML(selectedProperty.price),
+          zIndex: 30,
         });
 
         // 매물 ↔ 학교 도보 경로
@@ -158,6 +159,7 @@ export default function InfraViewScreen() {
               label: place.label,
               type: place.type,
             }),
+            zIndex: 10,
           });
 
           drawDistanceLine({

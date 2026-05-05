@@ -60,6 +60,7 @@ export default function MainMapScreen() {
           map,
           title: property.title,
           iconHTML: createPropertyMarkerHTML(property.price),
+          zIndex: 30,
         });
 
         marker.addListener("click", () => {
@@ -76,6 +77,7 @@ export default function MainMapScreen() {
             label: place.label,
             type: place.type,
           }),
+          zIndex: 10,
         });
       });
 
