@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import PropertyListPanel from "../components/PropertyListPanel";
@@ -7,14 +7,22 @@ import AIPanel from "../components/AIPanel";
 import PropertyDetailModal from "../components/PropertyDetailModal";
 import PropertyMarkerToggle from "../components/PropertyMarkerToggle";
 
-import { properties } from "../data/dummyProperties";
-import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
-import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 import {
   clearInfraMarkers,
   loadPoiMarkers,
   type InfraSearchCondition,
 } from "../utils/infraPoiMarkers";
+import {
+  clearMarkers,
+  clearSingleMarker,
+  getCurrentMapCenter,
+  loadPropertyMarkers,
+  loadSchoolMarker,
+} from "../utils/tmapMarkerUtils";
+import {
+  getPropertiesByListMode,
+  type ListMode,
+} from "../utils/propertyListItems";
 
 const MAP_CENTER = {
   lat: 37.5882,
@@ -32,53 +40,9 @@ const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
   customKeyword: "",
 };
 
-type MapCenter = {
-  lat: number;
-  lng: number;
-};
-
-function getLatFromTmapCenter(center: any): number | null {
-  if (!center) return null;
-
-  if (typeof center.lat === "function") {
-    return Number(center.lat());
-  }
-
-  if (typeof center.lat === "number") {
-    return center.lat;
-  }
-
-  if (typeof center.getLat === "function") {
-    return Number(center.getLat());
-  }
-
-  if (typeof center._lat === "number") {
-    return center._lat;
-  }
-
-  return null;
-}
-
-function getLngFromTmapCenter(center: any): number | null {
-  if (!center) return null;
-
-  if (typeof center.lng === "function") {
-    return Number(center.lng());
-  }
-
-  if (typeof center.lng === "number") {
-    return center.lng;
-  }
-
-  if (typeof center.getLng === "function") {
-    return Number(center.getLng());
-  }
-
-  if (typeof center._lng === "number") {
-    return center._lng;
-  }
-
-  return null;
+function getValidListMode(value: string | null): ListMode {
+  if (value === "favorites") return "favorites";
+  return "recommended";
 }
 
 export default function MainMapScreen() {
@@ -89,122 +53,67 @@ export default function MainMapScreen() {
   const isMapInitializedRef = useRef(false);
 
   const infraMarkersRef = useRef<any[]>([]);
-  const schoolMarkerRef = useRef<any>(null);
+  const schoolMarkerRef = useRef<any | null>(null);
   const propertyMarkersRef = useRef<any[]>([]);
 
   const setSearchParamsRef = useRef(setSearchParams);
 
+  const listMode = getValidListMode(searchParams.get("mode"));
+  const listModeRef = useRef<ListMode>(listMode);
+
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
 
+  const currentProperties = useMemo(
+    () => getPropertiesByListMode(listMode),
+    [listMode]
+  );
+
   const selectedPropertyId = searchParams.get("propertyId");
 
-  const selectedProperty = properties.find(
-    (property) => String(property.id) === selectedPropertyId
-  );
+  const selectedProperty = useMemo(() => {
+    if (!selectedPropertyId) return null;
+
+    return (
+      currentProperties.find(
+        (property) => String(property.id) === selectedPropertyId
+      ) ?? null
+    );
+  }, [currentProperties, selectedPropertyId]);
 
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
   }, [setSearchParams]);
 
-  const getCurrentMapCenter = useCallback((): MapCenter => {
-    const map = mapRef.current;
+  useEffect(() => {
+    listModeRef.current = listMode;
+  }, [listMode]);
 
-    if (!map || typeof map.getCenter !== "function") {
-      return MAP_CENTER;
-    }
+  const renderPropertyMarkers = useCallback(
+    (properties = currentProperties) => {
+      if (!mapRef.current) return;
 
-    const center = map.getCenter();
-
-    const lat = getLatFromTmapCenter(center);
-    const lng = getLngFromTmapCenter(center);
-
-    if (
-      lat === null ||
-      lng === null ||
-      Number.isNaN(lat) ||
-      Number.isNaN(lng)
-    ) {
-      console.warn("현재 지도 중심 좌표를 읽지 못해 기본 중심 좌표를 사용합니다.");
-      return MAP_CENTER;
-    }
-
-    return { lat, lng };
-  }, []);
-
-  const clearSchoolMarker = useCallback(() => {
-    if (!schoolMarkerRef.current) return;
-
-    try {
-      schoolMarkerRef.current.setMap(null);
-    } catch (error) {
-      console.warn("학교 마커 제거 실패:", error);
-    }
-
-    schoolMarkerRef.current = null;
-  }, []);
-
-  const loadSchoolMarker = useCallback((map: any) => {
-    if (!window.Tmapv2 || !map) return;
-
-    if (schoolMarkerRef.current) {
-      return;
-    }
-
-    schoolMarkerRef.current = new window.Tmapv2.Marker({
-      position: new window.Tmapv2.LatLng(
-        SCHOOL_LOCATION.lat,
-        SCHOOL_LOCATION.lng
-      ),
-      map,
-      iconHTML: createSchoolMarkerHTML("성균관대 정문"),
-      zIndex: 40,
-    });
-  }, []);
-
-  const clearPropertyMarkers = useCallback(() => {
-    propertyMarkersRef.current.forEach((marker) => {
-      try {
-        marker.setMap(null);
-      } catch (error) {
-        console.warn("추천 매물 마커 제거 실패:", error);
-      }
-    });
-
-    propertyMarkersRef.current = [];
-  }, []);
-
-  const loadPropertyMarkers = useCallback(
-    (map: any) => {
-      if (!window.Tmapv2 || !map) return;
-
-      clearPropertyMarkers();
-
-      properties.slice(0, 3).forEach((property) => {
-        const propertyMarker = new window.Tmapv2.Marker({
-          position: new window.Tmapv2.LatLng(property.lat, property.lng),
-          map,
-          title: property.title,
-          iconHTML: createPropertyMarkerHTML(property.price),
-          zIndex: 30,
-        });
-
-        propertyMarker.addListener("click", () => {
-          setSearchParamsRef.current({
-            propertyId: String(property.id),
+      loadPropertyMarkers({
+        map: mapRef.current,
+        properties,
+        markersRef: propertyMarkersRef,
+        onClickProperty: (nextParams) => {
+          setSearchParamsRef.current((prev) => {
+            const params = new URLSearchParams(prev);
+            params.set("mode", listModeRef.current);
+            params.set("propertyId", nextParams.propertyId);
+            return params;
           });
-        });
-
-        propertyMarkersRef.current.push(propertyMarker);
+        },
       });
     },
-    [clearPropertyMarkers]
+    [currentProperties]
   );
 
   const resetMapContainer = useCallback(() => {
     clearInfraMarkers(infraMarkersRef);
-    clearSchoolMarker();
-    clearPropertyMarkers();
+    clearSingleMarker(schoolMarkerRef, "학교 마커");
+    clearMarkers(propertyMarkersRef, "매물 마커");
 
     mapRef.current = null;
     isMapInitializedRef.current = false;
@@ -214,23 +123,34 @@ export default function MainMapScreen() {
     if (mapContainer) {
       mapContainer.innerHTML = "";
     }
-  }, [clearSchoolMarker, clearPropertyMarkers]);
+  }, []);
+
+  const handleChangeListMode = (mode: ListMode) => {
+    const nextProperties = getPropertiesByListMode(mode);
+
+    listModeRef.current = mode;
+
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set("mode", mode);
+      params.delete("propertyId");
+      return params;
+    });
+
+    if (showPropertyMarkersRef.current) {
+      renderPropertyMarkers(nextProperties);
+    }
+  };
 
   const handleTogglePropertyMarkers = () => {
     setShowPropertyMarkers((prev) => {
       const next = !prev;
-
       showPropertyMarkersRef.current = next;
 
       if (next) {
-        if (!mapRef.current) {
-          console.warn("지도 로드 전이라 추천 매물 마커를 표시할 수 없습니다.");
-          return next;
-        }
-
-        loadPropertyMarkers(mapRef.current);
+        renderPropertyMarkers(getPropertiesByListMode(listModeRef.current));
       } else {
-        clearPropertyMarkers();
+        clearMarkers(propertyMarkersRef, "매물 마커");
       }
 
       return next;
@@ -243,42 +163,41 @@ export default function MainMapScreen() {
       return;
     }
 
-    const currentCenter = getCurrentMapCenter();
-
     loadPoiMarkers({
       map: mapRef.current,
       markersRef: infraMarkersRef,
       condition,
-      center: currentCenter,
+      center: getCurrentMapCenter(mapRef.current, MAP_CENTER),
     });
   };
 
   const handleClosePropertyModal = () => {
-    setSearchParams({});
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.delete("propertyId");
+      return params;
+    });
   };
 
   const handleClickPropertyDetail = () => {
     if (!selectedProperty) return;
-
     navigate(`/property/${selectedProperty.id}`);
   };
 
   const handleClickInfra = () => {
-    if (!selectedProperty) {
-      navigate("/infra-view");
-      return;
-    }
-
-    navigate(`/infra-view?propertyId=${selectedProperty.id}`);
+    navigate(
+      selectedProperty
+        ? `/infra-view?propertyId=${selectedProperty.id}`
+        : "/infra-view"
+    );
   };
 
   const handleClick3D = () => {
-    if (!selectedProperty) {
-      navigate("/3d-view");
-      return;
-    }
-
-    navigate(`/3d-view?propertyId=${selectedProperty.id}`);
+    navigate(
+      selectedProperty
+        ? `/3d-view?propertyId=${selectedProperty.id}`
+        : "/3d-view"
+    );
   };
 
   useEffect(() => {
@@ -288,19 +207,12 @@ export default function MainMapScreen() {
     const initMap = () => {
       if (cancelled) return;
       if (!window.Tmapv2 || !window.Tmapv2.Map) return;
-
-      if (isMapInitializedRef.current || mapRef.current) {
-        return;
-      }
+      if (isMapInitializedRef.current || mapRef.current) return;
 
       const mapContainer = document.getElementById("map_div");
-
-      if (!mapContainer) {
-        return;
-      }
+      if (!mapContainer) return;
 
       mapContainer.innerHTML = "";
-
       isMapInitializedRef.current = true;
 
       const map = new window.Tmapv2.Map("map_div", {
@@ -312,10 +224,15 @@ export default function MainMapScreen() {
 
       mapRef.current = map;
 
-      loadSchoolMarker(map);
+      loadSchoolMarker({
+        map,
+        markerRef: schoolMarkerRef,
+        position: SCHOOL_LOCATION,
+        label: "성균관대 정문",
+      });
 
       if (showPropertyMarkersRef.current) {
-        loadPropertyMarkers(map);
+        renderPropertyMarkers(currentProperties);
       }
 
       loadPoiMarkers({
@@ -349,14 +266,18 @@ export default function MainMapScreen() {
 
       resetMapContainer();
     };
-  }, [loadSchoolMarker, loadPropertyMarkers, resetMapContainer]);
+  }, [currentProperties, renderPropertyMarkers, resetMapContainer]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
       <main className="relative h-full flex-1 overflow-hidden">
         <div id="map_div" className="h-full w-full" />
 
-        <PropertyListPanel />
+        <PropertyListPanel
+          listMode={listMode}
+          properties={currentProperties}
+          onChangeListMode={handleChangeListMode}
+        />
 
         <InfraSearchWidget onApply={handleApplyInfraSearch} />
 
@@ -367,7 +288,7 @@ export default function MainMapScreen() {
 
         <PropertyDetailModal
           isOpen={!!selectedProperty}
-          property={selectedProperty ?? null}
+          property={selectedProperty}
           onClose={handleClosePropertyModal}
           onClickDetail={handleClickPropertyDetail}
           onClickInfra={handleClickInfra}

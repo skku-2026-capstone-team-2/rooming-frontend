@@ -109,7 +109,7 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
 
         <section className="mb-3">
           <div className="mb-2 text-xs font-semibold text-[#6B6847]">
-            검색 인프라 입력
+            인프라 직접 검색
           </div>
 
           <div className="flex items-center gap-2 rounded-xl border border-[#EEECCA] bg-white px-3 py-2">
