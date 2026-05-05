@@ -29,7 +29,7 @@ export default function PropertyDetailModal({
   if (!isOpen || !property) return null;
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30 px-4 pl-[180px]">
       <div className="relative w-full max-w-lg rounded-3xl border border-[#E8E6DD] bg-white p-5 shadow-2xl">
         {/* 닫기 버튼 */}
         <button
