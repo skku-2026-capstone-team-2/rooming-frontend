@@ -6,6 +6,7 @@ export type InfraPlace = {
   label: string;
   lat: number;
   lng: number;
+  distance: string;
 };
 
 export const infraPlaces: InfraPlace[] = [
@@ -15,6 +16,7 @@ export const infraPlaces: InfraPlace[] = [
     label: "카페",
     lat: 37.5900,
     lng: 126.9950,
+    distance: "도보 5분",
   },
   {
     id: 2,
@@ -22,6 +24,7 @@ export const infraPlaces: InfraPlace[] = [
     label: "헬스장",
     lat: 37.5880,
     lng: 126.9973,
+    distance: "도보 3분",
   },
   {
     id: 3,
@@ -29,6 +32,7 @@ export const infraPlaces: InfraPlace[] = [
     label: "편의점",
     lat: 37.5899,
     lng: 126.9935,
+    distance: "도보 2분",
   },
   {
     id: 4,
@@ -36,5 +40,6 @@ export const infraPlaces: InfraPlace[] = [
     label: "버스정류장",
     lat: 37.5879,
     lng: 126.9952,
+    distance: "도보 4분",
   },
 ];
