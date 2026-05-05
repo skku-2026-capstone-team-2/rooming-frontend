@@ -32,7 +32,10 @@ export function getLngFromTmapCenter(center: any): number | null {
   return null;
 }
 
-export function getCurrentMapCenter(map: any, fallbackCenter: MapCenter): MapCenter {
+export function getCurrentMapCenter(
+  map: any,
+  fallbackCenter: MapCenter
+): MapCenter {
   if (!map || typeof map.getCenter !== "function") {
     return fallbackCenter;
   }
@@ -54,7 +57,10 @@ export function getCurrentMapCenter(map: any, fallbackCenter: MapCenter): MapCen
   return { lat, lng };
 }
 
-export function clearMarkers(markersRef: MutableRefObject<any[]>, label = "마커") {
+export function clearMarkers(
+  markersRef: MutableRefObject<any[]>,
+  label = "마커"
+) {
   markersRef.current.forEach((marker) => {
     try {
       marker.setMap(null);
@@ -108,15 +114,21 @@ export function loadPropertyMarkers({
   properties,
   markersRef,
   onClickProperty,
+  enabled = true,
 }: {
   map: any;
   properties: PropertyListItem[];
   markersRef: MutableRefObject<any[]>;
   onClickProperty: SearchParamsSetter;
+  enabled?: boolean;
 }) {
   if (!window.Tmapv2 || !map) return;
 
+  // 기존 매물 마커는 항상 먼저 제거
   clearMarkers(markersRef, "매물 마커");
+
+  // toggle off 상태면 제거만 하고 새로 만들지 않음
+  if (!enabled) return;
 
   properties.forEach((property) => {
     const marker = new window.Tmapv2.Marker({

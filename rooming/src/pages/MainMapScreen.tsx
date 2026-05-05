@@ -89,14 +89,19 @@ export default function MainMapScreen() {
     listModeRef.current = listMode;
   }, [listMode]);
 
+  useEffect(() => {
+    showPropertyMarkersRef.current = showPropertyMarkers;
+  }, [showPropertyMarkers]);
+
   const renderPropertyMarkers = useCallback(
-    (properties = currentProperties) => {
+    (properties = currentProperties, enabled = showPropertyMarkersRef.current) => {
       if (!mapRef.current) return;
 
       loadPropertyMarkers({
         map: mapRef.current,
         properties,
         markersRef: propertyMarkersRef,
+        enabled,
         onClickProperty: (nextParams) => {
           setSearchParamsRef.current((prev) => {
             const params = new URLSearchParams(prev);
@@ -137,21 +142,16 @@ export default function MainMapScreen() {
       return params;
     });
 
-    if (showPropertyMarkersRef.current) {
-      renderPropertyMarkers(nextProperties);
-    }
+    renderPropertyMarkers(nextProperties, showPropertyMarkersRef.current);
   };
 
   const handleTogglePropertyMarkers = () => {
     setShowPropertyMarkers((prev) => {
       const next = !prev;
+
       showPropertyMarkersRef.current = next;
 
-      if (next) {
-        renderPropertyMarkers(getPropertiesByListMode(listModeRef.current));
-      } else {
-        clearMarkers(propertyMarkersRef, "매물 마커");
-      }
+      renderPropertyMarkers(getPropertiesByListMode(listModeRef.current), next);
 
       return next;
     });
@@ -231,9 +231,7 @@ export default function MainMapScreen() {
         label: "성균관대 정문",
       });
 
-      if (showPropertyMarkersRef.current) {
-        renderPropertyMarkers(currentProperties);
-      }
+      renderPropertyMarkers(currentProperties, showPropertyMarkersRef.current);
 
       loadPoiMarkers({
         map,
@@ -266,7 +264,7 @@ export default function MainMapScreen() {
 
       resetMapContainer();
     };
-  }, [currentProperties, renderPropertyMarkers, resetMapContainer]);
+  }, []);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
@@ -284,7 +282,7 @@ export default function MainMapScreen() {
         <PropertyMarkerToggle
           enabled={showPropertyMarkers}
           listMode={listMode}
-          onToggle={() => setShowPropertyMarkers((prev) => !prev)}
+          onToggle={handleTogglePropertyMarkers}
         />
 
         <PropertyDetailModal
