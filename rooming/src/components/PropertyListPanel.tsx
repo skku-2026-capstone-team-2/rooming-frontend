@@ -24,17 +24,6 @@ export default function PropertyListPanel() {
           <PropertyCard key={property.id} property={property} />
         ))}
       </div>
-
-      {/* <div className="mt-4 rounded-xl border border-[#E8E7FF] bg-[#F8F8FF] p-3">
-        <div className="mb-2 text-xs font-semibold text-[#5A58AA]">
-          최근 저장 조건
-        </div>
-        <div className="space-y-1.5 text-xs text-[#5A58AA]">
-          <div>• 통학 15분 이내</div>
-          <div>• 헬스장 선호</div>
-          <div>• 원룸</div>
-        </div>
-      </div> */}
     </div>
   );
 }
@@ -49,7 +38,7 @@ function PropertyCard({ property }: PropertyCardProps) {
   return (
     <button
       type="button"
-      onClick={() => navigate("/property-detail")}
+      onClick={() => navigate(`/property/${property.id}`)}
       className="w-full rounded-xl border border-[#EEECCA] bg-white p-3 text-left shadow-sm transition hover:border-[#C1BFFF] hover:bg-[#F5F5FF]"
     >
       <div className="text-sm font-semibold text-[#6B6847]">
@@ -61,7 +50,7 @@ function PropertyCard({ property }: PropertyCardProps) {
       </div>
 
       <div className="mt-0.5 text-[11px] text-[#8B8850]">
-        도보 {property.distance}
+        {property.distance}
       </div>
     </button>
   );

@@ -37,7 +37,7 @@ export default function PropertyDetailModal({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-3 top-3 z-20 rounded-full bg-white/90 p-2 text-[#8B8850] shadow-sm transition hover:bg-white hover:text-[#4A4530]"
+          className="absolute right-4 top-4 z-20 rounded-full  p-2 text-[#8B8850] hover:text-[#4A4530]"
           aria-label="닫기"
         >
           <X className="h-4 w-4" />

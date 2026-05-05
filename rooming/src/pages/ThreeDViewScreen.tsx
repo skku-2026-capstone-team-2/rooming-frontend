@@ -104,7 +104,7 @@ export default function ThreeDViewScreen() {
         className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-2xl border border-[#3A3830] bg-[#2A2820] px-5 py-3 text-sm font-semibold text-[#FDFCF8] shadow-lg transition hover:bg-[#3A3830]"
       >
         <ArrowLeft className="h-4 w-4" />
-        돌아가기
+        뒤로가기
       </button>
     </div>
   );

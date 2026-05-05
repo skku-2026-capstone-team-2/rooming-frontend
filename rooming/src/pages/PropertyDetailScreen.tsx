@@ -54,14 +54,13 @@ export default function PropertyDetailScreen() {
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           {/* 좌측 메인 영역 */}
           <div className="space-y-6">
-            {/* 돌아가기 버튼: sticky 없음 */}
             <button
               type="button"
               onClick={() => navigate(-1)}
               className="flex w-fit items-center gap-2 rounded-xl border border-[#E8E6DD] bg-white px-5 py-3 text-base font-semibold text-[#6B6847] transition-all hover:bg-[#FDFCF8]"
             >
               <ArrowLeft className="h-4 w-4 shrink-0" />
-              돌아가기
+              뒤로가기
             </button>
 
             {/* 매물 사진 + 정보 오버레이 */}
@@ -115,7 +114,7 @@ export default function PropertyDetailScreen() {
                 />
                 <ReasonItem
                   Icon={Store}
-                  text="편의점·카페 등 일상 편의시설을 함께 확인할 수 있어요"
+                  text="편의점·카페 등 일상 편의시설과 BHC가 가까워요"
                 />
               </div>
             </div>
