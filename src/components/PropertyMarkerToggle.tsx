@@ -20,8 +20,8 @@ export default function PropertyMarkerToggle({
       type="button"
       onClick={onToggle}
       className={`absolute right-6 bottom-6 z-20 flex items-center gap-2 rounded-full border px-4 py-3 text-sm font-semibold shadow-lg backdrop-blur-sm transition ${enabled
-          ? "border-[#4A4530] bg-[#4A4530] text-white"
-          : "border-[#E8E6DD] bg-white/95 text-[#4A4530] hover:bg-[#F8F7F1]"
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-card/95 text-foreground hover:bg-muted"
         }`}
     >
       <span>{enabled ? `${targetLabel} 표시` : `${targetLabel} 숨김`}</span>
