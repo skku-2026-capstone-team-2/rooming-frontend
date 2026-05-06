@@ -24,6 +24,8 @@ import {
   type ListMode,
 } from "../utils/propertyListItems";
 
+const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
+
 const MAP_CENTER = {
   lat: 37.5882,
   lng: 126.9936,
@@ -45,6 +47,10 @@ function getValidListMode(value: string | null): ListMode {
   return "recommended";
 }
 
+function getIsAISearchCompleted() {
+  return sessionStorage.getItem(AI_SEARCH_COMPLETED_KEY) === "true";
+}
+
 export default function MainMapScreen() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -61,6 +67,8 @@ export default function MainMapScreen() {
   const listMode = getValidListMode(searchParams.get("mode"));
   const listModeRef = useRef<ListMode>(listMode);
 
+  const [hasSearchResult, setHasSearchResult] = useState(false);
+
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
 
@@ -69,17 +77,27 @@ export default function MainMapScreen() {
     [listMode]
   );
 
+  const visibleProperties = useMemo(() => {
+    return hasSearchResult ? currentProperties : [];
+  }, [hasSearchResult, currentProperties]);
+
   const selectedPropertyId = searchParams.get("propertyId");
 
   const selectedProperty = useMemo(() => {
     if (!selectedPropertyId) return null;
+    if (!hasSearchResult) return null;
 
     return (
       currentProperties.find(
         (property) => String(property.id) === selectedPropertyId
       ) ?? null
     );
-  }, [currentProperties, selectedPropertyId]);
+  }, [currentProperties, selectedPropertyId, hasSearchResult]);
+
+  useEffect(() => {
+    const isCompleted = getIsAISearchCompleted();
+    setHasSearchResult(isCompleted);
+  }, []);
 
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
@@ -94,7 +112,10 @@ export default function MainMapScreen() {
   }, [showPropertyMarkers]);
 
   const renderPropertyMarkers = useCallback(
-    (properties = currentProperties, enabled = showPropertyMarkersRef.current) => {
+    (
+      properties = visibleProperties,
+      enabled = showPropertyMarkersRef.current
+    ) => {
       if (!mapRef.current) return;
 
       loadPropertyMarkers({
@@ -112,7 +133,7 @@ export default function MainMapScreen() {
         },
       });
     },
-    [currentProperties]
+    [visibleProperties]
   );
 
   const resetMapContainer = useCallback(() => {
@@ -131,7 +152,7 @@ export default function MainMapScreen() {
   }, []);
 
   const handleChangeListMode = (mode: ListMode) => {
-    const nextProperties = getPropertiesByListMode(mode);
+    const nextProperties = hasSearchResult ? getPropertiesByListMode(mode) : [];
 
     listModeRef.current = mode;
 
@@ -151,7 +172,11 @@ export default function MainMapScreen() {
 
       showPropertyMarkersRef.current = next;
 
-      renderPropertyMarkers(getPropertiesByListMode(listModeRef.current), next);
+      const nextProperties = hasSearchResult
+        ? getPropertiesByListMode(listModeRef.current)
+        : [];
+
+      renderPropertyMarkers(nextProperties, next);
 
       return next;
     });
@@ -201,6 +226,10 @@ export default function MainMapScreen() {
   };
 
   useEffect(() => {
+    renderPropertyMarkers(visibleProperties, showPropertyMarkersRef.current);
+  }, [visibleProperties, renderPropertyMarkers]);
+
+  useEffect(() => {
     let timeoutId: number | null = null;
     let cancelled = false;
 
@@ -231,7 +260,11 @@ export default function MainMapScreen() {
         label: "성균관대 정문",
       });
 
-      renderPropertyMarkers(currentProperties, showPropertyMarkersRef.current);
+      const isCompleted = getIsAISearchCompleted();
+      const initialProperties = isCompleted ? currentProperties : [];
+
+      setHasSearchResult(isCompleted);
+      renderPropertyMarkers(initialProperties, showPropertyMarkersRef.current);
 
       loadPoiMarkers({
         map,
@@ -273,17 +306,19 @@ export default function MainMapScreen() {
 
         <PropertyListPanel
           listMode={listMode}
-          properties={currentProperties}
+          properties={visibleProperties}
           onChangeListMode={handleChangeListMode}
         />
 
         <InfraSearchWidget onApply={handleApplyInfraSearch} />
 
-        <PropertyMarkerToggle
-          enabled={showPropertyMarkers}
-          listMode={listMode}
-          onToggle={handleTogglePropertyMarkers}
-        />
+        {hasSearchResult && (
+          <PropertyMarkerToggle
+            enabled={showPropertyMarkers}
+            listMode={listMode}
+            onToggle={handleTogglePropertyMarkers}
+          />
+        )}
 
         <PropertyDetailModal
           isOpen={!!selectedProperty}

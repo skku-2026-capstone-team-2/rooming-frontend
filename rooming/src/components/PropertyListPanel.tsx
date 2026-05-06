@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Heart, Sparkles } from "lucide-react";
 import type { ListMode, PropertyListItem } from "../utils/propertyListItems";
+
+const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
 
 type PropertyListPanelProps = {
   listMode: ListMode;
@@ -13,8 +16,19 @@ export default function PropertyListPanel({
   properties,
   onChangeListMode,
 }: PropertyListPanelProps) {
+  const [hasSearchResult, setHasSearchResult] = useState(false);
+
   const isRecommendedMode = listMode === "recommended";
   const isFavoritesMode = listMode === "favorites";
+
+  useEffect(() => {
+    const isCompleted =
+      sessionStorage.getItem(AI_SEARCH_COMPLETED_KEY) === "true";
+
+    setHasSearchResult(isCompleted);
+  }, []);
+
+  const visibleProperties = hasSearchResult ? properties : [];
 
   return (
     <div className="absolute bottom-5 left-5 z-10 flex max-h-[60vh] w-[260px] flex-col rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
@@ -23,10 +37,13 @@ export default function PropertyListPanel({
           <h3 className="text-base font-bold text-[#4A4530]">
             {isRecommendedMode ? "추천 매물" : "MY 매물"}
           </h3>
+
           <p className="mt-0.5 text-[11px] text-[#8B8850]">
-            {isRecommendedMode
-              ? "AI가 조건에 맞는 매물을 추천했어요"
-              : "이전에 저장한 매물 목록이에요"}
+            {hasSearchResult
+              ? isRecommendedMode
+                ? "AI가 조건에 맞는 매물을 추천했어요"
+                : "이전에 저장한 매물 목록이에요"
+              : "검색 완료 후 매물 목록이 표시돼요"}
           </p>
         </div>
       </div>
@@ -58,10 +75,35 @@ export default function PropertyListPanel({
       </div>
 
       <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
-        {properties.map((property) => (
-          <PropertyCard key={property.id} property={property} />
-        ))}
+        {visibleProperties.length > 0 ? (
+          visibleProperties.map((property) => (
+            <PropertyCard key={property.id} property={property} />
+          ))
+        ) : (
+          <EmptyPropertyList isRecommendedMode={isRecommendedMode} />
+        )}
       </div>
+    </div>
+  );
+}
+
+type EmptyPropertyListProps = {
+  isRecommendedMode: boolean;
+};
+
+function EmptyPropertyList({ isRecommendedMode }: EmptyPropertyListProps) {
+  return (
+    <div className="flex min-h-[150px] flex-col items-center justify-center rounded-xl border border-dashed border-[#E8E6DD] bg-[#FDFCF8] px-3 py-5 text-center">
+
+      <p className="text-xs font-semibold text-[#4A4530]">
+        아직 표시할 매물이 없어요
+      </p>
+
+      <p className="mt-1 break-keep text-[11px] leading-4 text-[#8B8850]">
+        검색이 완료되면 이 영역에
+        <br />
+        매물 목록이 표시됩니다.
+      </p>
     </div>
   );
 }

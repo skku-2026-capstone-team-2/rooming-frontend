@@ -135,18 +135,15 @@ export default function AIPanel() {
 function EmptyAIResult() {
   return (
     <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-[#E8E6DD] bg-[#FDFCF8] px-5 py-8 text-center">
-      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#B8B69F] shadow-sm">
-        <Sparkles className="h-5 w-5" />
-      </div>
 
       <h3 className="text-sm font-bold text-[#4A4530]">
         아직 등록된 채팅 기록이 없어요
       </h3>
 
       <p className="mt-2 break-keep text-xs leading-5 text-[#8B8850]">
-        검색하기를 누른 뒤 추천 결과 화면에서 돌아오면
+        검색이 완료되면 이 영역에
         <br />
-        이 영역에 AI 분석 기록이 표시됩니다.
+        AI 분석 기록이 표시됩니다.
       </p>
     </div>
   );
