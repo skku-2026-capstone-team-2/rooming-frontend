@@ -80,9 +80,9 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
 
   return (
     <div className="pointer-events-none absolute left-5 top-5 z-20 flex items-start gap-3">
-      <div className="pointer-events-auto w-[260px] rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
+      <div className="pointer-events-auto w-[260px] rounded-2xl border border-border bg-card/95 p-4 shadow-md backdrop-blur-sm">
         <section className="mb-3">
-          <div className="mb-2 text-xs font-semibold text-[#6B6847]">
+          <div className="mb-2 text-xs font-semibold text-text-secondary">
             검색 반경 선택
           </div>
 
@@ -96,8 +96,8 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
                   type="button"
                   onClick={() => handleRadiusChange(option.value)}
                   className={`rounded-lg px-2 py-1.5 text-xs font-medium transition ${isSelected
-                    ? "bg-[#8B89DD] text-white shadow-sm"
-                    : "bg-[#F8F8FF] text-[#5A58AA] hover:bg-[#E8E7FF]"
+                    ? "bg-secondary text-secondary-foreground shadow-sm"
+                    : "bg-purple-100 text-purple-800 hover:bg-purple-200"
                     }`}
                 >
                   {option.label}
@@ -108,12 +108,12 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
         </section>
 
         <section className="mb-3">
-          <div className="mb-2 text-xs font-semibold text-[#6B6847]">
+          <div className="mb-2 text-xs font-semibold text-text-secondary">
             인프라 직접 검색
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl border border-[#EEECCA] bg-white px-3 py-2">
-            <Search className="h-3.5 w-3.5 shrink-0 text-[#8B8850]" />
+          <div className="flex items-center gap-2 rounded-xl border border-beige-300 bg-card px-3 py-2">
+            <Search className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
 
             <input
               value={customKeyword}
@@ -124,7 +124,7 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
                 }
               }}
               placeholder="약국, 세탁소 등"
-              className="w-full bg-transparent text-xs text-[#4A4530] outline-none placeholder:text-[#B8B47A]"
+              className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-text-muted"
             />
           </div>
         </section>
@@ -132,7 +132,7 @@ export default function InfraSearchWidget({ onApply }: InfraSearchWidgetProps) {
         <button
           type="button"
           onClick={handleApply}
-          className="w-full rounded-xl bg-[#4A4530] py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-[#3D3928]"
+          className="w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground shadow-sm transition hover:bg-green-800"
         >
           {searchButtonText}
         </button>
@@ -162,8 +162,8 @@ function InfraCategoryFloatingButtons({
               type="button"
               onClick={() => onToggleCategory(category.id)}
               className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition ${isSelected
-                ? "border-[#4A4530] bg-[#4A4530] text-white"
-                : "border-[#EEECCA] bg-white text-[#8B8850] hover:border-[#C1BFFF] hover:bg-[#F5F5FF]"
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-beige-300 bg-card text-text-tertiary hover:border-purple-500 hover:bg-purple-50"
                 }`}
             >
               <span className="flex h-3.5 w-3.5 items-center justify-center">

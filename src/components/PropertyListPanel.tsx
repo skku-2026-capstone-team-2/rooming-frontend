@@ -31,14 +31,14 @@ export default function PropertyListPanel({
   const visibleProperties = hasSearchResult ? properties : [];
 
   return (
-    <div className="absolute bottom-5 left-5 z-10 flex max-h-[60vh] w-[260px] flex-col rounded-2xl border border-[#E8E6DD] bg-white/95 p-4 shadow-md backdrop-blur-sm">
+    <div className="absolute bottom-5 left-5 z-10 flex max-h-[60vh] w-[260px] flex-col rounded-2xl border border-border bg-card/95 p-4 shadow-md backdrop-blur-sm">
       <div className="mb-3 flex shrink-0 items-center justify-between">
         <div>
-          <h3 className="text-base font-bold text-[#4A4530]">
+          <h3 className="text-base font-bold text-foreground">
             {isRecommendedMode ? "추천 매물" : "MY 매물"}
           </h3>
 
-          <p className="mt-0.5 text-[11px] text-[#8B8850]">
+          <p className="mt-0.5 text-[11px] text-text-tertiary">
             {hasSearchResult
               ? isRecommendedMode
                 ? "AI가 조건에 맞는 매물을 추천했어요"
@@ -48,13 +48,13 @@ export default function PropertyListPanel({
         </div>
       </div>
 
-      <div className="mb-3 grid shrink-0 grid-cols-2 gap-1 rounded-xl bg-[#F8F7F1] p-1">
+      <div className="mb-3 grid shrink-0 grid-cols-2 gap-1 rounded-xl bg-muted p-1">
         <button
           type="button"
           onClick={() => onChangeListMode("recommended")}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition ${isRecommendedMode
-            ? "bg-white text-[#4A4530] shadow-sm"
-            : "text-[#8B8850] hover:bg-white/70"
+            ? "bg-card text-foreground shadow-sm"
+            : "text-text-tertiary hover:bg-card/70"
             }`}
         >
           <Sparkles className="h-3.5 w-3.5" />
@@ -65,8 +65,8 @@ export default function PropertyListPanel({
           type="button"
           onClick={() => onChangeListMode("favorites")}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition ${isFavoritesMode
-            ? "bg-white text-[#4A4530] shadow-sm"
-            : "text-[#8B8850] hover:bg-white/70"
+            ? "bg-card text-foreground shadow-sm"
+            : "text-text-tertiary hover:bg-card/70"
             }`}
         >
           <Heart className="h-3.5 w-3.5" />
@@ -93,13 +93,13 @@ type EmptyPropertyListProps = {
 
 function EmptyPropertyList({ isRecommendedMode }: EmptyPropertyListProps) {
   return (
-    <div className="flex min-h-[150px] flex-col items-center justify-center rounded-xl border border-dashed border-[#E8E6DD] bg-[#FDFCF8] px-3 py-5 text-center">
+    <div className="flex min-h-[150px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-background px-3 py-5 text-center">
 
-      <p className="text-xs font-semibold text-[#4A4530]">
+      <p className="text-xs font-semibold text-foreground">
         아직 표시할 매물이 없어요
       </p>
 
-      <p className="mt-1 break-keep text-[11px] leading-4 text-[#8B8850]">
+      <p className="mt-1 break-keep text-[11px] leading-4 text-text-tertiary">
         검색이 완료되면 이 영역에
         <br />
         매물 목록이 표시됩니다.
@@ -120,17 +120,17 @@ function PropertyCard({ property }: PropertyCardProps) {
     <button
       type="button"
       onClick={() => navigate(`/property/${property.id}`)}
-      className="w-full rounded-xl border border-[#EEECCA] bg-white p-3 text-left shadow-sm transition hover:border-[#C1BFFF] hover:bg-[#F5F5FF]"
+      className="w-full rounded-xl border border-beige-300 bg-card p-3 text-left shadow-sm transition hover:border-purple-500 hover:bg-purple-50"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="text-sm font-semibold text-[#6B6847]">
+        <div className="text-sm font-semibold text-text-secondary">
           {property.title}
         </div>
 
         <span
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${isFavoriteMode
-            ? "bg-[#FFF4F4] text-[#D87070]"
-            : "bg-[#F5F5FF] text-[#8B89DD]"
+            ? "bg-destructive/10 text-destructive"
+            : "bg-purple-50 text-secondary"
             }`}
         >
           {isFavoriteMode ? (
@@ -141,11 +141,11 @@ function PropertyCard({ property }: PropertyCardProps) {
         </span>
       </div>
 
-      <div className="mt-1 text-xs font-medium text-[#BDB96A]">
+      <div className="mt-1 text-xs font-medium text-accent">
         {property.price}
       </div>
 
-      <div className="mt-0.5 text-[11px] text-[#8B8850]">
+      <div className="mt-0.5 text-[11px] text-text-tertiary">
         {property.area ?? "면적 정보 없음"} ·{" "}
         {property.distance ?? "거리 정보 없음"}
         {property.matchScore !== undefined && (
@@ -154,7 +154,7 @@ function PropertyCard({ property }: PropertyCardProps) {
       </div>
 
       {property.description && (
-        <div className="mt-1 line-clamp-1 rounded-lg bg-[#F8F7F1] px-2 py-1 text-[11px] text-[#6B6847]">
+        <div className="mt-1 line-clamp-1 rounded-lg bg-muted px-2 py-1 text-[11px] text-text-secondary">
           {property.description}
         </div>
       )}

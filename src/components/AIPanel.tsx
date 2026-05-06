@@ -64,17 +64,17 @@ export default function AIPanel() {
   };
 
   return (
-    <aside className="flex h-full w-[320px] shrink-0 flex-col gap-4 border-l border-[#E8E6DD] bg-white px-5 py-5 shadow-lg">
+    <aside className="flex h-full w-[320px] shrink-0 flex-col gap-4 border-l border-border bg-card px-5 py-5 shadow-lg">
       {/* AI 검색 입력 영역 */}
-      <section className="relative shrink-0 rounded-3xl border-2 border-[#4A4530] bg-white p-4">
+      <section className="relative shrink-0 rounded-3xl border-2 border-primary bg-card p-4">
         <div className="mb-3 flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-[#4A4530]">
+            <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
               <Sparkles className="h-4 w-4 shrink-0" />
               AI 검색 조건 입력
             </div>
 
-            <p className="mt-1 break-keep text-[11px] leading-4 text-[#8B8850]">
+            <p className="mt-1 break-keep text-[11px] leading-4 text-text-tertiary">
               원하는 조건을 문장으로 입력해보세요
             </p>
           </div>
@@ -83,13 +83,13 @@ export default function AIPanel() {
           <div className="group relative shrink-0">
             <button
               type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E8DBFF] bg-[#FCFAFF] text-[#8E3BA8] transition hover:bg-[#F5ECFF]"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-accent-purple-border bg-accent-purple-bg text-accent-purple transition hover:bg-accent-purple-lighter"
               aria-label="검색 팁 보기"
             >
               <Lightbulb className="h-3.5 w-3.5" />
             </button>
 
-            <div className="pointer-events-none absolute right-0 top-9 z-30 w-[230px] translate-y-1 rounded-2xl border border-[#E8DBFF] bg-white p-3 text-[#8E3BA8] opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
+            <div className="pointer-events-none absolute right-0 top-9 z-30 w-[230px] translate-y-1 rounded-2xl border border-accent-purple-border bg-card p-3 text-accent-purple opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
               <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold">
                 <Lightbulb className="h-3.5 w-3.5" />
                 Tip
@@ -111,14 +111,14 @@ export default function AIPanel() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="예: 학교까지 20분 이내, 보증금 1000만원 이하, 헬스장과 BHC 가까운 원룸"
-          className="w-full resize-none rounded-2xl border border-[#D8D3BE] bg-[#FDFCF8] px-3 py-3 text-xs leading-5 text-[#4A4530] placeholder-[#B8B69F] shadow-inner focus:border-[#4A4530] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A4530]/10"
+          className="w-full resize-none rounded-2xl border border-beige-300 bg-background px-3 py-3 text-xs leading-5 text-foreground placeholder:text-text-muted shadow-inner focus:border-primary focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/10"
           rows={4}
         />
 
         <button
           type="button"
           onClick={handleSearch}
-          className="mt-3 w-full rounded-2xl bg-[#4A4530] px-3 py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#3A3520] hover:shadow-lg"
+          className="mt-3 w-full rounded-2xl bg-primary px-3 py-3 text-sm font-bold text-primary-foreground shadow-md transition-all hover:-translate-y-0.5 hover:bg-green-800 hover:shadow-lg"
         >
           검색하기
         </button>
@@ -134,13 +134,13 @@ export default function AIPanel() {
 
 function EmptyAIResult() {
   return (
-    <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-[#E8E6DD] bg-[#FDFCF8] px-5 py-8 text-center">
+    <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-background px-5 py-8 text-center">
 
-      <h3 className="text-sm font-bold text-[#4A4530]">
+      <h3 className="text-sm font-bold text-foreground">
         아직 등록된 채팅 기록이 없어요
       </h3>
 
-      <p className="mt-2 break-keep text-xs leading-5 text-[#8B8850]">
+      <p className="mt-2 break-keep text-xs leading-5 text-text-tertiary">
         검색이 완료되면 이 영역에
         <br />
         AI 분석 기록이 표시됩니다.
@@ -157,16 +157,16 @@ function AIResultContent() {
     <div className="space-y-5">
       {/* 채팅 기록 */}
       <section>
-        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
-          <h3 className="text-sm font-semibold text-[#4A4530]">채팅 기록</h3>
+        <div className="sticky top-0 z-10 mb-2 bg-card/95 py-1 backdrop-blur-sm">
+          <h3 className="text-sm font-semibold text-foreground">채팅 기록</h3>
         </div>
 
-        <div className="rounded-2xl border border-[#E8E6DD] bg-white p-3 shadow-sm">
-          <div className="mb-2 text-[11px] font-semibold text-[#B8B69F]">
+        <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+          <div className="mb-2 text-[11px] font-semibold text-text-muted">
             내가 입력한 조건
           </div>
 
-          <p className="break-keep rounded-xl bg-[#FDFCF8] px-3 py-2 text-xs leading-5 text-[#4A4530]">
+          <p className="break-keep rounded-xl bg-background px-3 py-2 text-xs leading-5 text-foreground">
             {savedQuery}
           </p>
         </div>
@@ -174,32 +174,32 @@ function AIResultContent() {
 
       {/* AI 분석 요약 */}
       <section>
-        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
-          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[#4A4530]">
+        <div className="sticky top-0 z-10 mb-2 bg-card/95 py-1 backdrop-blur-sm">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
             <Sparkles className="h-3.5 w-3.5 shrink-0" />
             AI 분석 요약
           </h3>
         </div>
 
-        <div className="rounded-xl border border-[#D8D7F5] bg-[#F8F8FF] px-3 py-2.5 text-xs leading-5 text-[#5A58AA]">
+        <div className="rounded-xl border border-purple-300 bg-purple-100 px-3 py-2.5 text-xs leading-5 text-purple-800">
           <p className="break-keep">{aiResult.summaryText}</p>
         </div>
       </section>
 
       {/* 추천 매물 */}
       <section>
-        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
-          <h3 className="text-sm font-semibold text-[#4A4530]">추천 매물</h3>
+        <div className="sticky top-0 z-10 mb-2 bg-card/95 py-1 backdrop-blur-sm">
+          <h3 className="text-sm font-semibold text-foreground">추천 매물</h3>
         </div>
 
         <ul className="space-y-1.5">
           {aiResult.recommendedPropertyNames.map((name, index) => (
             <li
               key={`${name}-${index}`}
-              className="flex items-center justify-between gap-2 rounded-xl border border-[#E8E6DD] bg-white px-3 py-2 text-xs text-[#4A4530]"
+              className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground"
             >
               <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4A4530] text-[10px] font-bold text-white">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                   {index + 1}
                 </span>
 
@@ -207,7 +207,7 @@ function AIResultContent() {
               </div>
 
               {index === 0 && (
-                <span className="shrink-0 rounded-full bg-[#FDFCF8] px-2 py-0.5 text-[10px] font-semibold text-[#8B8850]">
+                <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">
                   BEST
                 </span>
               )}
@@ -218,29 +218,29 @@ function AIResultContent() {
 
       {/* 1순위 매칭 근거 */}
       <section>
-        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
-          <h3 className="text-sm font-semibold text-[#4A4530]">
+        <div className="sticky top-0 z-10 mb-2 bg-card/95 py-1 backdrop-blur-sm">
+          <h3 className="text-sm font-semibold text-foreground">
             1순위 매칭 근거
           </h3>
         </div>
 
-        <div className="rounded-2xl border border-[#E8E6DD] bg-white p-3 shadow-sm">
+        <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
           <div className="mb-3 flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-sm font-bold text-[#4A4530]">
+              <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
                 <Home className="h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0 break-keep">
                   {aiResult.topProperty.title}
                 </span>
               </div>
 
-              <p className="mt-1 text-[11px] leading-4 text-[#8B8850]">
+              <p className="mt-1 text-[11px] leading-4 text-text-tertiary">
                 보증금 {formatPrice(aiResult.topProperty.depositAmount)} · 월세{" "}
                 {formatPrice(aiResult.topProperty.monthlyRent)}
               </p>
             </div>
 
-            <div className="shrink-0 rounded-full bg-[#4A4530] px-2 py-1 text-[10px] font-bold text-white">
+            <div className="shrink-0 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground">
               {Math.round(aiResult.topProperty.matchScore * 100)}%
             </div>
           </div>
@@ -258,9 +258,9 @@ function AIResultContent() {
             {aiResult.topProperty.matchReasons.map((reason) => (
               <li
                 key={reason}
-                className="flex items-start gap-2 text-xs leading-5 text-[#6B6847]"
+                className="flex items-start gap-2 text-xs leading-5 text-text-secondary"
               >
-                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8B89DD]" />
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secondary" />
                 <span className="break-keep">{reason}</span>
               </li>
             ))}
@@ -273,10 +273,10 @@ function AIResultContent() {
 
 function InfoChip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-[#FDFCF8] px-2.5 py-2">
-      <div className="text-[10px] font-medium text-[#B8B69F]">{label}</div>
+    <div className="rounded-lg bg-background px-2.5 py-2">
+      <div className="text-[10px] font-medium text-text-muted">{label}</div>
 
-      <div className="mt-0.5 break-keep font-semibold text-[#4A4530]">
+      <div className="mt-0.5 break-keep font-semibold text-foreground">
         {value}
       </div>
     </div>

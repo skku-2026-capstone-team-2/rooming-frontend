@@ -50,18 +50,18 @@ export default function InfraSearchModal() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8] p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#4A4530]">인프라 검색</h1>
-          <p className="mt-2 text-[#6B6847]">
+          <h1 className="text-3xl font-bold text-foreground">인프라 검색</h1>
+          <p className="mt-2 text-text-secondary">
             원하는 생활 인프라를 선택하고 조건을 설정하세요
           </p>
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-bold text-foreground">
               인프라 카테고리
             </h3>
 
@@ -78,8 +78,8 @@ export default function InfraSearchModal() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
+          <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-bold text-foreground">
               검색 반경
             </h3>
 
@@ -94,14 +94,14 @@ export default function InfraSearchModal() {
                 className="flex-1"
               />
 
-              <div className="w-24 rounded-xl border border-[#E8E6DD] bg-[#FDFCF8] px-4 py-2 text-center text-sm font-semibold text-[#6B6847]">
+              <div className="w-24 rounded-xl border border-border bg-background px-4 py-2 text-center text-sm font-semibold text-text-secondary">
                 {radius}m
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[#D8D7F5] bg-white p-6 shadow-sm">
-            <h3 className="mb-4 text-lg font-bold text-[#5A58AA]">
+          <div className="rounded-2xl border border-purple-300 bg-card p-6 shadow-sm">
+            <h3 className="mb-4 text-lg font-bold text-purple-800">
               직접 검색
             </h3>
 
@@ -110,16 +110,16 @@ export default function InfraSearchModal() {
               placeholder="검색어를 입력하세요 (예: 스타벅스, 이마트24)"
               value={customSearch}
               onChange={(event) => setCustomSearch(event.target.value)}
-              className="w-full rounded-xl border border-[#D8D7F5] bg-white px-4 py-3 text-sm text-[#6B6847] placeholder-[#B8B69F] focus:border-[#8B89DD] focus:outline-none focus:ring-2 focus:ring-[#8B89DD]/10"
+              className="w-full rounded-xl border border-purple-300 bg-card px-4 py-3 text-sm text-text-secondary placeholder:text-text-muted focus:border-secondary focus:outline-none focus:ring-2 focus:ring-secondary/10"
             />
           </div>
 
-          <div className="rounded-2xl border border-[#E8DBFF] bg-white p-6 shadow-sm">
-            <h3 className="mb-3 text-lg font-bold text-[#8E3BA8]">
+          <div className="rounded-2xl border border-accent-purple-border bg-card p-6 shadow-sm">
+            <h3 className="mb-3 text-lg font-bold text-accent-purple">
               선택된 조건
             </h3>
 
-            <div className="space-y-2 text-sm text-[#8E3BA8]">
+            <div className="space-y-2 text-sm text-accent-purple">
               <div>• 선택한 카테고리: {selectedCategories.length}개</div>
               <div>• 검색 반경: {radius}m</div>
               {customSearch && <div>• 직접 검색: {customSearch}</div>}
@@ -131,7 +131,7 @@ export default function InfraSearchModal() {
           <button
             type="button"
             onClick={() => navigate("/map")}
-            className="rounded-xl border border-[#E8E6DD] bg-white px-6 py-3 text-base font-semibold text-[#6B6847] transition-all hover:bg-[#FDFCF8]"
+            className="rounded-xl border border-border bg-card px-6 py-3 text-base font-semibold text-text-secondary transition-all hover:bg-background"
           >
             취소
           </button>
@@ -139,7 +139,7 @@ export default function InfraSearchModal() {
           <button
             type="button"
             onClick={() => navigate("/infra-view")}
-            className="rounded-xl bg-[#4A4530] px-6 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg"
+            className="rounded-xl bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
           >
             검색 결과 보기
           </button>
@@ -167,8 +167,8 @@ function CategoryButton({
       type="button"
       onClick={onClick}
       className={`rounded-xl border px-4 py-3 text-sm font-medium transition-all ${selected
-          ? "border-[#BDB96A] bg-[#FDFCF8] text-[#8B8850] shadow-sm"
-          : "border-[#E8E6DD] bg-white text-[#B8B69F] hover:border-[#BDB96A] hover:bg-[#FDFCF8]"
+          ? "border-accent bg-background text-text-tertiary shadow-sm"
+          : "border-border bg-card text-text-muted hover:border-accent hover:bg-background"
         }`}
     >
       <Icon className="mx-auto h-5 w-5" />

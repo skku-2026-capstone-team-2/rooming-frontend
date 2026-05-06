@@ -19,20 +19,20 @@ export default function PropertyDetailScreen() {
 
   if (!property) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#FDFCF8] px-6">
-        <div className="w-full max-w-md rounded-3xl border border-[#E8E6DD] bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-bold text-[#4A4530]">
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+          <h1 className="text-2xl font-bold text-foreground">
             매물을 찾을 수 없어요
           </h1>
 
-          <p className="mt-3 text-sm leading-6 text-[#8B8850]">
+          <p className="mt-3 text-sm leading-6 text-text-tertiary">
             요청한 매물 정보가 존재하지 않거나 삭제되었을 수 있어요.
           </p>
 
           <button
             type="button"
             onClick={() => navigate("/map")}
-            className="mt-6 rounded-xl bg-[#4A4530] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#3A3520]"
+            className="mt-6 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-green-800"
           >
             지도로 돌아가기
           </button>
@@ -49,7 +49,7 @@ export default function PropertyDetailScreen() {
   const address = "종로구 성균관로";
 
   return (
-    <div className="min-h-screen bg-[#FDFCF8]">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-6 py-8">
         <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
           {/* 좌측 메인 영역 */}
@@ -57,14 +57,14 @@ export default function PropertyDetailScreen() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex w-fit items-center gap-2 rounded-xl border border-[#E8E6DD] bg-white px-5 py-3 text-base font-semibold text-[#6B6847] transition-all hover:bg-[#FDFCF8]"
+              className="flex w-fit items-center gap-2 rounded-xl border border-border bg-card px-5 py-3 text-base font-semibold text-text-secondary transition-all hover:bg-background"
             >
               <ArrowLeft className="h-4 w-4 shrink-0" />
               뒤로가기
             </button>
 
             {/* 매물 사진 + 정보 오버레이 */}
-            <div className="relative h-[430px] overflow-hidden rounded-3xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30 shadow-sm">
+            <div className="relative h-[430px] overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-border/30 to-purple-300/30 shadow-sm">
               {property.image ? (
                 <img
                   src={property.image}
@@ -74,8 +74,8 @@ export default function PropertyDetailScreen() {
               ) : (
                 <div className="flex h-full w-full items-center justify-center">
                   <div className="text-center">
-                    <Home className="mx-auto mb-3 h-20 w-20 text-[#6B6847]" />
-                    <div className="text-base font-medium text-[#6B6847]">
+                    <Home className="mx-auto mb-3 h-20 w-20 text-text-secondary" />
+                    <div className="text-base font-medium text-text-secondary">
                       매물 사진 영역
                     </div>
                   </div>
@@ -83,32 +83,32 @@ export default function PropertyDetailScreen() {
               )}
 
               {/* 하단 오버레이 */}
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent px-6 pb-6 pt-24">
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/70 via-foreground/40 to-transparent px-6 pb-6 pt-24">
                 <div className="mb-3 flex items-center gap-2">
-                  <span className="rounded-full border border-white/40 bg-white/90 px-3 py-1 text-xs font-semibold text-[#5A58AA]">
+                  <span className="rounded-full border border-card/40 bg-card/90 px-3 py-1 text-xs font-semibold text-purple-800">
                     AI 추천
                   </span>
-                  <span className="rounded-full border border-white/40 bg-white/90 px-3 py-1 text-xs font-semibold text-[#8B8850]">
+                  <span className="rounded-full border border-card/40 bg-card/90 px-3 py-1 text-xs font-semibold text-text-tertiary">
                     원룸
                   </span>
                 </div>
 
-                <h1 className="text-3xl font-bold text-white">
+                <h1 className="text-3xl font-bold text-primary-foreground">
                   {property.title}
                 </h1>
 
-                <p className="mt-2 text-3xl font-bold text-[#FDFBD4]">
+                <p className="mt-2 text-3xl font-bold text-green-300">
                   {property.price}
                 </p>
 
-                <p className="mt-2 line-clamp-1 text-sm leading-6 text-white/85">
+                <p className="mt-2 line-clamp-1 text-sm leading-6 text-primary-foreground/85">
                   {description}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#D8D7F5] bg-white p-6 shadow-sm">
-              <h3 className="mb-4 flex items-center gap-1.5 text-lg font-bold text-[#5A58AA]">
+            <div className="rounded-2xl border border-purple-300 bg-card p-6 shadow-sm">
+              <h3 className="mb-4 flex items-center gap-1.5 text-lg font-bold text-purple-800">
                 <Sparkles className="h-4 w-4 shrink-0" />
                 AI 추천 이유
               </h3>
@@ -129,8 +129,8 @@ export default function PropertyDetailScreen() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[#E8DBFF] bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-[#8E3BA8]">
+            <div className="rounded-2xl border border-accent-purple-border bg-card p-6 shadow-sm">
+              <h3 className="mb-4 text-lg font-bold text-accent-purple">
                 주요 인프라
               </h3>
 
@@ -151,7 +151,7 @@ export default function PropertyDetailScreen() {
                 <button
                   type="button"
                   onClick={() => navigate(`/infra-view?propertyId=${property.id}`)}
-                  className="flex-1 rounded-xl bg-[#8B89DD] px-5 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#7471CC] hover:shadow-lg"
+                  className="flex-1 rounded-xl bg-secondary px-5 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-purple-700 hover:shadow-lg"
                 >
                   인프라 보기
                 </button>
@@ -159,14 +159,14 @@ export default function PropertyDetailScreen() {
                 <button
                   type="button"
                   onClick={() => navigate(`/3d-view?propertyId=${property.id}`)}
-                  className="flex-1 rounded-xl bg-[#4A4530] px-5 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg"
+                  className="flex-1 rounded-xl bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
                 >
                   3D 보기
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-4 text-lg font-bold text-foreground">
                   기본 정보
                 </h3>
 
@@ -178,12 +178,12 @@ export default function PropertyDetailScreen() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-[#E8E6DD] bg-white p-6 shadow-sm">
-                <h3 className="mb-4 text-lg font-bold text-[#4A4530]">
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-4 text-lg font-bold text-foreground">
                   문의하기
                 </h3>
 
-                <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#4A4530] px-4 py-3 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg">
+                <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg">
                   <Phone className="h-4 w-4" />
                   부동산 연결하기
                 </button>
@@ -198,27 +198,27 @@ export default function PropertyDetailScreen() {
 
 function ReasonItem({ Icon, text }: { Icon: React.ElementType; text: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-[#E8E7FF] bg-[#F8F8FF] px-4 py-3">
-      <Icon className="mt-0.5 h-5 w-5 text-[#5A58AA]" />
-      <span className="text-sm leading-6 text-[#5A58AA]">{text}</span>
+    <div className="flex items-start gap-3 rounded-xl border border-purple-200 bg-purple-100 px-4 py-3">
+      <Icon className="mt-0.5 h-5 w-5 text-purple-800" />
+      <span className="text-sm leading-6 text-purple-800">{text}</span>
     </div>
   );
 }
 
 function DistanceItem({ place, distance }: { place: string; distance: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-[#F0E5FF] bg-[#FFF8FF] px-4 py-3">
-      <span className="text-sm text-[#6B6847]">{place}</span>
-      <span className="text-sm font-semibold text-[#8E3BA8]">{distance}</span>
+    <div className="flex items-center justify-between rounded-xl border border-accent-purple-lighter bg-accent-purple-bg px-4 py-3">
+      <span className="text-sm text-text-secondary">{place}</span>
+      <span className="text-sm font-semibold text-accent-purple">{distance}</span>
     </div>
   );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-[#EEECCA] bg-[#FDFBD4] px-4 py-3">
-      <span className="text-sm font-medium text-[#BDB96A]">{label}</span>
-      <span className="text-base font-semibold text-[#6B6847]">{value}</span>
+    <div className="flex items-center justify-between rounded-2xl border border-beige-300 bg-green-300 px-4 py-3">
+      <span className="text-sm font-medium text-accent">{label}</span>
+      <span className="text-base font-semibold text-text-secondary">{value}</span>
     </div>
   );
 }

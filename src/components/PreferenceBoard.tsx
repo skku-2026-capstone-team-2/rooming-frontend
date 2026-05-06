@@ -106,12 +106,12 @@ export default function PreferenceBoard() {
     cat.options.filter((o) => selected.has(o)).length;
 
   return (
-    <div className="rounded-2xl border border-[#D8D7F5] bg-white shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-2xl border border-purple-300 bg-card shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#EEECFF]">
-        <span className="text-lg font-semibold text-[#5A58AA]">선호 조건</span>
+      <div className="flex items-center justify-between border-b border-purple-200 px-6 pb-4 pt-5">
+        <span className="text-lg font-semibold text-purple-800">선호 조건</span>
         {selected.size > 0 && (
-          <span className="rounded-full bg-[#5A58AA] px-2.5 py-0.5 text-xs font-bold text-white">
+          <span className="rounded-full bg-purple-800 px-2.5 py-0.5 text-xs font-bold text-secondary-foreground">
             {selected.size}개 선택
           </span>
         )}
@@ -119,7 +119,7 @@ export default function PreferenceBoard() {
 
       <div className="flex min-h-[300px]">
         {/* Sidebar */}
-        <nav className="w-28 shrink-0 border-r border-[#EEECFF] bg-[#F8F8FF] py-3">
+        <nav className="w-28 shrink-0 border-r border-purple-200 bg-purple-100 py-3">
           {CATEGORIES.map((cat) => {
             const count = countFor(cat);
             const isActive = activeCategory === cat.id;
@@ -128,16 +128,16 @@ export default function PreferenceBoard() {
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
                 className={`relative w-full px-3 py-2.5 text-left text-xs font-semibold transition-colors duration-150 ${isActive
-                  ? "bg-white text-[#5A58AA]"
-                  : "text-[#9B99CC] hover:text-[#5A58AA]"
+                  ? "bg-card text-purple-800"
+                  : "text-purple-500 hover:text-purple-800"
                   }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-r bg-[#5A58AA]" />
+                  <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-purple-800" />
                 )}
                 {cat.label}
                 {count > 0 && (
-                  <span className="ml-1 inline-block rounded-full bg-[#5A58AA]/15 px-1.5 text-[10px] font-bold text-[#5A58AA]">
+                  <span className="ml-1 inline-block rounded-full bg-purple-800/15 px-1.5 text-[10px] font-bold text-purple-800">
                     {count}
                   </span>
                 )}
@@ -155,9 +155,9 @@ export default function PreferenceBoard() {
                 <button
                   key={label}
                   onClick={() => toggle(label)}
-                  className={`rounded-xl px-3 py-2 text-sm font-medium border transition-all duration-150 ${isSelected
-                    ? "bg-[#5A58AA] border-[#5A58AA] text-white shadow-sm"
-                    : "bg-[#F8F8FF] border-[#E8E7FF] text-[#5A58AA] hover:border-[#5A58AA]/50 hover:bg-[#EEEEFF]"
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150 ${isSelected
+                    ? "border-purple-800 bg-purple-800 text-secondary-foreground shadow-sm"
+                    : "border-purple-200 bg-purple-100 text-purple-800 hover:border-purple-800/50 hover:bg-purple-50"
                     }`}
                 >
                   {label}
@@ -170,17 +170,17 @@ export default function PreferenceBoard() {
 
       {/* Selected tags */}
       {selected.size > 0 && (
-        <div className="border-t border-[#EEECFF] bg-[#F8F8FF] px-4 py-3">
+        <div className="border-t border-purple-200 bg-purple-100 px-4 py-3">
           <div className="flex flex-wrap gap-1.5">
             {Array.from(selected).map((label) => (
               <span
                 key={label}
-                className="flex items-center gap-1 rounded-full bg-[#5A58AA]/10 px-2.5 py-0.5 text-xs font-medium text-[#5A58AA]"
+                className="flex items-center gap-1 rounded-full bg-purple-800/10 px-2.5 py-0.5 text-xs font-medium text-purple-800"
               >
                 {label}
                 <button
                   onClick={() => toggle(label)}
-                  className="ml-0.5 leading-none text-[#5A58AA]/50 hover:text-[#5A58AA]"
+                  className="ml-0.5 leading-none text-purple-800/50 hover:text-purple-800"
                 >
                   ×
                 </button>

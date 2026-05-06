@@ -29,7 +29,7 @@ export default function WelcomeScreen() {
   const marqueeProperties = [...previewProperties, ...previewProperties];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#FDFCF8]">
+    <div className="relative min-h-screen overflow-hidden bg-background">
       <style>
         {`
           @keyframes marquee {
@@ -78,14 +78,14 @@ export default function WelcomeScreen() {
       </style>
 
       {/* Background Decorations */}
-      <div className="pointer-events-none absolute left-[-120px] top-[-120px] z-0 h-[320px] w-[320px] rounded-full bg-[#D8D7F5]/40 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-[-140px] right-[-120px] z-0 h-[360px] w-[360px] rounded-full bg-[#E8E6DD]/70 blur-3xl" />
-      <div className="pointer-events-none absolute right-[18%] top-[18%] z-0 h-24 w-24 rounded-full bg-[#C1BFFF]/20 blur-2xl" />
+      <div className="pointer-events-none absolute left-[-120px] top-[-120px] z-0 h-[320px] w-[320px] rounded-full bg-purple-300/40 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-[-140px] right-[-120px] z-0 h-[360px] w-[360px] rounded-full bg-border/70 blur-3xl" />
+      <div className="pointer-events-none absolute right-[18%] top-[18%] z-0 h-24 w-24 rounded-full bg-purple-500/20 blur-2xl" />
 
       {/* Top Visual Area */}
       <section className="relative z-10 flex h-[620px] w-full justify-center px-6 pt-10">
         {/* 3D iframe Area */}
-        <div className="relative h-full w-full max-w-7xl overflow-hidden rounded-[36px] border border-[#E8E6DD] bg-white/50 shadow-sm backdrop-blur">
+        <div className="relative h-full w-full max-w-7xl overflow-hidden rounded-[36px] border border-border bg-card/50 shadow-sm backdrop-blur">
           <iframe
             src="https://my.spline.design/houserobot-9v1J5XwSYTaSLmx1pWDxwZhq/"
             frameBorder="0"
@@ -95,18 +95,18 @@ export default function WelcomeScreen() {
 
           {/* Logo - iframe 좌측 상단 */}
           <div className="pointer-events-none absolute left-8 top-7 z-20 sm:left-8 sm:top-7">
-            <div className="text-4xl font-bold tracking-[-0.04em] text-[#4A4530] drop-shadow-sm sm:text-4xl">
+            <div className="text-4xl font-bold tracking-[-0.04em] text-foreground drop-shadow-sm sm:text-4xl">
               rooming.
             </div>
           </div>
 
           {/* Main Description - iframe 우측 상단 */}
           {/* <div className="pointer-events-none absolute right-8 top-8 z-20 max-w-md text-right sm:right-8 sm:top-8">
-            <div className="text-xl font-semibold text-[#6B6847] drop-shadow-sm sm:text-xl">
+            <div className="text-xl font-semibold text-text-secondary drop-shadow-sm sm:text-xl">
               AI 기반 3D 자취방 탐색 서비스
             </div>
 
-            <div className="mt-3 text-sm leading-7 text-[#8B8850] drop-shadow-sm sm:text-sm">
+            <div className="mt-3 text-sm leading-7 text-text-tertiary drop-shadow-sm sm:text-sm">
               학교 근처 매물, 생활 인프라, 3D 공간 정보를
               <br className="hidden sm:block" />
               한 번에 확인해보세요.
@@ -115,25 +115,25 @@ export default function WelcomeScreen() {
 
           {/* Floating Condition Tags */}
           <div className="pointer-events-none absolute left-6 top-[42%] z-20 sm:left-16">
-            <div className="animate-float-tag rounded-full border border-[#E1DEC9] bg-white/85 px-4 py-2 text-sm font-semibold text-[#6B6847] shadow-md backdrop-blur">
+            <div className="animate-float-tag rounded-full border border-beige-200 bg-card/85 px-4 py-2 text-sm font-semibold text-text-secondary shadow-md backdrop-blur">
               📍 성균관대 근처
             </div>
           </div>
 
           <div className="pointer-events-none absolute right-6 top-[36%] z-20 sm:right-20">
-            <div className="animate-float-tag-delay-1 rounded-full border border-[#E1DEC9] bg-white/85 px-4 py-2 text-sm font-semibold text-[#6B6847] shadow-md backdrop-blur">
+            <div className="animate-float-tag-delay-1 rounded-full border border-beige-200 bg-card/85 px-4 py-2 text-sm font-semibold text-text-secondary shadow-md backdrop-blur">
               💰 월세 50만원 이하
             </div>
           </div>
 
           <div className="pointer-events-none absolute bottom-24 left-6 z-20 sm:left-24">
-            <div className="animate-float-tag-delay-2 rounded-full border border-[#E1DEC9] bg-white/85 px-4 py-2 text-sm font-semibold text-[#6B6847] shadow-md backdrop-blur">
+            <div className="animate-float-tag-delay-2 rounded-full border border-beige-200 bg-card/85 px-4 py-2 text-sm font-semibold text-text-secondary shadow-md backdrop-blur">
               🏋️ 헬스장 선호
             </div>
           </div>
 
           <div className="pointer-events-none absolute bottom-16 right-6 z-20 sm:right-24">
-            <div className="animate-float-tag-delay-3 rounded-full border border-[#E1DEC9] bg-white/85 px-4 py-2 text-sm font-semibold text-[#6B6847] shadow-md backdrop-blur">
+            <div className="animate-float-tag-delay-3 rounded-full border border-beige-200 bg-card/85 px-4 py-2 text-sm font-semibold text-text-secondary shadow-md backdrop-blur">
               🏠 3D 공간 확인
             </div>
           </div>
@@ -148,17 +148,17 @@ export default function WelcomeScreen() {
             {marqueeProperties.map((property, index) => (
               <div
                 key={`${property.title}-${index}`}
-                className="w-[280px] shrink-0 rounded-2xl border border-[#E8E6DD] bg-white/85 p-5 text-left shadow-sm backdrop-blur transition-all hover:-translate-y-1 hover:shadow-md"
+                className="w-[280px] shrink-0 rounded-2xl border border-border bg-card/85 p-5 text-left shadow-sm backdrop-blur transition-all hover:-translate-y-1 hover:shadow-md"
               >
-                <div className="text-base font-bold text-[#4A4530]">
+                <div className="text-base font-bold text-foreground">
                   {property.title}
                 </div>
 
-                <div className="mt-2 text-sm font-semibold text-[#8B89DD]">
+                <div className="mt-2 text-sm font-semibold text-secondary">
                   보증금 / 월세 {property.price}
                 </div>
 
-                <div className="mt-2 text-sm leading-6 text-[#8B8850]">
+                <div className="mt-2 text-sm leading-6 text-text-tertiary">
                   {property.desc}
                 </div>
               </div>
@@ -170,14 +170,14 @@ export default function WelcomeScreen() {
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
           <button
             onClick={() => navigate("/onboarding")}
-            className="rounded-xl bg-[#4A4530] px-7 py-4 text-base font-semibold text-white shadow-md transition-all hover:bg-[#3A3520] hover:shadow-lg"
+            className="rounded-xl bg-primary px-7 py-4 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
           >
             일반 사용자 로그인
           </button>
 
           <button
             onClick={() => navigate("/admin")}
-            className="rounded-xl border border-[#C1BFFF] bg-white px-7 py-4 text-base font-semibold text-[#8B89DD] transition-all hover:bg-[#F8F8FF]"
+            className="rounded-xl border border-purple-500 bg-card px-7 py-4 text-base font-semibold text-secondary transition-all hover:bg-purple-100"
           >
             관리자 로그인
           </button>

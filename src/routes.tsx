@@ -9,6 +9,7 @@ import ThreeDViewScreen from "./pages/ThreeDViewScreen";
 import AdminScreen from "./pages/AdminScreen";
 import AIPanel from "./components/AIPanel";
 import AIResultScreen from "./pages/AIResultScreen";
+import DesignSystemDemo from "./figma/DesignSystem";
 
 export const router = createBrowserRouter([
   {
@@ -58,5 +59,9 @@ export const router = createBrowserRouter([
   {
     path: "/admin",
     Component: AdminScreen,
+  },
+  {
+    path: "/figma",
+    Component: DesignSystemDemo,
   },
 ]);

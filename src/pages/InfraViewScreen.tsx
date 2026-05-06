@@ -103,6 +103,10 @@ export default function InfraViewScreen() {
         const mapContainer = document.getElementById("infra_map_div");
         if (!mapContainer || !window.Tmapv2) return;
 
+        const themeStyles = getComputedStyle(document.documentElement);
+        const getThemeColor = (token: string) =>
+          themeStyles.getPropertyValue(token).trim();
+
         mapContainer.innerHTML = "";
 
         const map = new window.Tmapv2.Map("infra_map_div", {
@@ -147,7 +151,7 @@ export default function InfraViewScreen() {
             lng: SCHOOL_PLACE.lng,
             name: SCHOOL_PLACE.label,
           },
-          strokeColor: "#6B67BB",
+          strokeColor: getThemeColor("--token-color-purple-700"),
         });
 
         // 인프라 마커 + 매물과의 점선
@@ -172,7 +176,7 @@ export default function InfraViewScreen() {
               lat: place.lat,
               lng: place.lng,
             },
-            strokeColor: "#BDB96A",
+            strokeColor: getThemeColor("--token-color-green-400"),
           });
         });
       } catch (error) {
@@ -184,27 +188,27 @@ export default function InfraViewScreen() {
   }, [selectedProperty, nearbyInfraPlaces]);
 
   return (
-    <div className="relative h-screen w-full overflow-hidden bg-[#FDFCF8]">
+    <div className="relative h-screen w-full overflow-hidden bg-background">
       <div id="infra_map_div" className="h-full w-full" />
 
       {/* 좌측 상단 뒤로가기 */}
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-2xl border border-[#3A3830] bg-[#2A2820] px-5 py-3 text-sm font-semibold text-[#FDFCF8] shadow-lg transition hover:bg-[#3A3830]"
+        className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-2xl border border-green-800 bg-green-900 px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition hover:bg-green-800"
       >
         <ArrowLeft className="h-4 w-4" />
         뒤로가기
       </button>
 
       {/* 좌측 하단 인프라 리스트 */}
-      <section className="absolute bottom-6 left-6 z-20 w-[390px] rounded-3xl border border-[#E8E6DD] bg-white/95 p-5 shadow-xl backdrop-blur-sm">
+      <section className="absolute bottom-6 left-6 z-20 w-[390px] rounded-3xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur-sm">
         <div className="mb-4 flex items-end justify-between">
           <div>
-            <h3 className="text-lg font-bold text-[#4A4530]">
+            <h3 className="text-lg font-bold text-foreground">
               주변 생활 인프라
             </h3>
-            <p className="mt-1 text-xs text-[#8B8850]">
+            <p className="mt-1 text-xs text-text-tertiary">
               선택한 매물 기준으로 가까운 시설을 지도에 표시합니다.
             </p>
           </div>
@@ -217,24 +221,24 @@ export default function InfraViewScreen() {
             return (
               <div
                 key={place.id}
-                className="flex items-center justify-between rounded-2xl border border-[#EEECCA] bg-[#FDFBD4] p-3"
+                className="flex items-center justify-between rounded-2xl border border-beige-300 bg-green-300 p-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#6B6847] shadow-sm">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-text-secondary shadow-sm">
                     <Icon className="h-5 w-5" />
                   </div>
 
                   <div>
-                    <div className="text-sm font-bold text-[#4A4530]">
+                    <div className="text-sm font-bold text-foreground">
                       {place.label}
                     </div>
-                    <div className="text-xs text-[#8B8850]">
+                    <div className="text-xs text-text-tertiary">
                       {infraCategoryLabel[place.type] ?? place.type}
                     </div>
                   </div>
                 </div>
 
-                <span className="rounded-full border border-[#E8E7FF] bg-[#F8F8FF] px-3 py-1 text-xs font-semibold text-[#5A58AA]">
+                <span className="rounded-full border border-purple-200 bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
                   {place.distance}
                 </span>
               </div>
@@ -244,9 +248,9 @@ export default function InfraViewScreen() {
       </section>
 
       {/* 우측 하단 선택 매물 카드 */}
-      <section className="absolute bottom-6 right-6 z-20 w-[360px] rounded-3xl border border-[#E8E6DD] bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+      <section className="absolute bottom-6 right-6 z-20 w-[360px] rounded-3xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm">
         {/* 매물 사진 영역 */}
-        <div className="relative mb-4 h-44 overflow-hidden rounded-2xl border border-[#E8E6DD] bg-gradient-to-br from-[#E8E6DD]/30 to-[#D8D7F5]/30">
+        <div className="relative mb-4 h-44 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-border/30 to-purple-300/30">
           {selectedProperty.image ? (
             <img
               src={selectedProperty.image}
@@ -256,8 +260,8 @@ export default function InfraViewScreen() {
           ) : (
             <div className="flex h-full w-full items-center justify-center">
               <div className="text-center">
-                <Home className="mx-auto mb-2 h-12 w-12 text-[#6B6847]" />
-                <p className="text-xs font-medium text-[#6B6847]">
+                <Home className="mx-auto mb-2 h-12 w-12 text-text-secondary" />
+                <p className="text-xs font-medium text-text-secondary">
                   매물 사진 영역
                 </p>
               </div>
@@ -265,39 +269,39 @@ export default function InfraViewScreen() {
           )}
 
           {/* 하단 오버레이 */}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/35 to-transparent px-4 pb-3 pt-12">
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-foreground/60 via-foreground/35 to-transparent px-4 pb-3 pt-12">
             <div className="mb-2 flex items-center gap-2">
-              <span className="rounded-full border border-white/40 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#5A58AA]">
+              <span className="rounded-full border border-card/40 bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-purple-800">
                 AI 추천
               </span>
-              <span className="rounded-full border border-white/40 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-[#8B8850]">
+              <span className="rounded-full border border-card/40 bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-text-tertiary">
                 원룸
               </span>
             </div>
 
-            <h2 className="line-clamp-1 text-base font-bold text-white">
+            <h2 className="line-clamp-1 text-base font-bold text-primary-foreground">
               {selectedProperty.title}
             </h2>
 
             {selectedProperty.description && (
-              <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-white/85">
+              <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-primary-foreground/85">
                 {selectedProperty.description}
               </p>
             )}
           </div>
         </div>
         {/* 가격 */}
-        <div className="flex items-center justify-between rounded-2xl border border-[#EEECCA] bg-[#FDFBD4] px-4 py-3">
-          <span className="text-sm font-medium text-[#8B8850]">
+        <div className="flex items-center justify-between rounded-2xl border border-beige-300 bg-green-300 px-4 py-3">
+          <span className="text-sm font-medium text-text-tertiary">
             보증금 / 월세
           </span>
-          <span className="text-base font-bold text-[#6B6847]">
+          <span className="text-base font-bold text-text-secondary">
             {selectedProperty.price}
           </span>
         </div>
 
         {/* 학교까지 거리 */}
-        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-[#E8E7FF] bg-[#F8F8FF] px-4 py-3 text-sm text-[#5A58AA]">
+        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-100 px-4 py-3 text-sm text-purple-800">
           <School className="h-4 w-4 shrink-0" />
           <span className="line-clamp-1">
             {SCHOOL_PLACE.label}까지 {selectedProperty.distance ?? "도보 12분"}
