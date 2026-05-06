@@ -22,10 +22,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles = "inline-flex items-center justify-center gap-2 font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2";
 
     const variants = {
-      primary: "bg-[#4A4530] text-white hover:bg-[#3A3520] shadow-md hover:shadow-lg focus:ring-[#BDB96A]",
-      secondary: "border border-[#D8D7F5] bg-white text-[#8B89DD] hover:bg-[#F8F8FF] focus:ring-[#8B89DD]",
-      outline: "border border-[#E8E6DD] bg-white text-[#6B6847] hover:bg-[#FDFCF8] focus:ring-[#BDB96A]",
-      ghost: "bg-transparent text-[#6B6847] hover:bg-[#F5F5E8] focus:ring-[#BDB96A]",
+      primary: "bg-primary text-primary-foreground shadow-md hover:bg-green-800 hover:shadow-lg focus:ring-ring",
+      secondary: "border border-purple-300 bg-card text-secondary hover:bg-purple-100 focus:ring-secondary",
+      outline: "border border-border bg-card text-text-secondary hover:bg-background focus:ring-ring",
+      ghost: "bg-transparent text-text-secondary hover:bg-muted focus:ring-ring",
     };
 
     const sizes = {

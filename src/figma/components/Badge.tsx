@@ -11,10 +11,10 @@ export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
     const baseStyles = "inline-flex items-center font-medium border";
 
     const variants = {
-      default: "bg-[#FDFCF8] text-[#8B8850] border-[#F0EFE8]",
-      purple: "bg-[#F8F8FF] text-[#5A58AA] border-[#E8E7FF]",
-      accent: "bg-[#FFF8FF] text-[#8E3BA8] border-[#F0E5FF]",
-      green: "bg-[#FDFBD4] text-[#6B6847] border-[#EEECCA]",
+      default: "bg-background text-text-tertiary border-beige-400",
+      purple: "bg-purple-100 text-purple-800 border-purple-200",
+      accent: "bg-accent-purple-bg text-accent-purple border-accent-purple-lighter",
+      green: "bg-green-300 text-text-secondary border-beige-300",
     };
 
     const sizes = {

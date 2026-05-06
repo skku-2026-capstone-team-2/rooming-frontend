@@ -12,10 +12,10 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     const baseStyles = "rounded-2xl transition-all";
 
     const variants = {
-      default: "border border-[#E8E6DD] bg-white shadow-sm",
-      purple: "border border-[#D8D7F5] bg-white shadow-sm",
-      accent: "border border-[#E8DBFF] bg-white shadow-sm",
-      beige: "border border-[#EEECCA] bg-[#FDFCF8]",
+      default: "border border-border bg-card shadow-sm",
+      purple: "border border-purple-300 bg-card shadow-sm",
+      accent: "border border-accent-purple-border bg-card shadow-sm",
+      beige: "border border-beige-300 bg-background",
     };
 
     const paddings = {
@@ -25,7 +25,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     };
 
     const hoverStyles = hoverable
-      ? "hover:shadow-lg hover:border-[#BDB96A] cursor-pointer"
+      ? "hover:shadow-lg hover:border-accent cursor-pointer"
       : "";
 
     return (
@@ -57,7 +57,7 @@ CardHeader.displayName = "CardHeader";
 export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ children, className = "", ...props }, ref) => {
     return (
-      <h3 ref={ref} className={`text-lg font-bold text-[#4A4530] ${className}`} {...props}>
+      <h3 ref={ref} className={`text-lg font-bold text-card-foreground ${className}`} {...props}>
         {children}
       </h3>
     );
