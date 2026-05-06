@@ -300,7 +300,7 @@ export default function MainMapScreen() {
   }, []);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#FDFCF8]">
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       <main className="relative h-full flex-1 overflow-hidden">
         <div id="map_div" className="h-full w-full" />
 

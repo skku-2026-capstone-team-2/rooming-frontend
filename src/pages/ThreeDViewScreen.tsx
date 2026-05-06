@@ -9,15 +9,15 @@ export default function ThreeDViewScreen() {
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
 
   return (
-    <div className="relative h-screen w-full bg-[#1A1812]">
+    <div className="relative h-screen w-full bg-green-900">
       {/* 3D 뷰어 영역 */}
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2A2820] to-[#1A1812]">
+      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-green-900 to-green-900">
         <div className="text-center">
-          <Home className="mx-auto mb-4 h-20 w-20 text-[#FDFCF8]" />
-          <div className="text-xl font-semibold text-[#FDFCF8]">
+          <Home className="mx-auto mb-4 h-20 w-20 text-primary-foreground" />
+          <div className="text-xl font-semibold text-primary-foreground">
             {viewMode === "normal" ? "3D 뷰어 영역" : "평면도 영역"}
           </div>
-          <div className="mt-2 text-sm text-[#B8B69F]">
+          <div className="mt-2 text-sm text-text-muted">
             {viewMode === "normal"
               ? "실제로는 3D 모델이 표시됩니다"
               : "실제로는 평면도 모델이 표시됩니다"}
@@ -30,8 +30,8 @@ export default function ThreeDViewScreen() {
         <div className="grid grid-cols-3 gap-3">
           {/* 공간 정보 */}
           <div className="col-span-3">
-            <div className="rounded-2xl border border-[#3A3830] bg-[#2A2820]/95 p-6 shadow-xl backdrop-blur-sm">
-              <h3 className="mb-4 text-lg font-bold text-[#FDFCF8]">
+            <div className="rounded-2xl border border-green-800 bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
+              <h3 className="mb-4 text-lg font-bold text-primary-foreground">
                 공간 정보
               </h3>
               <div className="space-y-2 text-sm">
@@ -44,11 +44,11 @@ export default function ThreeDViewScreen() {
 
           {/* 공간 구성 */}
           <div className="col-span-3">
-            <div className="rounded-2xl border border-[#4A4858] bg-[#2A2820]/95 p-6 shadow-xl backdrop-blur-sm">
-              <h3 className="mb-4 text-lg font-bold text-[#D4D2FF]">
+            <div className="rounded-2xl border border-purple-900 bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
+              <h3 className="mb-4 text-lg font-bold text-purple-400">
                 공간 구성
               </h3>
-              <div className="space-y-2 text-sm text-[#C1BFFF]">
+              <div className="space-y-2 text-sm text-purple-500">
                 <div>• 방 1개</div>
                 <div>• 화장실 1개</div>
                 <div>• 주방 (일자형)</div>
@@ -58,11 +58,11 @@ export default function ThreeDViewScreen() {
 
           {/* 가구 배치 */}
           <div className="col-span-3">
-            <div className="rounded-2xl border border-[#4A4530] bg-[#2A2820]/95 p-6 shadow-xl backdrop-blur-sm">
-              <h3 className="mb-4 text-lg font-bold text-[#D4D2A0]">
+            <div className="rounded-2xl border border-primary bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
+              <h3 className="mb-4 text-lg font-bold text-green-300">
                 가구 배치
               </h3>
-              <div className="space-y-2 text-sm text-[#BDB96A]">
+              <div className="space-y-2 text-sm text-accent">
                 <div>• 침대 (싱글)</div>
                 <div>• 책상 & 의자</div>
                 <div>• 옷장</div>
@@ -73,8 +73,8 @@ export default function ThreeDViewScreen() {
       </div>
 
       {/* 우측 상단 제어 버튼 */}
-      <div className="absolute right-6 top-6 z-10 rounded-2xl border border-[#3A3830] bg-[#2A2820]/95 p-5 shadow-xl backdrop-blur-sm">
-        <h4 className="mb-3 text-sm font-bold text-[#FDFCF8]">뷰 컨트롤</h4>
+      <div className="absolute right-6 top-6 z-10 rounded-2xl border border-green-800 bg-green-900/95 p-5 shadow-xl backdrop-blur-sm">
+        <h4 className="mb-3 text-sm font-bold text-primary-foreground">뷰 컨트롤</h4>
         <div className="space-y-2">
           <ViewButton Icon={RotateCw} label="회전" />
           <ViewButton Icon={ZoomIn} label="확대/축소" />
@@ -84,7 +84,7 @@ export default function ThreeDViewScreen() {
       </div>
 
       {/* 하단 보기 토글 */}
-      <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 rounded-full border border-[#3A3830] bg-[#2A2820] p-1.5 shadow-xl">
+      <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 rounded-full border border-green-800 bg-green-900 p-1.5 shadow-xl">
         <ViewModeToggleButton
           text="일반 보기"
           active={viewMode === "normal"}
@@ -101,7 +101,7 @@ export default function ThreeDViewScreen() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-2xl border border-[#3A3830] bg-[#2A2820] px-5 py-3 text-sm font-semibold text-[#FDFCF8] shadow-lg transition hover:bg-[#3A3830]"
+        className="absolute left-6 top-6 z-20 flex items-center gap-2 rounded-2xl border border-green-800 bg-green-900 px-5 py-3 text-sm font-semibold text-primary-foreground shadow-lg transition hover:bg-green-800"
       >
         <ArrowLeft className="h-4 w-4" />
         뒤로가기
@@ -112,9 +112,9 @@ export default function ThreeDViewScreen() {
 
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-[#3A3830] bg-[#1A1812] px-3 py-2">
-      <span className="text-xs text-[#B8B69F]">{label}</span>
-      <span className="text-sm font-semibold text-[#FDFCF8]">{value}</span>
+    <div className="flex items-center justify-between rounded-xl border border-green-800 bg-green-900 px-3 py-2">
+      <span className="text-xs text-text-muted">{label}</span>
+      <span className="text-sm font-semibold text-primary-foreground">{value}</span>
     </div>
   );
 }
@@ -127,7 +127,7 @@ function ViewButton({
   label: string;
 }) {
   return (
-    <button className="flex w-full items-center gap-2 rounded-xl border border-[#8B8850]/20 bg-[#2A2820] px-4 py-2 text-sm font-medium text-[#FDFBD4] transition hover:bg-[#3A3830]">
+    <button className="flex w-full items-center gap-2 rounded-xl border border-green-500/20 bg-green-900 px-4 py-2 text-sm font-medium text-green-300 transition hover:bg-green-800">
       <Icon className="h-4 w-4" />
       <span>{label}</span>
     </button>
@@ -148,8 +148,8 @@ function ViewModeToggleButton({
       type="button"
       onClick={onClick}
       className={`rounded-full px-5 py-2 text-sm font-semibold transition-all ${active
-        ? "bg-[#FDFCF8] text-[#2A2820] shadow-sm"
-        : "bg-transparent text-[#B8B69F] hover:bg-[#3A3830] hover:text-[#FDFCF8]"
+        ? "bg-background text-green-900 shadow-sm"
+        : "bg-transparent text-text-muted hover:bg-green-800 hover:text-primary-foreground"
         }`}
     >
       {text}
