@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   CheckCircle2,
@@ -6,8 +6,9 @@ import {
   Lightbulb,
   Sparkles,
 } from "lucide-react";
-import { properties } from "../data/dummyProperties";
-import AIResultScreen from "../pages/AIResultScreen";
+
+const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
+const AI_SEARCH_QUERY_KEY = "rooming_ai_search_query";
 
 const aiResult = {
   userPrompt:
@@ -35,187 +36,241 @@ const aiResult = {
 
 export default function AIPanel() {
   const navigate = useNavigate();
+
   const [query, setQuery] = useState("");
-  const [isAIResultOpen, setIsAIResultOpen] = useState(false);
+  const [hasAIResult, setHasAIResult] = useState(false);
+
+  useEffect(() => {
+    const savedQuery = sessionStorage.getItem(AI_SEARCH_QUERY_KEY);
+    const isCompleted =
+      sessionStorage.getItem(AI_SEARCH_COMPLETED_KEY) === "true";
+
+    if (savedQuery) {
+      setQuery(savedQuery);
+    }
+
+    setHasAIResult(isCompleted);
+  }, []);
+
+  const handleSearch = () => {
+    const finalQuery = query.trim() || aiResult.userPrompt;
+
+    sessionStorage.setItem(AI_SEARCH_QUERY_KEY, finalQuery);
+
+    // 검색하기 직후에는 아직 채팅 기록 등록 X
+    sessionStorage.setItem(AI_SEARCH_COMPLETED_KEY, "false");
+
+    navigate("/ai-result");
+  };
 
   return (
-    <>
-      <aside className="flex h-full w-[320px] shrink-0 flex-col gap-4 border-l border-[#E8E6DD] bg-white px-5 py-5 shadow-lg">
-        {/* AI 검색 입력 영역 */}
-        <section className="relative shrink-0 rounded-3xl border-2 border-[#4A4530] bg-white p-4">
+    <aside className="flex h-full w-[320px] shrink-0 flex-col gap-4 border-l border-[#E8E6DD] bg-white px-5 py-5 shadow-lg">
+      {/* AI 검색 입력 영역 */}
+      <section className="relative shrink-0 rounded-3xl border-2 border-[#4A4530] bg-white p-4">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-sm font-bold text-[#4A4530]">
+              <Sparkles className="h-4 w-4 shrink-0" />
+              AI 검색 조건 입력
+            </div>
+
+            <p className="mt-1 break-keep text-[11px] leading-4 text-[#8B8850]">
+              원하는 조건을 문장으로 입력해보세요
+            </p>
+          </div>
+
+          {/* Tip hover 버튼 */}
+          <div className="group relative shrink-0">
+            <button
+              type="button"
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E8DBFF] bg-[#FCFAFF] text-[#8E3BA8] transition hover:bg-[#F5ECFF]"
+              aria-label="검색 팁 보기"
+            >
+              <Lightbulb className="h-3.5 w-3.5" />
+            </button>
+
+            <div className="pointer-events-none absolute right-0 top-9 z-30 w-[230px] translate-y-1 rounded-2xl border border-[#E8DBFF] bg-white p-3 text-[#8E3BA8] opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
+              <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold">
+                <Lightbulb className="h-3.5 w-3.5" />
+                Tip
+              </div>
+
+              <ul className="ml-4 list-disc space-y-1 text-[11px] leading-4">
+                <li className="break-keep">
+                  AI가 조건을 분석해 매칭률이 높은 매물을 추천합니다
+                </li>
+                <li className="break-keep">
+                  추천 결과는 화면 좌측 하단 목록 및 지도에 표시됩니다
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <textarea
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="예: 학교까지 20분 이내, 보증금 1000만원 이하, 헬스장과 BHC 가까운 원룸"
+          className="w-full resize-none rounded-2xl border border-[#D8D3BE] bg-[#FDFCF8] px-3 py-3 text-xs leading-5 text-[#4A4530] placeholder-[#B8B69F] shadow-inner focus:border-[#4A4530] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A4530]/10"
+          rows={4}
+        />
+
+        <button
+          type="button"
+          onClick={handleSearch}
+          className="mt-3 w-full rounded-2xl bg-[#4A4530] px-3 py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#3A3520] hover:shadow-lg"
+        >
+          검색하기
+        </button>
+      </section>
+
+      {/* AI 추천 결과 영역 */}
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        {hasAIResult ? <AIResultContent /> : <EmptyAIResult />}
+      </div>
+    </aside>
+  );
+}
+
+function EmptyAIResult() {
+  return (
+    <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-[#E8E6DD] bg-[#FDFCF8] px-5 py-8 text-center">
+      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#B8B69F] shadow-sm">
+        <Sparkles className="h-5 w-5" />
+      </div>
+
+      <h3 className="text-sm font-bold text-[#4A4530]">
+        아직 등록된 채팅 기록이 없어요
+      </h3>
+
+      <p className="mt-2 break-keep text-xs leading-5 text-[#8B8850]">
+        검색하기를 누른 뒤 추천 결과 화면에서 돌아오면
+        <br />
+        이 영역에 AI 분석 기록이 표시됩니다.
+      </p>
+    </div>
+  );
+}
+
+function AIResultContent() {
+  const savedQuery =
+    sessionStorage.getItem(AI_SEARCH_QUERY_KEY) || aiResult.userPrompt;
+
+  return (
+    <div className="space-y-5">
+      {/* 채팅 기록 */}
+      <section>
+        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
+          <h3 className="text-sm font-semibold text-[#4A4530]">채팅 기록</h3>
+        </div>
+
+        <div className="rounded-2xl border border-[#E8E6DD] bg-white p-3 shadow-sm">
+          <div className="mb-2 text-[11px] font-semibold text-[#B8B69F]">
+            내가 입력한 조건
+          </div>
+
+          <p className="break-keep rounded-xl bg-[#FDFCF8] px-3 py-2 text-xs leading-5 text-[#4A4530]">
+            {savedQuery}
+          </p>
+        </div>
+      </section>
+
+      {/* AI 분석 요약 */}
+      <section>
+        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
+          <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[#4A4530]">
+            <Sparkles className="h-3.5 w-3.5 shrink-0" />
+            AI 분석 요약
+          </h3>
+        </div>
+
+        <div className="rounded-xl border border-[#D8D7F5] bg-[#F8F8FF] px-3 py-2.5 text-xs leading-5 text-[#5A58AA]">
+          <p className="break-keep">{aiResult.summaryText}</p>
+        </div>
+      </section>
+
+      {/* 추천 매물 */}
+      <section>
+        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
+          <h3 className="text-sm font-semibold text-[#4A4530]">추천 매물</h3>
+        </div>
+
+        <ul className="space-y-1.5">
+          {aiResult.recommendedPropertyNames.map((name, index) => (
+            <li
+              key={`${name}-${index}`}
+              className="flex items-center justify-between gap-2 rounded-xl border border-[#E8E6DD] bg-white px-3 py-2 text-xs text-[#4A4530]"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4A4530] text-[10px] font-bold text-white">
+                  {index + 1}
+                </span>
+
+                <span className="min-w-0 break-keep font-medium">{name}</span>
+              </div>
+
+              {index === 0 && (
+                <span className="shrink-0 rounded-full bg-[#FDFCF8] px-2 py-0.5 text-[10px] font-semibold text-[#8B8850]">
+                  BEST
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* 1순위 매칭 근거 */}
+      <section>
+        <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
+          <h3 className="text-sm font-semibold text-[#4A4530]">
+            1순위 매칭 근거
+          </h3>
+        </div>
+
+        <div className="rounded-2xl border border-[#E8E6DD] bg-white p-3 shadow-sm">
           <div className="mb-3 flex items-start justify-between gap-2">
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 text-sm font-bold text-[#4A4530]">
-                <Sparkles className="h-4 w-4 shrink-0" />
-                AI 검색 조건 입력
+                <Home className="h-3.5 w-3.5 shrink-0" />
+                <span className="min-w-0 break-keep">
+                  {aiResult.topProperty.title}
+                </span>
               </div>
-              <p className="mt-1 break-keep text-[11px] leading-4 text-[#8B8850]">
-                원하는 조건을 문장으로 입력해보세요
+
+              <p className="mt-1 text-[11px] leading-4 text-[#8B8850]">
+                보증금 {formatPrice(aiResult.topProperty.depositAmount)} · 월세{" "}
+                {formatPrice(aiResult.topProperty.monthlyRent)}
               </p>
             </div>
 
-            {/* Tip hover 버튼 */}
-            <div className="group relative shrink-0">
-              <button
-                type="button"
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-[#E8DBFF] bg-[#FCFAFF] text-[#8E3BA8] transition hover:bg-[#F5ECFF]"
-                aria-label="검색 팁 보기"
-              >
-                <Lightbulb className="h-3.5 w-3.5" />
-              </button>
-
-              <div className="pointer-events-none absolute right-0 top-9 z-30 w-[230px] translate-y-1 rounded-2xl border border-[#E8DBFF] bg-white p-3 text-[#8E3BA8] opacity-0 shadow-xl transition-all duration-150 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100">
-                <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold">
-                  <Lightbulb className="h-3.5 w-3.5" />
-                  Tip
-                </div>
-
-                <ul className="ml-4 list-disc space-y-1 text-[11px] leading-4">
-                  <li className="break-keep">
-                    AI가 조건을 분석해 매칭률이 높은 매물을 추천합니다
-                  </li>
-                  <li className="break-keep">
-                    추천 결과는 화면 좌측 하단 목록 및 지도에 표시됩니다
-                  </li>
-                </ul>
-              </div>
+            <div className="shrink-0 rounded-full bg-[#4A4530] px-2 py-1 text-[10px] font-bold text-white">
+              {Math.round(aiResult.topProperty.matchScore * 100)}%
             </div>
           </div>
 
-          <textarea
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="예: 학교까지 20분 이내, 보증금 1000만원 이하, 헬스장과 BHC 가까운 원룸"
-            className="w-full resize-none rounded-2xl border border-[#D8D3BE] bg-[#FDFCF8] px-3 py-3 text-xs leading-5 text-[#4A4530] placeholder-[#B8B69F] shadow-inner focus:border-[#4A4530] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4A4530]/10"
-            rows={4}
-          />
+          <div className="mb-3 grid grid-cols-2 gap-2 text-[11px]">
+            <InfoChip label="면적" value={`${aiResult.topProperty.areaM2}㎡`} />
 
-          <button
-            type="button"
-            onClick={() => navigate("/ai-result")}
-            className="mt-3 w-full rounded-2xl bg-[#4A4530] px-3 py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:bg-[#3A3520] hover:shadow-lg"
-          >
-            검색하기
-          </button>
-        </section>
-
-        {/* AI 추천 결과 영역 */}
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <div className="space-y-5">
-            {/* AI 분석 요약 */}
-            <section>
-              <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
-                <h3 className="flex items-center gap-1.5 text-sm font-semibold text-[#4A4530]">
-                  <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                  AI 분석 요약
-                </h3>
-              </div>
-
-              <div className="rounded-xl border border-[#D8D7F5] bg-[#F8F8FF] px-3 py-2.5 text-xs leading-5 text-[#5A58AA]">
-                <p className="break-keep">{aiResult.summaryText}</p>
-              </div>
-            </section>
-
-            {/* 추천 매물 */}
-            <section>
-              <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
-                <h3 className="text-sm font-semibold text-[#4A4530]">
-                  추천 매물
-                </h3>
-              </div>
-
-              <ul className="space-y-1.5">
-                {aiResult.recommendedPropertyNames.map((name, index) => (
-                  <li
-                    key={`${name}-${index}`}
-                    className="flex items-center justify-between gap-2 rounded-xl border border-[#E8E6DD] bg-white px-3 py-2 text-xs text-[#4A4530]"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4A4530] text-[10px] font-bold text-white">
-                        {index + 1}
-                      </span>
-                      <span className="min-w-0 break-keep font-medium">
-                        {name}
-                      </span>
-                    </div>
-
-                    {index === 0 && (
-                      <span className="shrink-0 rounded-full bg-[#FDFCF8] px-2 py-0.5 text-[10px] font-semibold text-[#8B8850]">
-                        BEST
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            {/* 1순위 매칭 근거 */}
-            <section>
-              <div className="sticky top-0 z-10 mb-2 bg-white/95 py-1 backdrop-blur-sm">
-                <h3 className="text-sm font-semibold text-[#4A4530]">
-                  1순위 매칭 근거
-                </h3>
-              </div>
-
-              <div className="rounded-2xl border border-[#E8E6DD] bg-white p-3 shadow-sm">
-                <div className="mb-3 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-sm font-bold text-[#4A4530]">
-                      <Home className="h-3.5 w-3.5 shrink-0" />
-                      <span className="min-w-0 break-keep">
-                        {aiResult.topProperty.title}
-                      </span>
-                    </div>
-
-                    <p className="mt-1 text-[11px] leading-4 text-[#8B8850]">
-                      보증금 {formatPrice(aiResult.topProperty.depositAmount)} ·
-                      월세 {formatPrice(aiResult.topProperty.monthlyRent)}
-                    </p>
-                  </div>
-
-                  <div className="shrink-0 rounded-full bg-[#4A4530] px-2 py-1 text-[10px] font-bold text-white">
-                    {Math.round(aiResult.topProperty.matchScore * 100)}%
-                  </div>
-                </div>
-
-                <div className="mb-3 grid grid-cols-2 gap-2 text-[11px]">
-                  <InfoChip
-                    label="면적"
-                    value={`${aiResult.topProperty.areaM2}㎡`}
-                  />
-                  <InfoChip
-                    label="관리비"
-                    value={formatPrice(aiResult.topProperty.maintenanceFee)}
-                  />
-                </div>
-
-                <ul className="space-y-1.5">
-                  {aiResult.topProperty.matchReasons.map((reason) => (
-                    <li
-                      key={reason}
-                      className="flex items-start gap-2 text-xs leading-5 text-[#6B6847]"
-                    >
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8B89DD]" />
-                      <span className="break-keep">{reason}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {aiResult.topProperty.hasProperty3D && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/property/${aiResult.topProperty.id}`)}
-                    className="mt-3 w-full rounded-xl border border-[#D8D7F5] bg-[#F8F8FF] px-3 py-2 text-xs font-semibold text-[#5A58AA] transition hover:bg-[#EFEFFF]"
-                  >
-                    매물 상세 보기
-                  </button>
-                )}
-              </div>
-            </section>
+            <InfoChip
+              label="관리비"
+              value={formatPrice(aiResult.topProperty.maintenanceFee)}
+            />
           </div>
+
+          <ul className="space-y-1.5">
+            {aiResult.topProperty.matchReasons.map((reason) => (
+              <li
+                key={reason}
+                className="flex items-start gap-2 text-xs leading-5 text-[#6B6847]"
+              >
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#8B89DD]" />
+                <span className="break-keep">{reason}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-      </aside>
-    </>
+      </section>
+    </div>
   );
 }
 
@@ -223,6 +278,7 @@ function InfoChip({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-[#FDFCF8] px-2.5 py-2">
       <div className="text-[10px] font-medium text-[#B8B69F]">{label}</div>
+
       <div className="mt-0.5 break-keep font-semibold text-[#4A4530]">
         {value}
       </div>
