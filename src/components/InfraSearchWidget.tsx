@@ -17,14 +17,30 @@ type InfraCategoryFloatingButtonsProps = {
 };
 
 const infraCategories = [
-  { id: "cafe", label: "카페", icon: <Coffee className="h-3.5 w-3.5" /> },
-  { id: "gym", label: "헬스장", icon: <Dumbbell className="h-3.5 w-3.5" /> },
+  {
+    id: "cafe",
+    label: "카페",
+    color: "var(--token-color-infra-cafe)",
+    icon: <Coffee className="h-3.5 w-3.5" />,
+  },
+  {
+    id: "gym",
+    label: "헬스장",
+    color: "var(--token-color-infra-gym)",
+    icon: <Dumbbell className="h-3.5 w-3.5" />,
+  },
   {
     id: "store",
     label: "편의점",
+    color: "var(--token-color-infra-store)",
     icon: <ShoppingCart className="h-3.5 w-3.5" />,
   },
-  { id: "bus", label: "버스", icon: <Bus className="h-3.5 w-3.5" /> },
+  {
+    id: "bus",
+    label: "버스",
+    color: "var(--token-color-infra-bus)",
+    icon: <Bus className="h-3.5 w-3.5" />,
+  },
 ];
 
 const radiusOptions = [
@@ -161,10 +177,16 @@ function InfraCategoryFloatingButtons({
               key={category.id}
               type="button"
               onClick={() => onToggleCategory(category.id)}
-              className={`flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition ${isSelected
-                ? "border-primary bg-primary text-primary-foreground"
-                : "border-beige-300 bg-card text-text-tertiary hover:border-purple-500 hover:bg-purple-50"
-                }`}
+              style={{
+                borderColor: category.color,
+                backgroundColor: isSelected
+                  ? category.color
+                  : "var(--token-color-white)",
+                color: isSelected
+                  ? "var(--token-color-text-white)"
+                  : category.color,
+              }}
+              className="flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition hover:bg-purple-50"
             >
               <span className="flex h-3.5 w-3.5 items-center justify-center">
                 {category.icon}
