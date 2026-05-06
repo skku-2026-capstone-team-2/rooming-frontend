@@ -22,7 +22,7 @@ function formatPriceToManwon(value: number) {
 }
 
 function getRecommendedProperties(): PropertyListItem[] {
-  return dummyProperties.slice(0, 3).map((property) => ({
+  return dummyProperties.map((property) => ({
     id: property.id,
     title: property.title,
     price: property.price,
@@ -37,7 +37,7 @@ function getRecommendedProperties(): PropertyListItem[] {
 }
 
 function getFavoriteProperties(): PropertyListItem[] {
-  return favoriteListDummyData.data.slice(0, 3).map((favorite) => {
+  return favoriteListDummyData.data.map((favorite) => {
     const { snapshot } = favorite;
 
     const depositText = formatPriceToManwon(snapshot.price.depositAmount);
