@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { properties } from "../data/dummyProperties";
 
+const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
+
 export default function AIResultScreen() {
   const navigate = useNavigate();
 
@@ -37,6 +39,12 @@ export default function AIResultScreen() {
     );
   };
 
+  const handleExitResult = () => {
+    // result screen에서 빠져나온 뒤에만 채팅 기록 등록
+    sessionStorage.setItem(AI_SEARCH_COMPLETED_KEY, "true");
+    navigate("/map");
+  };
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#FDFCF8]">
       {/* 상단 헤더 */}
@@ -55,7 +63,7 @@ export default function AIResultScreen() {
 
           <button
             type="button"
-            onClick={() => navigate("/map")}
+            onClick={handleExitResult}
             className="flex items-center gap-2.5 rounded-2xl bg-[#4A4530] px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-[#3A3520]"
           >
             <Map className="h-5 w-5" />
@@ -107,6 +115,7 @@ export default function AIResultScreen() {
                       icon={<Ruler className="h-3.5 w-3.5" />}
                       text={selectedProperty.area}
                     />
+
                     <SimpleInfoBadge
                       icon={<Footprints className="h-3.5 w-3.5" />}
                       text={`도보 ${selectedProperty.distance}`}
@@ -119,6 +128,7 @@ export default function AIResultScreen() {
                   <div className="rounded-3xl border border-[#E8E6DD] bg-[#FDFCF8] p-6">
                     <div className="mb-3 flex items-center gap-2">
                       <Sparkles className="h-5 w-5 text-[#BDB96A]" />
+
                       <h3 className="text-lg font-bold text-[#4A4530]">
                         추천 이유
                       </h3>
@@ -180,8 +190,8 @@ export default function AIResultScreen() {
                       type="button"
                       onClick={() => setSelectedPropertyId(property.id)}
                       className={`w-full rounded-2xl border p-4 text-left transition ${isSelected
-                        ? "border-[#4A4530] bg-[#F8F7F1]"
-                        : "border-[#E8E6DD] bg-white hover:border-[#BDB96A]"
+                          ? "border-[#4A4530] bg-[#F8F7F1]"
+                          : "border-[#E8E6DD] bg-white hover:border-[#BDB96A]"
                         }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -238,13 +248,14 @@ export default function AIResultScreen() {
               type="button"
               onClick={handleToggleMy}
               className={`flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3 text-base font-bold shadow-sm transition ${isMySelected
-                ? "bg-[#8B89DD] text-white hover:bg-[#7471C8]"
-                : "border border-[#D8D7F5] bg-white text-[#5A58AA] hover:bg-[#F8F8FF]"
+                  ? "bg-[#8B89DD] text-white hover:bg-[#7471C8]"
+                  : "border border-[#D8D7F5] bg-white text-[#5A58AA] hover:bg-[#F8F8FF]"
                 }`}
             >
               <Heart
                 className={`h-5 w-5 ${isMySelected ? "fill-white" : ""}`}
               />
+
               {isMySelected ? "MY 선택됨" : "MY로 선택"}
             </button>
           </section>
@@ -256,7 +267,7 @@ export default function AIResultScreen() {
 
 type SimpleInfoBadgeProps = {
   icon: React.ReactNode;
-  text: string;
+  text?: string;
 };
 
 function SimpleInfoBadge({ icon, text }: SimpleInfoBadgeProps) {
