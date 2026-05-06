@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Home, RotateCw, ZoomIn, Ruler, Sun, ArrowLeft } from "lucide-react";
+import { RotateCw, ZoomIn, Ruler, Sun, ArrowLeft } from "lucide-react";
 
 type ViewMode = "normal" | "floor";
 
@@ -11,18 +11,12 @@ export default function ThreeDViewScreen() {
   return (
     <div className="relative h-screen w-full bg-green-900">
       {/* 3D 뷰어 영역 */}
-      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-green-900 to-green-900">
-        <div className="text-center">
-          <Home className="mx-auto mb-4 h-20 w-20 text-primary-foreground" />
-          <div className="text-xl font-semibold text-primary-foreground">
-            {viewMode === "normal" ? "3D 뷰어 영역" : "평면도 영역"}
-          </div>
-          <div className="mt-2 text-sm text-text-muted">
-            {viewMode === "normal"
-              ? "실제로는 3D 모델이 표시됩니다"
-              : "실제로는 평면도 모델이 표시됩니다"}
-          </div>
-        </div>
+      <div className="h-full w-full bg-gradient-to-br from-green-900 to-green-900">
+        <img
+          src="/images/dummy-3d.png"
+          alt={viewMode === "normal" ? "3D 뷰어" : "평면도 뷰어"}
+          className="h-full w-full object-cover"
+        />
       </div>
 
       {/* 좌측 하단 컨트롤 패널 */}
