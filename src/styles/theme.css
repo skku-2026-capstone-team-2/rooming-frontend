@@ -1,44 +1,129 @@
 @custom-variant dark (&:is(.dark *));
 
+/**
+ * rooming Design System
+ * Color Palette & Design Tokens
+ */
+
 :root {
+  /* Typography */
   --font-size: 16px;
-  --background: #ffffff;
-  --foreground: oklch(0.145 0 0);
-  --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #030213;
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.95 0.0058 264.53);
-  --secondary-foreground: #030213;
-  --muted: #ececf0;
-  --muted-foreground: #717182;
-  --accent: #e9ebef;
-  --accent-foreground: #030213;
+  --font-weight-medium: 600;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Color Palette - Neutral */
+  --color-white: #FFFFFF;
+  --color-off-white: #FDFCF8;
+  --color-beige-50: #FDFCF8;
+  --color-beige-100: #F5F5E8;
+  --color-beige-200: #E8E6DD;
+  --color-beige-300: #EEECCA;
+  --color-beige-400: #F0EFE8;
+
+  /* Color Palette - Green (Primary) */
+  --color-green-900: #2A2820;
+  --color-green-800: #3A3520;
+  --color-green-700: #4A4530;
+  --color-green-600: #6B6847;
+  --color-green-500: #8B8850;
+  --color-green-400: #BDB96A;
+  --color-green-300: #FDFBD4;
+
+  /* Color Palette - Purple (Secondary) */
+  --color-purple-900: #4A4858;
+  --color-purple-800: #5A58AA;
+  --color-purple-700: #6B67BB;
+  --color-purple-600: #8B89DD;
+  --color-purple-500: #C1BFFF;
+  --color-purple-400: #D4D2FF;
+  --color-purple-300: #D8D7F5;
+  --color-purple-200: #E8E7FF;
+  --color-purple-100: #F8F8FF;
+  --color-purple-50: #F5F5FF;
+
+  /* Color Palette - Accent */
+  --color-accent-purple: #8E3BA8;
+  --color-accent-purple-light: #B857D9;
+  --color-accent-purple-bg: #FFF8FF;
+  --color-accent-purple-border: #E8DBFF;
+  --color-accent-purple-lighter: #F0E5FF;
+  --color-accent-purple-pale: #FFEBFF;
+
+  /* Color Palette - Text */
+  --color-text-primary: #4A4530;
+  --color-text-secondary: #6B6847;
+  --color-text-tertiary: #8B8850;
+  --color-text-muted: #B8B69F;
+  --color-text-white: #FDFCF8;
+
+  /* Semantic Colors */
+  --background: #FDFCF8;
+  --foreground: #4A4530;
+  --card: #FFFFFF;
+  --card-foreground: #4A4530;
+  --popover: #FFFFFF;
+  --popover-foreground: #4A4530;
+  --primary: #4A4530;
+  --primary-foreground: #FDFCF8;
+  --secondary: #8B89DD;
+  --secondary-foreground: #FDFCF8;
+  --accent: #BDB96A;
+  --accent-foreground: #4A4530;
+  --muted: #F5F5E8;
+  --muted-foreground: #8B8850;
   --destructive: #d4183d;
   --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
+  --border: #E8E6DD;
   --input: transparent;
-  --input-background: #f3f3f5;
-  --switch-background: #cbced4;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --input-background: #FFFFFF;
+  --switch-background: #E8E6DD;
+  --ring: #BDB96A;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(74, 69, 48, 0.05);
+  --shadow-md: 0 4px 6px rgba(74, 69, 48, 0.07);
+  --shadow-lg: 0 10px 15px rgba(74, 69, 48, 0.1);
+  --shadow-xl: 0 20px 25px rgba(74, 69, 48, 0.15);
+
+  /* Border Radius */
+  --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Spacing Scale */
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
+  --spacing-6: 1.5rem;
+  --spacing-8: 2rem;
+  --spacing-10: 2.5rem;
+  --spacing-12: 3rem;
+  --spacing-16: 4rem;
+
+  /* Charts */
+  --chart-1: #4A4530;
+  --chart-2: #BDB96A;
+  --chart-3: #8B89DD;
+  --chart-4: #8E3BA8;
+  --chart-5: #6B6847;
+
+  /* Sidebar (for future use) */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #4A4530;
+  --sidebar-primary: #4A4530;
+  --sidebar-primary-foreground: #FDFCF8;
+  --sidebar-accent: #F8F8FF;
+  --sidebar-accent-foreground: #5A58AA;
+  --sidebar-border: #E8E6DD;
+  --sidebar-ring: #BDB96A;
 }
 
 .dark {
