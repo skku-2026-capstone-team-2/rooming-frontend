@@ -202,7 +202,15 @@ export default function AIResultScreen() {
                             </span>
 
                             {isMy && (
-                              <span className="rounded-full border border-purple-300 bg-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-800">
+                              <span
+                                style={{
+                                  borderColor: "var(--token-color-my)",
+                                  backgroundColor:
+                                    "color-mix(in srgb, var(--token-color-my) 10%, var(--token-color-transparent))",
+                                  color: "var(--token-color-my)",
+                                }}
+                                className="rounded-full border px-2 py-0.5 text-[10px] font-bold"
+                              >
                                 MY
                               </span>
                             )}
@@ -247,13 +255,19 @@ export default function AIResultScreen() {
             <button
               type="button"
               onClick={handleToggleMy}
-              className={`flex w-full items-center justify-center gap-2 rounded-2xl px-6 py-3 text-base font-bold shadow-sm transition ${isMySelected
-                  ? "bg-secondary text-primary-foreground hover:bg-purple-700"
-                  : "border border-purple-300 bg-card text-purple-800 hover:bg-purple-100"
-                }`}
+              style={{
+                borderColor: "var(--token-color-my)",
+                backgroundColor: isMySelected
+                  ? "var(--token-color-my)"
+                  : "var(--token-color-white)",
+                color: isMySelected
+                  ? "var(--token-color-text-white)"
+                  : "var(--token-color-my)",
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border px-6 py-3 text-base font-bold shadow-sm transition"
             >
               <Heart
-                className={`h-5 w-5 ${isMySelected ? "fill-white" : ""}`}
+                className={`h-5 w-5 ${isMySelected ? "fill-current" : ""}`}
               />
 
               {isMySelected ? "MY 선택됨" : "MY로 선택"}
