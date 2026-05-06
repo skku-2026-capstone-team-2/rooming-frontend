@@ -56,7 +56,7 @@ const placeTypeOptions: {
     },
     {
       type: "WORK",
-      label: "알바장소",
+      label: "아르바이트",
       icon: <Briefcase className="h-4 w-4" />,
     },
     {
