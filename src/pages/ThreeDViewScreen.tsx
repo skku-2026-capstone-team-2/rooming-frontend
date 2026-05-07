@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { RotateCw, ZoomIn, Ruler, Sun, ArrowLeft } from "lucide-react";
+import { ArrowLeft, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
 
 type ViewMode = "normal" | "floor";
+
+const SPLINE_VIEWER_URL =
+  "https://my.spline.design/visionosiconsin3d-bgOTCJ1k5Mwy3fuy2T18tQAz/";
 
 export default function ThreeDViewScreen() {
   const navigate = useNavigate();
@@ -10,34 +13,35 @@ export default function ThreeDViewScreen() {
 
   const isNormalMode = viewMode === "normal";
 
-  const viewerImageSrc = isNormalMode
-    ? "/images/dummy-3d.png"
-    : "/images/dummy-floor-plan.png";
-
   return (
     <div className="relative h-screen w-full bg-green-900">
-      {/* 3D / 평면도 뷰어 영역 */}
       <div className="h-full w-full bg-gradient-to-br from-green-900 to-green-900">
-        <img
-          src={viewerImageSrc}
-          alt={isNormalMode ? "3D 뷰어" : "평면도 뷰어"}
-          className={`h-full w-full ${isNormalMode ? "object-cover" : "object-contain bg-white"
-            }`}
-        />
+        {isNormalMode ? (
+          <iframe
+            src={SPLINE_VIEWER_URL}
+            title="3D room viewer"
+            className="h-full w-full border-none"
+            allow="autoplay; fullscreen; xr-spatial-tracking"
+          />
+        ) : (
+          <img
+            src="/images/dummy-floor-plan.png"
+            alt="평면도 뷰어"
+            className="h-full w-full bg-white object-contain"
+          />
+        )}
       </div>
 
-      {/* 좌측 하단 정보 패널 - 일반 보기에서만 표시 */}
       {isNormalMode && (
-        <div className="absolute bottom-6 left-6 z-10 w-[340px] space-y-4">
+        <div className="absolute bottom-6 left-6 z-10 w-[240px] space-y-4">
           <div className="grid grid-cols-3 gap-3">
-            {/* 공간 정보 */}
             <div className="col-span-3">
               <div className="rounded-2xl border border-green-800 bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-bold text-primary-foreground">
+                <h3 className="mb-3 text-base font-bold text-primary-foreground">
                   공간 정보
                 </h3>
 
-                <div className="space-y-2 text-sm">
+                <div className="space-y-2 text-xs">
                   <InfoItem label="면적" value="23.1㎡" />
                   <InfoItem label="구조" value="원룸" />
                   <InfoItem label="천장 높이" value="2.4m" />
@@ -45,32 +49,30 @@ export default function ThreeDViewScreen() {
               </div>
             </div>
 
-            {/* 공간 구성 */}
             <div className="col-span-3">
               <div className="rounded-2xl border border-purple-900 bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-bold text-purple-400">
+                <h3 className="mb-3 text-base font-bold text-purple-400">
                   공간 구성
                 </h3>
 
-                <div className="space-y-2 text-sm text-purple-500">
-                  <div>• 방 1개</div>
-                  <div>• 화장실 1개</div>
-                  <div>• 주방 (일자형)</div>
+                <div className="space-y-2 text-xs text-purple-500">
+                  <div>방 1개</div>
+                  <div>욕실 1개</div>
+                  <div>주방 일체형</div>
                 </div>
               </div>
             </div>
 
-            {/* 가구 배치 */}
             <div className="col-span-3">
               <div className="rounded-2xl border border-primary bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
-                <h3 className="mb-4 text-lg font-bold text-green-300">
+                <h3 className="mb-3 text-base font-bold text-green-300">
                   가구 배치
                 </h3>
 
-                <div className="space-y-2 text-sm text-accent">
-                  <div>• 침대 (싱글)</div>
-                  <div>• 책상 & 의자</div>
-                  <div>• 옷장</div>
+                <div className="space-y-2 text-xs text-accent">
+                  <div>침대</div>
+                  <div>책상 & 의자</div>
+                  <div>옷장</div>
                 </div>
               </div>
             </div>
@@ -78,7 +80,6 @@ export default function ThreeDViewScreen() {
         </div>
       )}
 
-      {/* 우측 상단 제어 버튼 - 일반 보기에서만 표시 */}
       {isNormalMode && (
         <div className="absolute right-6 top-6 z-10 rounded-2xl border border-green-800 bg-green-900/95 p-5 shadow-xl backdrop-blur-sm">
           <h4 className="mb-3 text-sm font-bold text-primary-foreground">
@@ -94,7 +95,6 @@ export default function ThreeDViewScreen() {
         </div>
       )}
 
-      {/* 하단 보기 토글 */}
       <div className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 gap-1.5 rounded-full border border-green-800 bg-green-900 p-1.5 shadow-xl">
         <ViewModeToggleButton
           text="일반 보기"
@@ -109,7 +109,6 @@ export default function ThreeDViewScreen() {
         />
       </div>
 
-      {/* 닫기 버튼 */}
       <button
         type="button"
         onClick={() => navigate(-1)}
@@ -126,7 +125,7 @@ function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between rounded-xl border border-green-800 bg-green-900 px-3 py-2">
       <span className="text-xs text-text-muted">{label}</span>
-      <span className="text-sm font-semibold text-primary-foreground">
+      <span className="text-xs font-semibold text-primary-foreground">
         {value}
       </span>
     </div>
@@ -165,8 +164,8 @@ function ViewModeToggleButton({
       type="button"
       onClick={onClick}
       className={`rounded-full px-5 py-2 text-sm font-semibold transition-all ${active
-        ? "bg-background text-green-900 shadow-sm"
-        : "bg-transparent text-text-muted hover:bg-green-800 hover:text-primary-foreground"
+          ? "bg-background text-green-900 shadow-sm"
+          : "bg-transparent text-text-muted hover:bg-green-800 hover:text-primary-foreground"
         }`}
     >
       {text}

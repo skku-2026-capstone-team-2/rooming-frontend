@@ -87,7 +87,7 @@ export default function WelcomeScreen() {
         {/* 3D iframe Area */}
         <div className="relative h-full w-full max-w-7xl overflow-hidden rounded-[36px] border border-border bg-card/50 shadow-sm backdrop-blur">
           <iframe
-            src="https://my.spline.design/houserobot-9v1J5XwSYTaSLmx1pWDxwZhq/"
+            src="https://my.spline.design/houserobot-L7KYn4KLGYcsQ7R41jWYsfLI/"
             frameBorder="0"
             title="3D rooming preview"
             className="h-full w-full border-none"
