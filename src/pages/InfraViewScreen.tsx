@@ -44,6 +44,13 @@ const infraCategoryIcon: Record<string, React.ElementType> = {
   bus: Bus,
 };
 
+const infraCategoryColorToken: Record<string, string> = {
+  cafe: "--token-color-infra-cafe",
+  gym: "--token-color-infra-gym",
+  store: "--token-color-infra-store",
+  bus: "--token-color-infra-bus",
+};
+
 export default function InfraViewScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -217,14 +224,26 @@ export default function InfraViewScreen() {
         <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
           {nearbyInfraPlaces.map((place) => {
             const Icon = infraCategoryIcon[place.type] ?? Store;
+            const infraColor = `var(${infraCategoryColorToken[place.type] ?? "--token-color-purple-600"
+              })`;
 
             return (
               <div
                 key={place.id}
-                className="flex items-center justify-between rounded-2xl border border-beige-300 bg-green-300 p-3"
+                style={{
+                  borderColor: `color-mix(in srgb, ${infraColor} 42%, var(--token-color-white))`,
+                  backgroundColor: `color-mix(in srgb, ${infraColor} 4%, var(--token-color-white))`,
+                }}
+                className="flex items-center justify-between rounded-2xl border p-3"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-text-secondary shadow-sm">
+                  <div
+                    style={{
+                      backgroundColor: `color-mix(in srgb, ${infraColor} 10%, var(--token-color-white))`,
+                      color: infraColor,
+                    }}
+                    className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
 
@@ -238,7 +257,14 @@ export default function InfraViewScreen() {
                   </div>
                 </div>
 
-                <span className="rounded-full border border-purple-200 bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
+                <span
+                  style={{
+                    borderColor: `color-mix(in srgb, ${infraColor} 58%, var(--token-color-white))`,
+                    backgroundColor: `color-mix(in srgb, ${infraColor} 8%, var(--token-color-white))`,
+                    color: infraColor,
+                  }}
+                  className="rounded-full border px-3 py-1 text-xs font-semibold"
+                >
                   {place.distance}
                 </span>
               </div>
