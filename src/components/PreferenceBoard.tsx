@@ -108,7 +108,7 @@ export default function PreferenceBoard() {
   return (
     <div className="overflow-hidden rounded-2xl border border-purple-300 bg-card shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-purple-200 px-6 pb-4 pt-5">
+      <div className="hidden">
         <span className="text-lg font-semibold text-purple-800">선호 조건</span>
         {selected.size > 0 && (
           <span className="rounded-full bg-purple-800 px-2.5 py-0.5 text-xs font-bold text-secondary-foreground">
@@ -117,9 +117,9 @@ export default function PreferenceBoard() {
         )}
       </div>
 
-      <div className="flex min-h-[300px]">
+      <div className="flex min-h-[340px]">
         {/* Sidebar */}
-        <nav className="w-28 shrink-0 border-r border-purple-200 bg-purple-100 py-3">
+        <nav className="w-28 shrink-0 border-r border-purple-200 bg-purple-100/80 py-3">
           {CATEGORIES.map((cat) => {
             const count = countFor(cat);
             const isActive = activeCategory === cat.id;
@@ -127,7 +127,7 @@ export default function PreferenceBoard() {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`relative w-full px-3 py-2.5 text-left text-xs font-semibold transition-colors duration-150 ${isActive
+                className={`relative w-full px-3 py-2.5 text-left text-[13px] font-semibold transition-colors duration-150 ${isActive
                   ? "bg-card text-purple-800"
                   : "text-purple-500 hover:text-purple-800"
                   }`}
@@ -148,6 +148,14 @@ export default function PreferenceBoard() {
 
         {/* Options */}
         <div className="flex-1 p-4">
+          {selected.size > 0 && (
+            <div className="mb-3 flex justify-end">
+              <span className="rounded-full bg-purple-800 px-2.5 py-0.5 text-xs font-bold text-secondary-foreground">
+                {selected.size}개 선택
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             {currentOptions.map((label) => {
               const isSelected = selected.has(label);
@@ -155,7 +163,7 @@ export default function PreferenceBoard() {
                 <button
                   key={label}
                   onClick={() => toggle(label)}
-                  className={`rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150 ${isSelected
+                  className={`rounded-lg border px-2.5 py-1.5 text-[13px] font-medium transition-all duration-150 ${isSelected
                     ? "border-purple-800 bg-purple-800 text-secondary-foreground shadow-sm"
                     : "border-purple-200 bg-purple-100 text-purple-800 hover:border-purple-800/50 hover:bg-purple-50"
                     }`}

@@ -135,7 +135,10 @@ export function loadPropertyMarkers({
       position: new window.Tmapv2.LatLng(property.lat, property.lng),
       map,
       title: property.title,
-      iconHTML: createPropertyMarkerHTML(property.price),
+      iconHTML: createPropertyMarkerHTML(
+        property.price,
+        property.mode === "favorites" ? "my" : "default"
+      ),
       zIndex: 30,
     });
 

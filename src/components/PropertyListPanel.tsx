@@ -64,9 +64,14 @@ export default function PropertyListPanel({
         <button
           type="button"
           onClick={() => onChangeListMode("favorites")}
+          style={{
+            color: isFavoritesMode
+              ? "var(--token-color-my)"
+              : "var(--token-color-text-tertiary)",
+          }}
           className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-semibold transition ${isFavoritesMode
-            ? "bg-card text-foreground shadow-sm"
-            : "text-text-tertiary hover:bg-card/70"
+            ? "bg-card shadow-sm"
+            : "hover:bg-card/70"
             }`}
         >
           <Heart className="h-3.5 w-3.5" />
@@ -128,8 +133,17 @@ function PropertyCard({ property }: PropertyCardProps) {
         </div>
 
         <span
+          style={
+            isFavoriteMode
+              ? {
+                backgroundColor:
+                  "color-mix(in srgb, var(--token-color-my) 10%, var(--token-color-transparent))",
+                color: "var(--token-color-my)",
+              }
+              : undefined
+          }
           className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${isFavoriteMode
-            ? "bg-destructive/10 text-destructive"
+            ? ""
             : "bg-purple-50 text-secondary"
             }`}
         >

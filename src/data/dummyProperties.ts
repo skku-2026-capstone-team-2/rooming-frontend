@@ -50,6 +50,6 @@ export const properties: Property[] = [
     area: "22m²",
     distance: "10분",
     lat: 37.5865,
-    lng: 126.9918,
+    lng: 126.9937,
   },
 ];

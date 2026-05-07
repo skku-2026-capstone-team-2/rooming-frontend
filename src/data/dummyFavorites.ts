@@ -92,6 +92,84 @@ export const favoriteListDummyData: {
   success: true,
   data: [
     {
+      favoriteId: 1,
+      propertyId: 1,
+      snapshot: {
+        propertyId: 1,
+        title: "스테이원룸 101호",
+        roadAddress: "서울 종로구 성균관로 ...",
+        location: {
+          latitude: 37.5898,
+          longitude: 126.9942,
+        },
+        price: {
+          transactionType: "MONTHLY_RENT",
+          depositAmount: 5000000,
+          monthlyRent: 550000,
+          maintenanceFee: 0,
+        },
+        areaM2: 23.5,
+        matchScore: 0.95,
+        matchReasons: ["생활 인프라 우수", "편의점 도보 2분"],
+        images: [
+          {
+            imageUrl: "/images/dummy-property-img.webp",
+            sortOrder: 1,
+            isMain: true,
+          },
+        ],
+        hasProperty3D: false,
+        property3D: null,
+        standardInfra: [
+          {
+            name: "인근 편의점",
+            category: "CONVENIENCE_STORE",
+            roadAddress: "서울 종로구 성균관로 ...",
+            location: {
+              latitude: 37.5899,
+              longitude: 126.9944,
+            },
+            transportMode: "WALK",
+            routeJson: {
+              totalTime: 2,
+              totalDistance: 150,
+              payment: 0,
+              pathList: [
+                {
+                  type: "WALK",
+                  time: 2,
+                  distance: 150,
+                },
+              ],
+            },
+          },
+        ],
+        runtimeInfra: [],
+        keyPlaceRoutes: [
+          {
+            userPlaceId: 3,
+            placeName: "성균관대 정문",
+            placeType: "UNIVERSITY",
+            transportMode: "WALK",
+            routeJson: {
+              totalTime: 11,
+              totalDistance: 850,
+              payment: 0,
+              pathList: [
+                {
+                  type: "WALK",
+                  time: 11,
+                  distance: 850,
+                },
+              ],
+            },
+          },
+        ],
+      },
+      createdAt: "2026-04-09T10:00:00",
+      updatedAt: "2026-04-09T10:00:00",
+    },
+    {
       favoriteId: 12,
       propertyId: 101,
       snapshot: {

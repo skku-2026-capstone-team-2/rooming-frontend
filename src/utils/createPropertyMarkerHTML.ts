@@ -7,8 +7,19 @@ function escapeHTML(value: string) {
     .replaceAll("'", "&#039;");
 }
 
-export function createPropertyMarkerHTML(price: string) {
+type PropertyMarkerVariant = "default" | "my";
+
+const propertyMarkerColors: Record<PropertyMarkerVariant, string> = {
+  default: "var(--token-color-green-700)",
+  my: "var(--token-color-my)",
+};
+
+export function createPropertyMarkerHTML(
+  price: string,
+  variant: PropertyMarkerVariant = "default"
+) {
   const safePrice = escapeHTML(price);
+  const color = propertyMarkerColors[variant];
 
   return `
     <div
@@ -45,13 +56,13 @@ export function createPropertyMarkerHTML(price: string) {
       >
         <div
           style="
-            background: #4A4530;
-            color: white;
+            background: ${color};
+            color: var(--token-color-text-white);
             font-size: 12px;
             padding: 6px 12px;
             border-radius: 8px;
             font-weight: 600;
-            box-shadow: 0 6px 14px rgba(74, 69, 48, 0.22);
+            box-shadow: 0 6px 14px color-mix(in srgb, ${color} 22%, var(--token-color-transparent));
             text-align: center;
           "
         >
@@ -66,9 +77,9 @@ export function createPropertyMarkerHTML(price: string) {
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 5px solid #4A4530;
+            border-left: 4px solid var(--token-color-transparent);
+            border-right: 4px solid var(--token-color-transparent);
+            border-top: 5px solid ${color};
           "
         ></div>
       </div>
@@ -86,10 +97,10 @@ export function createPropertyMarkerHTML(price: string) {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #4A4530;
+          background: ${color};
           border-radius: 999px;
-          border: 2px solid white;
-          box-shadow: 0 8px 18px rgba(74, 69, 48, 0.28);
+          border: 2px solid var(--token-color-white);
+          box-shadow: 0 8px 18px color-mix(in srgb, ${color} 28%, var(--token-color-transparent));
           transition: transform 0.18s ease;
           z-index: 2;
         "
@@ -100,7 +111,7 @@ export function createPropertyMarkerHTML(price: string) {
           height="20"
           viewBox="0 0 24 24"
           fill="none"
-          stroke="white"
+          stroke="var(--token-color-text-white)"
           stroke-width="2"
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -119,9 +130,9 @@ export function createPropertyMarkerHTML(price: string) {
           transform: translateX(-50%);
           width: 0;
           height: 0;
-          border-left: 6px solid transparent;
-          border-right: 6px solid transparent;
-          border-top: 8px solid #4A4530;
+          border-left: 6px solid var(--token-color-transparent);
+          border-right: 6px solid var(--token-color-transparent);
+          border-top: 8px solid ${color};
           z-index: 1;
         "
       ></div>

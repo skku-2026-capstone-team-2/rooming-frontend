@@ -225,7 +225,7 @@ export default function OnboardingScreen() {
         {/* 본문 */}
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-[0.95fr_1.05fr]">
           {/* 왼쪽: 장소 검색 및 등록 */}
-          <section className="flex min-h-0 flex-col rounded-3xl border border-border bg-card p-5 shadow-sm">
+          <section className="flex min-h-0 flex-col rounded-3xl border border-beige-300 bg-green-300/55 p-5 shadow-md">
             <div className="mb-4 flex shrink-0 items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-green-800">
@@ -262,7 +262,7 @@ export default function OnboardingScreen() {
                         onClick={() => setPlaceType(option.type)}
                         className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-40 ${isSelected
                           ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-background text-text-secondary hover:border-accent"
+                          : "border-beige-300 bg-card text-text-secondary hover:border-accent"
                           }`}
                       >
                         <span className="flex items-center gap-2">
@@ -280,7 +280,7 @@ export default function OnboardingScreen() {
               </div>
 
               {/* 장소 검색 */}
-              <div className="rounded-2xl border border-border bg-background p-4">
+              <div className="rounded-2xl border border-beige-300 bg-card/90 p-4 shadow-sm">
                 <label className="mb-2 block text-sm font-semibold text-foreground">
                   장소 검색
                 </label>
@@ -296,7 +296,7 @@ export default function OnboardingScreen() {
                       }
                     }}
                     placeholder="예: 성균관대학교 자연과학캠퍼스"
-                    className="min-w-0 flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted outline-none transition-all focus:border-accent focus:ring-2 focus:ring-ring/15"
+                    className="min-w-0 flex-1 rounded-xl border border-beige-300 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted outline-none transition-all focus:border-accent focus:ring-2 focus:ring-ring/15"
                   />
 
                   <button
@@ -317,7 +317,7 @@ export default function OnboardingScreen() {
                 {/* 검색 결과 */}
                 <div className="mt-4 space-y-2">
                   {searchResults.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-beige-200 bg-card px-4 py-6 text-center">
+                    <div className="rounded-xl border border-dashed border-beige-300 bg-background/80 px-4 py-6 text-center">
                       <p className="text-sm font-semibold text-text-muted">
                         검색 결과가 여기에 표시됩니다.
                       </p>
@@ -334,15 +334,15 @@ export default function OnboardingScreen() {
                           type="button"
                           onClick={() => handleSelectPlace(place)}
                           className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${isSelected
-                            ? "border-primary bg-card shadow-sm"
-                            : "border-border bg-card hover:border-accent"
+                            ? "border-primary bg-green-300/50 shadow-sm"
+                            : "border-beige-300 bg-background/90 hover:border-accent"
                             }`}
                         >
                           <div className="flex items-start gap-3">
                             <span
                               className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${isSelected
                                 ? "bg-primary text-primary-foreground"
-                                : "bg-muted text-text-tertiary"
+                                : "bg-green-300/60 text-text-secondary"
                                 }`}
                             >
                               <MapPin className="h-4 w-4" />
@@ -365,7 +365,7 @@ export default function OnboardingScreen() {
 
                 {/* 선택된 장소 */}
                 {selectedPlace && (
-                  <div className="mt-4 rounded-xl bg-card p-4">
+                  <div className="mt-4 rounded-xl border border-beige-300 bg-green-300/45 p-4">
                     <p className="mb-2 text-xs font-bold text-text-muted">
                       선택된 장소
                     </p>
@@ -390,7 +390,7 @@ export default function OnboardingScreen() {
                     value={memo}
                     onChange={(e) => setMemo(e.target.value)}
                     placeholder="예: 학교 정문 기준, 본가 기준, 알바 끝나는 장소"
-                    className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted outline-none transition-all focus:border-accent focus:ring-2 focus:ring-ring/15"
+                    className="w-full rounded-xl border border-beige-300 bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-text-muted outline-none transition-all focus:border-accent focus:ring-2 focus:ring-ring/15"
                   />
                 </div>
 

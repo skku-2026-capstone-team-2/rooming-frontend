@@ -15,6 +15,7 @@
 
   /* Color Palette - Neutral */
   --token-color-white: #FFFFFF;
+  --token-color-transparent: transparent;
   --token-color-off-white: #FDFCF8;
   --token-color-beige-50: #FDFCF8;
   --token-color-beige-100: #F5F5E8;
@@ -51,11 +52,20 @@
   --token-color-accent-purple-lighter: #F0E5FF;
   --token-color-accent-purple-pale: #FFEBFF;
 
+  /* Color Palette - Infra Markers */
+  --token-color-infra-cafe: #C47A2C;
+  --token-color-infra-gym: #16A34A;
+  --token-color-infra-store: #7C3AED;
+  --token-color-infra-bus: #2563EB;
+
+  /* Color Palette - MY */
+  --token-color-my: #E8485D;
+
   /* Color Palette - Text */
-  --token-color-text-primary: #4A4530;
-  --token-color-text-secondary: #6B6847;
-  --token-color-text-tertiary: #8B8850;
-  --token-color-text-muted: #B8B69F;
+  --token-color-text-primary: #2F2B1F;
+  --token-color-text-secondary: #4A4530;
+  --token-color-text-tertiary: #6B6847;
+  --token-color-text-muted: #8B8850;
   --token-color-text-white: #FDFCF8;
 
   /* Semantic Colors */
@@ -88,12 +98,12 @@
   --token-shadow-xl: 0 20px 25px rgba(74, 69, 48, 0.15);
 
   /* Border Radius */
-  --radius: 0.75rem;
-  --token-radius-sm: 0.5rem;
-  --token-radius-md: 0.625rem;
-  --token-radius-lg: 0.75rem;
-  --token-radius-xl: 1rem;
-  --token-radius-2xl: 1.5rem;
+  --radius: 0.5rem;
+  --token-radius-sm: 0.375rem;
+  --token-radius-md: 0.5rem;
+  --token-radius-lg: 0.625rem;
+  --token-radius-xl: 0.75rem;
+  --token-radius-2xl: 1rem;
   --token-radius-full: 9999px;
 
   /* Spacing Scale */
@@ -165,6 +175,7 @@
 
 @theme inline {
   --color-white: var(--token-color-white);
+  --color-transparent: var(--token-color-transparent);
   --color-off-white: var(--token-color-off-white);
   --color-beige-50: var(--token-color-beige-50);
   --color-beige-100: var(--token-color-beige-100);
@@ -194,6 +205,11 @@
   --color-accent-purple-border: var(--token-color-accent-purple-border);
   --color-accent-purple-lighter: var(--token-color-accent-purple-lighter);
   --color-accent-purple-pale: var(--token-color-accent-purple-pale);
+  --color-infra-cafe: var(--token-color-infra-cafe);
+  --color-infra-gym: var(--token-color-infra-gym);
+  --color-infra-store: var(--token-color-infra-store);
+  --color-infra-bus: var(--token-color-infra-bus);
+  --color-my: var(--token-color-my);
   --color-text-primary: var(--token-color-text-primary);
   --color-text-secondary: var(--token-color-text-secondary);
   --color-text-tertiary: var(--token-color-text-tertiary);

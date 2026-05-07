@@ -170,14 +170,14 @@ export default function WelcomeScreen() {
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
           <button
             onClick={() => navigate("/onboarding")}
-            className="rounded-xl bg-primary px-7 py-4 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
+            className="min-w-[220px] rounded-xl bg-primary px-8 py-4.5 text-lg font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
           >
             일반 사용자 로그인
           </button>
 
           <button
             onClick={() => navigate("/admin")}
-            className="rounded-xl border border-purple-500 bg-card px-7 py-4 text-base font-semibold text-secondary transition-all hover:bg-purple-100"
+            className="min-w-[220px] rounded-xl border border-purple-500 bg-card px-8 py-4.5 text-lg font-semibold text-secondary transition-all hover:bg-purple-100"
           >
             관리자 로그인
           </button>
