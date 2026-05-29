@@ -1,7 +1,7 @@
 import type { MutableRefObject } from "react";
 import { createPropertyMarkerHTML } from "./createPropertyMarkerHTML";
 import { createSchoolMarkerHTML } from "./createSchoolMarkerHTML";
-import type { PropertyListItem } from "./propertyListItems";
+import type { PropertyCardView } from "../types";
 
 export type MapCenter = {
   lat: number;
@@ -117,7 +117,7 @@ export function loadPropertyMarkers({
   enabled = true,
 }: {
   map: any;
-  properties: PropertyListItem[];
+  properties: PropertyCardView[];
   markersRef: MutableRefObject<any[]>;
   onClickProperty: SearchParamsSetter;
   enabled?: boolean;
@@ -131,20 +131,23 @@ export function loadPropertyMarkers({
   if (!enabled) return;
 
   properties.forEach((property) => {
+    // 좌표가 없는 매물은 지도에 표시할 수 없으므로 건너뛴다.
+    if (property.lat == null || property.lng == null) return;
+
     const marker = new window.Tmapv2.Marker({
       position: new window.Tmapv2.LatLng(property.lat, property.lng),
       map,
       title: property.title,
       iconHTML: createPropertyMarkerHTML(
-        property.price,
-        property.mode === "favorites" ? "my" : "default"
+        property.priceLabel,
+        property.favorite ? "my" : "default"
       ),
       zIndex: 30,
     });
 
     marker.addListener("click", () => {
       onClickProperty({
-        propertyId: String(property.id),
+        propertyId: String(property.propertyId),
       });
     });
 

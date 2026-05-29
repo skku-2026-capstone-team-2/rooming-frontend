@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { Heart, Sparkles } from "lucide-react";
-import type { ListMode, PropertyListItem } from "../utils/propertyListItems";
+import type { ListMode } from "../utils/propertyListItems";
+import type { PropertyCardView } from "../types";
 
 const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
 
 type PropertyListPanelProps = {
   listMode: ListMode;
-  properties: PropertyListItem[];
+  properties: PropertyCardView[];
   onChangeListMode: (mode: ListMode) => void;
 };
 
@@ -82,7 +83,7 @@ export default function PropertyListPanel({
       <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
         {visibleProperties.length > 0 ? (
           visibleProperties.map((property) => (
-            <PropertyCard key={property.id} property={property} />
+            <PropertyCard key={property.propertyId} property={property} />
           ))
         ) : (
           <EmptyPropertyList isRecommendedMode={isRecommendedMode} />
@@ -114,17 +115,17 @@ function EmptyPropertyList({ isRecommendedMode }: EmptyPropertyListProps) {
 }
 
 type PropertyCardProps = {
-  property: PropertyListItem;
+  property: PropertyCardView;
 };
 
 function PropertyCard({ property }: PropertyCardProps) {
   const navigate = useNavigate();
-  const isFavoriteMode = property.mode === "favorites";
+  const isFavoriteMode = property.favorite === true;
 
   return (
     <button
       type="button"
-      onClick={() => navigate(`/property/${property.id}`)}
+      onClick={() => navigate(`/property/${property.propertyId}`)}
       className="w-full rounded-xl border border-beige-300 bg-card p-3 text-left shadow-sm transition hover:border-purple-500 hover:bg-purple-50"
     >
       <div className="flex items-start justify-between gap-2">
@@ -156,15 +157,12 @@ function PropertyCard({ property }: PropertyCardProps) {
       </div>
 
       <div className="mt-1 text-xs font-medium text-accent">
-        {property.price}
+        {property.priceLabel}
       </div>
 
       <div className="mt-0.5 text-[11px] text-text-tertiary">
-        {property.area ?? "면적 정보 없음"} ·{" "}
-        {property.distance ?? "거리 정보 없음"}
-        {property.matchScore !== undefined && (
-          <> · 매칭 {Math.round(property.matchScore * 100)}%</>
-        )}
+        {property.areaLabel}
+        {property.routeDurationLabel ? ` · ${property.routeDurationLabel}` : ""}
       </div>
 
       {property.description && (

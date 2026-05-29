@@ -20,9 +20,11 @@ import {
   loadSchoolMarker,
 } from "../utils/tmapMarkerUtils";
 import {
-  getPropertiesByListMode,
+  fetchRecommendedProperties,
+  getFavoriteProperties,
   type ListMode,
 } from "../utils/propertyListItems";
+import type { PropertyCardView } from "../types";
 
 const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
 
@@ -72,9 +74,29 @@ export default function MainMapScreen() {
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
 
+  // 지도 전체(추천) 매물은 property API에서 비동기로 로드한다.
+  const [recommendedProperties, setRecommendedProperties] = useState<
+    PropertyCardView[]
+  >([]);
+  const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
+
+  // 찜(MY) 매물은 recommendation 도메인이라 후속 이슈에서 API 연동 (현재 더미).
+  const favoriteProperties = useMemo(() => getFavoriteProperties(), []);
+  const favoritePropertiesRef = useRef<PropertyCardView[]>(favoriteProperties);
+
+  // 마커 갱신 등 imperative 코드에서 최신 목록을 읽기 위한 resolver.
+  const resolveProperties = useCallback(
+    (mode: ListMode): PropertyCardView[] =>
+      mode === "favorites"
+        ? favoritePropertiesRef.current
+        : recommendedPropertiesRef.current,
+    []
+  );
+
   const currentProperties = useMemo(
-    () => getPropertiesByListMode(listMode),
-    [listMode]
+    () =>
+      listMode === "favorites" ? favoriteProperties : recommendedProperties,
+    [listMode, favoriteProperties, recommendedProperties]
   );
 
   const visibleProperties = useMemo(() => {
@@ -89,7 +111,7 @@ export default function MainMapScreen() {
 
     return (
       currentProperties.find(
-        (property) => String(property.id) === selectedPropertyId
+        (property) => String(property.propertyId) === selectedPropertyId
       ) ?? null
     );
   }, [currentProperties, selectedPropertyId, hasSearchResult]);
@@ -98,6 +120,32 @@ export default function MainMapScreen() {
     const isCompleted = getIsAISearchCompleted();
     setHasSearchResult(isCompleted);
   }, []);
+
+  // 추천(전체) 매물 목록 로드.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchRecommendedProperties()
+      .then((list) => {
+        if (cancelled) return;
+        recommendedPropertiesRef.current = list;
+        setRecommendedProperties(list);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error("매물 목록을 불러오지 못했습니다.", error);
+        recommendedPropertiesRef.current = [];
+        setRecommendedProperties([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    favoritePropertiesRef.current = favoriteProperties;
+  }, [favoriteProperties]);
 
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
@@ -152,7 +200,7 @@ export default function MainMapScreen() {
   }, []);
 
   const handleChangeListMode = (mode: ListMode) => {
-    const nextProperties = hasSearchResult ? getPropertiesByListMode(mode) : [];
+    const nextProperties = hasSearchResult ? resolveProperties(mode) : [];
 
     listModeRef.current = mode;
 
@@ -173,7 +221,7 @@ export default function MainMapScreen() {
       showPropertyMarkersRef.current = next;
 
       const nextProperties = hasSearchResult
-        ? getPropertiesByListMode(listModeRef.current)
+        ? resolveProperties(listModeRef.current)
         : [];
 
       renderPropertyMarkers(nextProperties, next);
@@ -206,13 +254,13 @@ export default function MainMapScreen() {
 
   const handleClickPropertyDetail = () => {
     if (!selectedProperty) return;
-    navigate(`/property/${selectedProperty.id}`);
+    navigate(`/property/${selectedProperty.propertyId}`);
   };
 
   const handleClickInfra = () => {
     navigate(
       selectedProperty
-        ? `/infra-view?propertyId=${selectedProperty.id}`
+        ? `/infra-view?propertyId=${selectedProperty.propertyId}`
         : "/infra-view"
     );
   };
@@ -220,7 +268,7 @@ export default function MainMapScreen() {
   const handleClick3D = () => {
     navigate(
       selectedProperty
-        ? `/3d-view?propertyId=${selectedProperty.id}`
+        ? `/3d-view?propertyId=${selectedProperty.propertyId}`
         : "/3d-view"
     );
   };
@@ -261,7 +309,9 @@ export default function MainMapScreen() {
       });
 
       const isCompleted = getIsAISearchCompleted();
-      const initialProperties = isCompleted ? currentProperties : [];
+      const initialProperties = isCompleted
+        ? resolveProperties(listModeRef.current)
+        : [];
 
       setHasSearchResult(isCompleted);
       renderPropertyMarkers(initialProperties, showPropertyMarkersRef.current);

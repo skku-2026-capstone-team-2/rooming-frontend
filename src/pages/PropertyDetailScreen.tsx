@@ -1,32 +1,81 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import {
-  Home,
-  Target,
-  Dumbbell,
-  Store,
-  Phone,
-  Sparkles,
-  ArrowLeft,
-} from "lucide-react";
+import { Home, Phone, ArrowLeft } from "lucide-react";
 
-import { properties } from "../data/dummyProperties";
+import { propertyApi, ApiError } from "../api";
+import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
+import type { PropertyDetailView } from "../types";
+
+type LoadStatus = "loading" | "ready" | "notfound" | "error";
 
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const property = properties.find((item) => String(item.id) === id);
+  const propertyId = Number(id);
+  const isValidId = !!id && !Number.isNaN(propertyId);
 
-  if (!property) {
+  const [property, setProperty] = useState<PropertyDetailView | null>(null);
+  const [status, setStatus] = useState<LoadStatus>(
+    isValidId ? "loading" : "notfound"
+  );
+
+  useEffect(() => {
+    if (!isValidId) return;
+
+    let cancelled = false;
+
+    Promise.all([
+      propertyApi.getProperty(propertyId),
+      // 이미지 조회 실패는 상세 화면 전체 실패로 보지 않고 빈 목록으로 처리한다.
+      propertyApi
+        .getPropertyImages(propertyId)
+        .catch(() => ({ propertyId, images: [] })),
+    ])
+      .then(([detail, imagesData]) => {
+        if (cancelled) return;
+        setProperty(mapPropertyDetailToView(detail, imagesData.images));
+        setStatus("ready");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        if (error instanceof ApiError && error.status === 404) {
+          setStatus("notfound");
+          return;
+        }
+        console.error("매물 상세를 불러오지 못했습니다.", error);
+        setStatus("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isValidId, propertyId]);
+
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <p className="text-sm font-medium text-text-tertiary">
+          매물 정보를 불러오는 중이에요...
+        </p>
+      </div>
+    );
+  }
+
+  if (status === "notfound" || status === "error" || !property) {
+    const isNotFound = status === "notfound";
+
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
           <h1 className="text-2xl font-bold text-foreground">
-            매물을 찾을 수 없어요
+            {isNotFound ? "매물을 찾을 수 없어요" : "매물 정보를 불러오지 못했어요"}
           </h1>
 
           <p className="mt-3 text-sm leading-6 text-text-tertiary">
-            요청한 매물 정보가 존재하지 않거나 삭제되었을 수 있어요.
+            {isNotFound
+              ? "요청한 매물 정보가 존재하지 않거나 삭제되었을 수 있어요."
+              : "잠시 후 다시 시도해 주세요."}
           </p>
 
           <button
@@ -41,12 +90,8 @@ export default function PropertyDetailScreen() {
     );
   }
 
-  const area = property.area ?? "23.1㎡";
-  const distance = property.distance ?? "정문 도보 12분";
+  const mainImage = property.imageUrls[0] ?? null;
   const description = property.description ?? "생활 인프라가 가까운 추천 매물";
-  const floor = "3/5층";
-  const maintenanceFee = "5만원";
-  const address = "종로구 성균관로";
 
   return (
     <div className="min-h-screen bg-background">
@@ -65,9 +110,9 @@ export default function PropertyDetailScreen() {
 
             {/* 매물 사진 + 정보 오버레이 */}
             <div className="relative h-[430px] overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-border/30 to-purple-300/30 shadow-sm">
-              {property.image ? (
+              {mainImage ? (
                 <img
-                  src={property.image}
+                  src={mainImage}
                   alt={property.title}
                   className="h-full w-full object-cover"
                 />
@@ -89,7 +134,7 @@ export default function PropertyDetailScreen() {
                     AI 추천
                   </span>
                   <span className="rounded-full border border-card/40 bg-card/90 px-3 py-1 text-xs font-semibold text-text-tertiary">
-                    원룸
+                    {property.roomTypeLabel}
                   </span>
                 </div>
 
@@ -98,7 +143,7 @@ export default function PropertyDetailScreen() {
                 </h1>
 
                 <p className="mt-2 text-3xl font-bold text-green-300">
-                  {property.price}
+                  {property.priceLabel}
                 </p>
 
                 <p className="mt-2 line-clamp-1 text-sm leading-6 text-primary-foreground/85">
@@ -107,35 +152,20 @@ export default function PropertyDetailScreen() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-purple-300 bg-card p-6 shadow-sm">
-              <h3 className="mb-4 flex items-center gap-1.5 text-lg font-bold text-purple-800">
-                <Sparkles className="h-4 w-4 shrink-0" />
-                AI 추천 이유
-              </h3>
+            {/*
+              추천 이유(AI 추천 이유)는 property가 아니라 recommendation 응답의
+              explanation에서 관리하므로 property 상세 화면에서는 다루지 않는다.
+              추천 컨텍스트 연동은 후속 이슈(#22 등)에서 추가한다.
+            */}
 
-              <div className="space-y-3">
-                <ReasonItem
-                  Icon={Target}
-                  text={`${distance}, 통학 접근성이 좋아요`}
-                />
-                <ReasonItem
-                  Icon={Dumbbell}
-                  text="헬스장 등 생활 인프라 접근성이 좋아요"
-                />
-                <ReasonItem
-                  Icon={Store}
-                  text="편의점·카페 등 일상 편의시설과 BHC가 가까워요"
-                />
-              </div>
-            </div>
-
+            {/* TODO(#23): 주요 인프라는 실제 infra API 연동 전까지 placeholder */}
             <div className="rounded-2xl border border-accent-purple-border bg-card p-6 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-accent-purple">
                 주요 인프라
               </h3>
 
               <div className="space-y-2">
-                <DistanceItem place="성균관대 정문" distance={distance} />
+                <DistanceItem place="성균관대 정문" distance="도보 12분" />
                 <DistanceItem place="헬스장" distance="도보 3분" />
                 <DistanceItem place="편의점" distance="도보 2분" />
                 <DistanceItem place="카페" distance="도보 5분" />
@@ -150,7 +180,9 @@ export default function PropertyDetailScreen() {
               <div className="flex w-full gap-3">
                 <button
                   type="button"
-                  onClick={() => navigate(`/infra-view?propertyId=${property.id}`)}
+                  onClick={() =>
+                    navigate(`/infra-view?propertyId=${property.propertyId}`)
+                  }
                   className="flex-1 rounded-xl bg-secondary px-5 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-purple-700 hover:shadow-lg"
                 >
                   인프라 보기
@@ -158,7 +190,9 @@ export default function PropertyDetailScreen() {
 
                 <button
                   type="button"
-                  onClick={() => navigate(`/3d-view?propertyId=${property.id}`)}
+                  onClick={() =>
+                    navigate(`/3d-view?propertyId=${property.propertyId}`)
+                  }
                   className="flex-1 rounded-xl bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
                 >
                   3D 보기
@@ -171,10 +205,13 @@ export default function PropertyDetailScreen() {
                 </h3>
 
                 <div className="space-y-3">
-                  <InfoRow label="면적" value={area} />
-                  <InfoRow label="층수" value={floor} />
-                  <InfoRow label="관리비" value={maintenanceFee} />
-                  <InfoRow label="주소" value={address} />
+                  <InfoRow label="면적" value={property.areaLabel} />
+                  <InfoRow label="층수" value={property.floorLabel} />
+                  <InfoRow
+                    label="관리비"
+                    value={property.maintenanceFeeLabel}
+                  />
+                  <InfoRow label="주소" value={property.address} />
                 </div>
               </div>
 
@@ -192,15 +229,6 @@ export default function PropertyDetailScreen() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ReasonItem({ Icon, text }: { Icon: React.ElementType; text: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-purple-200 bg-purple-100 px-4 py-3">
-      <Icon className="mt-0.5 h-5 w-5 text-purple-800" />
-      <span className="text-sm leading-6 text-purple-800">{text}</span>
     </div>
   );
 }

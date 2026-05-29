@@ -1,20 +1,10 @@
 import { Home, X } from "lucide-react";
-
-type Property = {
-  id: number;
-  title: string;
-  price: string;
-  description?: string;
-  image?: string;
-  area?: string;
-  distance?: string;
-  lat: number;
-  lng: number;
-};
+import { formatTradeTypeLabel } from "../api/mappers/propertyMapper";
+import type { PropertyCardView } from "../types";
 
 type PropertyDetailModalProps = {
   isOpen: boolean;
-  property: Property | null;
+  property: PropertyCardView | null;
   onClose: () => void;
   onClickDetail?: () => void;
   onClick3D?: () => void;
@@ -46,9 +36,9 @@ export default function PropertyDetailModal({
 
         {/* 매물 사진 + 정보 오버레이 */}
         <div className="relative mb-3 h-52 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-border/30 to-purple-300/30">
-          {property.image ? (
+          {property.imageUrl ? (
             <img
-              src={property.image}
+              src={property.imageUrl}
               alt={property.title}
               className="h-full w-full object-cover"
             />
@@ -70,7 +60,7 @@ export default function PropertyDetailModal({
                 AI 추천
               </span>
               <span className="rounded-full border border-card/40 bg-card/90 px-2.5 py-0.5 text-[11px] font-semibold text-text-tertiary">
-                원룸
+                {formatTradeTypeLabel(property.tradeType)}
               </span>
             </div>
 
@@ -94,19 +84,24 @@ export default function PropertyDetailModal({
                 보증금 / 월세
               </p>
               <p className="mt-0.5 text-xl font-bold text-text-secondary">
-                {property.price}
+                {property.priceLabel}
               </p>
             </div>
 
-            <p className="shrink-0 rounded-full bg-card/80 px-3 py-1 text-xs font-semibold text-text-tertiary">
-              정문까지 {property.distance ?? "12분"}
-            </p>
+            {property.routeDurationLabel && (
+              <p className="shrink-0 rounded-full bg-card/80 px-3 py-1 text-xs font-semibold text-text-tertiary">
+                정문까지 {property.routeDurationLabel}
+              </p>
+            )}
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-2">
-            <CompactInfo label="면적" value={property.area ?? "23.1㎡"} />
-            <CompactInfo label="층수" value="3/5층" />
-            <CompactInfo label="관리비" value="5만원" />
+            <CompactInfo label="면적" value={property.areaLabel} />
+            <CompactInfo
+              label="거래"
+              value={formatTradeTypeLabel(property.tradeType)}
+            />
+            <CompactInfo label="3D" value={property.has3DModel ? "가능" : "없음"} />
           </div>
         </div>
 

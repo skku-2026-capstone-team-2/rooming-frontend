@@ -1,42 +1,32 @@
-import { properties as dummyProperties } from "../data/dummyProperties";
+import { propertyApi } from "../api";
+import { mapPropertyToCardView } from "../api/mappers/propertyMapper";
 import { favoriteListDummyData } from "../data/dummyFavorites";
+import type { PropertyCardView } from "../types";
 
 export type ListMode = "recommended" | "favorites";
-
-export type PropertyListItem = {
-  id: number;
-  title: string;
-  price: string;
-  description?: string;
-  image?: string;
-  area?: string;
-  distance?: string;
-  lat: number;
-  lng: number;
-  mode: ListMode;
-  matchScore?: number;
-};
 
 function formatPriceToManwon(value: number) {
   return `${Math.floor(value / 10000)}`;
 }
 
-function getRecommendedProperties(): PropertyListItem[] {
-  return dummyProperties.map((property) => ({
-    id: property.id,
-    title: property.title,
-    price: property.price,
-    description: property.description,
-    image: property.image,
-    area: property.area,
-    distance: property.distance,
-    lat: property.lat,
-    lng: property.lng,
-    mode: "recommended",
-  }));
+/**
+ * 지도 전체(추천) 매물 목록.
+ *
+ * `GET /api/v1/properties` 응답을 카드 view model로 변환한다.
+ * mock ↔ real 전환은 propertyApi 내부(USE_MOCK)에서 처리된다.
+ */
+export async function fetchRecommendedProperties(): Promise<PropertyCardView[]> {
+  const properties = await propertyApi.getProperties();
+  return properties.map(mapPropertyToCardView);
 }
 
-function getFavoriteProperties(): PropertyListItem[] {
+/**
+ * MY(찜) 매물 목록.
+ *
+ * 찜/추천은 recommendation 도메인이라 실제 API 연동은 후속 이슈에서 다룬다.
+ * 여기서는 더미 snapshot을 카드 view model로 변환만 한다.
+ */
+export function getFavoriteProperties(): PropertyCardView[] {
   return favoriteListDummyData.data.map((favorite) => {
     const { snapshot } = favorite;
 
@@ -45,29 +35,29 @@ function getFavoriteProperties(): PropertyListItem[] {
 
     const mainImage =
       snapshot.images.find((image) => image.isMain)?.imageUrl ??
-      snapshot.images[0]?.imageUrl;
+      snapshot.images[0]?.imageUrl ??
+      null;
+
+    const routeMinutes = snapshot.keyPlaceRoutes[0]?.routeJson.totalTime;
+    const explanation = snapshot.matchReasons.join(" · ");
 
     return {
-      id: snapshot.propertyId,
+      propertyId: snapshot.propertyId,
       title: snapshot.title,
-      price: `${depositText} / ${monthlyRentText}`,
-      description: snapshot.matchReasons.join(" · "),
-      image: mainImage,
-      area: `${snapshot.areaM2}㎡`,
-      distance:
-        snapshot.keyPlaceRoutes[0]?.routeJson.totalTime !== undefined
-          ? `${snapshot.keyPlaceRoutes[0].routeJson.totalTime}분`
-          : undefined,
+      address: snapshot.roadAddress,
+      tradeType: snapshot.price.transactionType,
+      priceLabel: `${depositText} / ${monthlyRentText}`,
+      areaLabel: `${snapshot.areaM2}㎡`,
+      description: explanation,
+      imageUrl: mainImage,
       lat: snapshot.location.latitude,
       lng: snapshot.location.longitude,
-      mode: "favorites",
-      matchScore: snapshot.matchScore,
+      tags: [],
+      has3DModel: snapshot.hasProperty3D,
+      favorite: true,
+      explanation,
+      routeDurationLabel:
+        routeMinutes !== undefined ? `${routeMinutes}분` : null,
     };
   });
-}
-
-export function getPropertiesByListMode(listMode: ListMode): PropertyListItem[] {
-  return listMode === "recommended"
-    ? getRecommendedProperties()
-    : getFavoriteProperties();
 }
