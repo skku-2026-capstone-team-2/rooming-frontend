@@ -41,6 +41,29 @@ export interface PropertyCardView {
   routeDurationLabel?: string | null;
 }
 
+/** 매물 상세 화면 view model. property 상세 + images 응답을 평탄화한다. */
+export interface PropertyDetailView {
+  propertyId: number;
+  title: string;
+  address: string;
+  tradeType: TradeType | null;
+  /** 예: "500 / 55" 또는 "전세 1억" */
+  priceLabel: string;
+  /** 예: "23.5㎡" */
+  areaLabel: string;
+  /** 예: "3층" */
+  floorLabel: string;
+  /** 예: "5만원" / "없음" */
+  maintenanceFeeLabel: string;
+  /** 예: "원룸" */
+  roomTypeLabel: string;
+  description: string | null;
+  tags: string[];
+  has3DModel: boolean;
+  /** 상세 이미지 URL 목록 (`GET /api/v1/properties/{id}/images`, imageOrder 정렬) */
+  imageUrls: string[];
+}
+
 /** 인프라 보기 화면의 마커/리스트 아이템. */
 export interface InfraMarkerView {
   infrastructureId: number;
