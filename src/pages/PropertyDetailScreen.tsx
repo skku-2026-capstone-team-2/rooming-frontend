@@ -1,12 +1,13 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Home, Phone, ArrowLeft } from "lucide-react";
 
-import { propertyApi, ApiError } from "../api";
+import { ApiError } from "../api";
 import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
-import type { PropertyDetailView } from "../types";
-
-type LoadStatus = "loading" | "ready" | "notfound" | "error";
+import {
+  useProperty,
+  usePropertyImages,
+} from "../hooks/queries/propertyQueries";
 
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
@@ -15,44 +16,30 @@ export default function PropertyDetailScreen() {
   const propertyId = Number(id);
   const isValidId = !!id && !Number.isNaN(propertyId);
 
-  const [property, setProperty] = useState<PropertyDetailView | null>(null);
-  const [status, setStatus] = useState<LoadStatus>(
-    isValidId ? "loading" : "notfound"
+  // id가 유효할 때만 쿼리를 실행한다. (mock 토글·mapper는 훅 내부에서 재사용)
+  const detailQuery = useProperty(propertyId, isValidId);
+  const imagesQuery = usePropertyImages(propertyId, isValidId);
+
+  const property = useMemo(
+    () =>
+      detailQuery.data
+        ? mapPropertyDetailToView(
+            detailQuery.data,
+            // 이미지 조회 실패는 치명적이지 않으므로 빈 목록으로 처리한다.
+            imagesQuery.data?.images ?? []
+          )
+        : null,
+    [detailQuery.data, imagesQuery.data]
   );
 
-  useEffect(() => {
-    if (!isValidId) return;
+  // 상태 판단은 상세(detail) 쿼리 기준. (이미지 실패는 화면 실패로 보지 않음)
+  const isNotFound =
+    !isValidId ||
+    (detailQuery.error instanceof ApiError && detailQuery.error.status === 404);
+  const isError = isValidId && !isNotFound && detailQuery.isError;
+  const isLoading = isValidId && detailQuery.isPending;
 
-    let cancelled = false;
-
-    Promise.all([
-      propertyApi.getProperty(propertyId),
-      // 이미지 조회 실패는 상세 화면 전체 실패로 보지 않고 빈 목록으로 처리한다.
-      propertyApi
-        .getPropertyImages(propertyId)
-        .catch(() => ({ propertyId, images: [] })),
-    ])
-      .then(([detail, imagesData]) => {
-        if (cancelled) return;
-        setProperty(mapPropertyDetailToView(detail, imagesData.images));
-        setStatus("ready");
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        if (error instanceof ApiError && error.status === 404) {
-          setStatus("notfound");
-          return;
-        }
-        console.error("매물 상세를 불러오지 못했습니다.", error);
-        setStatus("error");
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isValidId, propertyId]);
-
-  if (status === "loading") {
+  if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <p className="text-sm font-medium text-text-tertiary">
@@ -62,9 +49,7 @@ export default function PropertyDetailScreen() {
     );
   }
 
-  if (status === "notfound" || status === "error" || !property) {
-    const isNotFound = status === "notfound";
-
+  if (isNotFound || isError || !property) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-6">
         <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">

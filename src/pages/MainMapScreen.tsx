@@ -20,10 +20,10 @@ import {
   loadSchoolMarker,
 } from "../utils/tmapMarkerUtils";
 import {
-  fetchRecommendedProperties,
   getFavoriteProperties,
   type ListMode,
 } from "../utils/propertyListItems";
+import { useProperties } from "../hooks/queries/propertyQueries";
 import type { PropertyCardView } from "../types";
 
 const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
@@ -74,10 +74,8 @@ export default function MainMapScreen() {
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
 
-  // 지도 전체(추천) 매물은 property API에서 비동기로 로드한다.
-  const [recommendedProperties, setRecommendedProperties] = useState<
-    PropertyCardView[]
-  >([]);
+  // 지도 전체(추천) 매물은 property API에서 React Query로 로드/캐싱한다.
+  const { data: recommendedProperties = [] } = useProperties();
   const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
 
   // 찜(MY) 매물은 recommendation 도메인이라 후속 이슈에서 API 연동 (현재 더미).
@@ -121,27 +119,10 @@ export default function MainMapScreen() {
     setHasSearchResult(isCompleted);
   }, []);
 
-  // 추천(전체) 매물 목록 로드.
+  // imperative 마커 코드가 최신 목록을 읽도록 query 결과를 ref에 동기화한다.
   useEffect(() => {
-    let cancelled = false;
-
-    fetchRecommendedProperties()
-      .then((list) => {
-        if (cancelled) return;
-        recommendedPropertiesRef.current = list;
-        setRecommendedProperties(list);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        console.error("매물 목록을 불러오지 못했습니다.", error);
-        recommendedPropertiesRef.current = [];
-        setRecommendedProperties([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    recommendedPropertiesRef.current = recommendedProperties;
+  }, [recommendedProperties]);
 
   useEffect(() => {
     favoritePropertiesRef.current = favoriteProperties;
