@@ -1,6 +1,6 @@
 # API 명세 수정 요청 후보 (백엔드 협의용 초안)
 
-> 작성일: 2026-05-30
+> 작성일: 2026-05-30 (최종 갱신: 2026-05-30, #21 구현 중 6·7번 추가)
 > 상태: **기록만** — 프론트 실연동을 좀 더 진행한 뒤 백엔드에 일괄 요청 예정.
 > 기준 문서: [openapi.yaml](./openapi.yaml) · [type-mapping-ko.md](./type-mapping-ko.md)
 
@@ -44,7 +44,8 @@
 ## 3. 🟡 인프라 category enum 값 불일치 (프론트 더미 ↔ 명세)
 
 - 더미 값 `CONVENIENCE_STORE`, `FOOD`, `BUS_STOP` 등이 OpenAPI enum(`CONVENIENT_STORE`, `MART`, `PHARMACY`, `HOSPITAL`, `LAUNDRY`, `CAFE`, `SUBWAY`, `BANK`, `GYM`, `KARAOKE`, `PC_ROOM`, `ETC` 12종)과 불일치 ([type-mapping-ko.md:48-49](./type-mapping-ko.md#L48-L49)).
-- 명세 문제라기보단 **프론트 매퍼에서 흡수**할 항목(실연동 #28 작업 시). 백엔드 enum이 확정이면 프론트가 맞추면 됨 — 여기 기록만.
+- 명세 문제라기보단 **프론트 매퍼에서 흡수**할 항목. 백엔드 enum이 확정이면 프론트가 맞추면 됨 — 여기 기록만.
+- **(#21 반영)** 인프라 화면이 OpenAPI 12종 enum을 직접 소비하도록 전환됨([InfraViewScreen.tsx](../../src/pages/InfraViewScreen.tsx) `MARKER_TYPE_BY_CATEGORY`). 더미 enum 의존 제거 완료. 백엔드가 실제로 어떤 값을 보내는지(특히 `SUBWAY`/`ETC` 빈도)는 실연동 #28에서 재확인 필요.
 
 ---
 
@@ -67,6 +68,32 @@
 
 - `BrokerPropertyCreateRequest.availableFrom`은 요청 본문으로 받지만 "current backend stores no separate field for this value" ([openapi.yaml:1190-1194](./openapi.yaml#L1190-L1194)).
 - 입주 가능일을 화면에서 쓸 계획이면 백엔드 저장/반환 필드 필요. 안 쓸 거면 요청 필드에서 제거.
+
+---
+
+## 6. 🔴 목적지(target place) 이름·좌표가 경로 응답에 없음 (#21에서 발견)
+
+추천 경로는 `targetPlaceId`만 주고, 목적지의 **이름과 좌표**가 응답에 없다.
+
+- `RecommendationTargetPlaceRoute`([openapi.yaml:1780-1802](./openapi.yaml#L1780-L1802)): `targetPlaceId`, `transportMode`, `durationMinutes`, `transferCount`, `subPaths`
+- `RecommendationRouteDetailData`([openapi.yaml:1863-1889](./openapi.yaml#L1863-L1889)): `targetPlaceId`만 있고 목적지 name/location 없음
+
+### 영향 (#21 구현)
+- "○○까지 N분" 라벨의 목적지 이름을 표시할 수 없어 **`SCHOOL_PLACE`로 하드코딩** ([InfraViewScreen.tsx](../../src/pages/InfraViewScreen.tsx)).
+- geometry 누락 시 fallback 직선을 그릴 목적지 좌표가 없어 **하드코딩 좌표(성균관대 정문)** 사용. 다른 목적지(직장/집)면 엉뚱한 곳으로 선이 그려진다.
+- `subPaths[].endName`으로 일부 유추 가능하나 보장되지 않음.
+
+### 수정 제안 (택1)
+1. `RecommendationTargetPlaceRoute` / `RecommendationRouteDetailData`에 `targetPlaceName` + `targetPlaceLocation`(CoordinateDto) 추가. (권장)
+2. 프론트가 `GET /user/seeker/target-place` 목록을 받아 `targetPlaceId`로 join. → 추가 호출 + 추천 스냅샷과 시점 불일치 가능.
+
+---
+
+## 7. 🟡 `firstTargetPlaceRoute` — 첫 목적지 경로만 제공
+
+- seeker가 여러 target place(학교/직장/집)를 등록해도 추천 결과는 **첫 목적지 1건의 경로**만 내려준다([openapi.yaml:1731-1734](./openapi.yaml#L1731-L1734)).
+- 여러 목적지 통학/통근 시간을 비교하는 UI가 필요해지면 한계. 현재 화면은 단일 목적지만 쓰므로 당장은 문제없음.
+- **결정 필요:** 다목적지 경로 비교를 제품에 넣을지. 넣는다면 `targetPlaceRoutes`(배열) 형태로 확장 요청.
 
 ---
 
