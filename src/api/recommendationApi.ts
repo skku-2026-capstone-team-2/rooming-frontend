@@ -18,6 +18,7 @@ import type {
   FavoriteRecommendationData,
   RecommendationRouteDetailData,
   RecommendationResult,
+  RouteGeometryDetail,
 } from "../types";
 import { USE_MOCK } from "./config";
 import { request } from "./http";
@@ -44,10 +45,14 @@ export const recommendationApi = {
     return request<null>(`/api/v1/recommendations/${recommendationId}`, { method: "DELETE" });
   },
 
-  getRoute(recommendationId: number): Promise<RecommendationRouteDetailData> {
-    if (USE_MOCK) return recommendationMock.getRoute(recommendationId);
+  getRoute(
+    recommendationId: number,
+    detail: RouteGeometryDetail = "SUMMARY"
+  ): Promise<RecommendationRouteDetailData> {
+    if (USE_MOCK) return recommendationMock.getRoute(recommendationId, detail);
     return request<RecommendationRouteDetailData>(
-      `/api/v1/recommendations/${recommendationId}/route`
+      `/api/v1/recommendations/${recommendationId}/route`,
+      { query: { detail } }
     );
   },
 
