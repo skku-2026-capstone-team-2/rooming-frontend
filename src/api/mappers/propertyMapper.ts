@@ -11,9 +11,14 @@ import type {
   Property,
   PropertyDetail,
   PropertyImage,
+  Property3D,
   TradeType,
 } from "../../types";
-import type { PropertyCardView, PropertyDetailView } from "../../types";
+import type {
+  PropertyCardView,
+  PropertyDetailView,
+  Property3DView,
+} from "../../types";
 
 const ROOM_TYPE_LABELS: Record<string, string> = {
   one_room: "원룸",
@@ -132,5 +137,23 @@ export function mapPropertyDetailToView(
     tags: detail.tags ?? [],
     has3DModel: detail.has3DModel ?? false,
     imageUrls,
+  };
+}
+
+/**
+ * `GET /api/v1/properties/{id}/3d` → 3D 보기 화면 view model.
+ *
+ * `has3DModel`이 true여도 `modelUrl`이 없으면 보여줄 수 없으므로 둘 다 만족할 때만
+ * `available`을 true로 둔다. 화면은 `available`로 3D/빈 상태를 분기한다.
+ */
+export function mapProperty3DToView(data: Property3D): Property3DView {
+  const available = data.has3DModel && data.modelUrl != null;
+
+  return {
+    propertyId: data.propertyId,
+    available,
+    modelUrl: available ? data.modelUrl : null,
+    modelType: data.modelType ?? null,
+    previewImageUrl: data.previewImageUrl,
   };
 }

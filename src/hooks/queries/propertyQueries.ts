@@ -8,8 +8,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { propertyApi } from "../../api";
-import { mapPropertyToCardView } from "../../api/mappers/propertyMapper";
-import type { PropertyCardView } from "../../types";
+import {
+  mapProperty3DToView,
+  mapPropertyToCardView,
+} from "../../api/mappers/propertyMapper";
+import type { PropertyCardView, Property3DView } from "../../types";
 
 /** 매물 queryKey 컨벤션. */
 export const propertyKeys = {
@@ -19,6 +22,8 @@ export const propertyKeys = {
   detail: (id: number) => ["property", id] as const,
   /** 매물 상세 이미지 */
   images: (id: number) => ["property", id, "images"] as const,
+  /** 매물 3D 모델 */
+  threeD: (id: number) => ["property", id, "3d"] as const,
 };
 
 /** 지도 전체(추천) 매물 목록. 원시 응답을 캐시하고 `select`로 카드 view model 변환. */
@@ -51,5 +56,18 @@ export function usePropertyImages(id: number, enabled = true) {
     queryFn: () => propertyApi.getPropertyImages(id),
     enabled,
     retry: false,
+  });
+}
+
+/**
+ * 매물 3D 모델. 원시 응답을 캐시하고 `select`로 3D 보기 view model로 변환한다.
+ * `id`가 유효할 때만 실행한다.
+ */
+export function useProperty3D(id: number, enabled = true) {
+  return useQuery({
+    queryKey: propertyKeys.threeD(id),
+    queryFn: () => propertyApi.getProperty3D(id),
+    enabled,
+    select: (data): Property3DView => mapProperty3DToView(data),
   });
 }
