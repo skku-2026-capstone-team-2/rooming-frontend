@@ -9,11 +9,10 @@ import {
 
 import {
   DEFAULT_TOP_N,
-  isSearchCompleted,
   loadSearchPreferences,
   loadSearchRequest,
   saveSearchRequest,
-  setSearchCompleted,
+  useSearchRequest,
 } from "../utils/recommendationSearch";
 import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
 import { formatRouteDurationLabel } from "../api/mappers/recommendationMapper";
@@ -26,7 +25,8 @@ export default function AIPanel() {
   const navigate = useNavigate();
 
   const [query, setQuery] = useState(() => loadSearchRequest()?.query ?? "");
-  const [hasAIResult] = useState(() => isSearchCompleted());
+  // 검색 기록 노출 여부는 "검색 요청이 저장되어 있는가"로 판단한다.
+  const hasAIResult = useSearchRequest() != null;
 
   const handleSearch = () => {
     const finalQuery = query.trim() || EXAMPLE_QUERY;
@@ -37,9 +37,6 @@ export default function AIPanel() {
       preferences: loadSearchPreferences(),
       topN: DEFAULT_TOP_N,
     });
-
-    // 검색하기 직후에는 아직 채팅 기록 등록 X (결과 화면을 거쳐야 지도에 노출)
-    setSearchCompleted(false);
 
     navigate("/ai-result");
   };
