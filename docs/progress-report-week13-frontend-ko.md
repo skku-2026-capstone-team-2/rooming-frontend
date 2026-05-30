@@ -62,3 +62,37 @@
 - UI/UX 및 브랜딩 일관성 개선: 4시간
 - 빌드 검증 및 이슈 확인: 1시간
 - OpenAPI 기반 연동 계획 수립: 2시간
+
+## 구현 완료 현황 (업데이트)
+
+위 "앞으로 2주간의 목표"에 대한 진행 상황이다.
+
+- [x] OpenAPI 기반 TypeScript 타입 정의 (#16)
+- [x] API Client · Mock Adapter 구조 생성 (#17)
+- [x] 매물 목록·상세 mock API 연결 (#18)
+- [x] AI 추천 검색 흐름 mock API 연결 (#19)
+- [x] 온보딩 target-place·선호 조건 변환 구조 (#20)
+- [x] 추천 응답 기반 인프라·경로 mock API 연결 (#21)
+- [x] 매물별 3D modelUrl 연결 구조 (#22)
+- [x] React Query(TanStack Query) 데이터 패칭 레이어 도입 (#38)
+- [x] 검색-결과-지도-상세 상태 흐름 정리 (#24, sessionStorage→URL 정리)
+- [x] 공용 컴포넌트 추출 (CenteredMessage, PropertyImagePlaceholder)
+- [ ] 주요 화면 Loading/Error/Empty 상태 보강 (#23, 진행 예정)
+- [ ] 실제 서버 API 연결 (#25~#31, 백엔드 배포 후)
+
+> 현재도 모든 데이터는 mock adapter 기반이며, `VITE_USE_MOCK` 토글만으로 실서버 전환이 가능하도록 구성됨. `npm run build`(tsc + vite) 통과 상태 유지.
+
+## 백엔드 전달 사항
+
+mock 연동 과정에서 발견한 **OpenAPI 명세 자체의 누락/불일치**다. 상세 근거·수정 제안은 [docs/api/spec-issues-ko.md](./api/spec-issues-ko.md) 참고. 우선순위: 🟡 중요(기능 결정) · 🟢 정리. **필수(🔴) 항목은 없음.**
+
+| 우선 | 항목 | 핵심 요청 |
+|:---:|------|-----------|
+| 🟡 | 매칭 점수 부재 (`RecommendationResult`) | `matchScore` 추가 or 프론트 "매칭률" 문구 제거 결정 (AI 산출값이라 백엔드 필요) |
+| 🟡 | 첫 목적지 경로만 제공 | 다목적지 비교 필요 시 `targetPlaceRoutes` 배열화 (경로 계산은 백엔드) |
+| 🟢 | 생성↔조회 API 필드명 불일치 | `depositAmount/deposit`, `roadAddress/address` 등 통일 |
+| 🟢 | `availableFrom` 미저장 | 저장/반환 or 요청 필드 제거 |
+
+**프론트에서 자체 해결 (백엔드 변경 불필요):** 추천 응답의 매물 표시정보(제목·주소·면적·이미지·has3DModel)와 목적지 이름·좌표는 `propertyId`/`targetPlaceId`로 기존 엔드포인트(`GET /properties`, `GET /user/seeker/target-place`)를 join해 채운다 → #26/#27/#28에서 구현.
+
+> 공통 확인 필요: 인증 방식(`Authorization: Bearer` vs `ROOMING_ACCESS_TOKEN` 쿠키), CORS, base URL.
