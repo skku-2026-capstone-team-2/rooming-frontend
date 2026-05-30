@@ -100,9 +100,19 @@ function EmptyPropertyList({ isRecommendedMode }: EmptyPropertyListProps) {
       </p>
 
       <p className="mt-1 break-keep text-[11px] leading-4 text-text-tertiary">
-        검색이 완료되면 이 영역에
-        <br />
-        매물 목록이 표시됩니다.
+        {isRecommendedMode ? (
+          <>
+            AI 검색이 완료되면 이 영역에
+            <br />
+            추천 매물이 표시됩니다.
+          </>
+        ) : (
+          <>
+            저장(MY)한 매물이 아직 없어요.
+            <br />
+            추천 결과에서 MY로 담아보세요.
+          </>
+        )}
       </p>
     </div>
   );

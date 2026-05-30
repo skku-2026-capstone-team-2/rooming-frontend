@@ -28,7 +28,7 @@ export default function AIResultScreen() {
   const results = useMemo(() => data?.results ?? [], [data]);
 
   // 로컬 MY 선택: API favorite 값을 기본으로 두고, 토글 시 로컬에서 뒤집어 표시한다.
-  // (실제 찜 추가/삭제 API 연동은 #24)
+  // (useToggleFavorite mutation 연동 및 에러 롤백은 #30)
   const [toggledFavorites, setToggledFavorites] = useState<Set<number>>(
     new Set()
   );

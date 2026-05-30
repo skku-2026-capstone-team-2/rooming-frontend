@@ -19,12 +19,12 @@ import {
   loadPropertyMarkers,
   loadSchoolMarker,
 } from "../utils/tmapMarkerUtils";
-import {
-  getFavoriteProperties,
-  type ListMode,
-} from "../utils/propertyListItems";
+import type { ListMode } from "../utils/propertyListItems";
 import { loadSearchRequest } from "../utils/recommendationSearch";
-import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
+import {
+  useFavorites,
+  useRecommendationSearch,
+} from "../hooks/queries/recommendationQueries";
 import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
 import type { PropertyCardView } from "../types";
 
@@ -85,9 +85,14 @@ export default function MainMapScreen() {
   );
   const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
 
-  // 찜(MY) 매물은 recommendation 도메인이라 후속 이슈에서 API 연동 (현재 더미).
-  const favoriteProperties = useMemo(() => getFavoriteProperties(), []);
-  const favoritePropertiesRef = useRef<PropertyCardView[]>(favoriteProperties);
+  // 찜(MY) 매물은 favorites 쿼리를 단일 출처로 사용한다.
+  // (토글 mutation 연동은 #30)
+  const { data: favoriteData } = useFavorites();
+  const favoriteProperties = useMemo(
+    () => favoriteData ?? [],
+    [favoriteData]
+  );
+  const favoritePropertiesRef = useRef<PropertyCardView[]>([]);
 
   // 마커 갱신 등 imperative 코드에서 최신 목록을 읽기 위한 resolver.
   const resolveProperties = useCallback(
