@@ -2,17 +2,26 @@ import { useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import {
   Briefcase,
+  Bus,
   Home,
   Loader2,
   MapPin,
   Plus,
   School,
   Search,
+  TrainFront,
   X,
 } from "lucide-react";
 import PreferenceBoard from "../components/PreferenceBoard";
-
-type PlaceType = "UNIVERSITY" | "HOME" | "WORK" | "CUSTOM";
+import { useOnboardingDraft } from "../hooks/useOnboardingDraft";
+import {
+  PLACE_CATEGORY_LABELS,
+  REQUIRED_PLACE_CATEGORY,
+  toRecommendationPreferences,
+  toTargetPlaceCreateRequest,
+  type OnboardingPlaceDraft,
+} from "../api/mappers/onboardingMapper";
+import type { PlaceCategory } from "../types";
 
 type PlaceSearchResult = {
   placeName: string;
@@ -23,45 +32,43 @@ type PlaceSearchResult = {
   };
 };
 
-type UserPlacePayload = {
-  placeType: PlaceType;
-  placeName: string;
-  roadAddress: string;
-  location: {
-    latitude: number;
-    longitude: number;
-  };
-  memo: string;
-  isActive: boolean;
-};
-
 const MAX_PLACE_COUNT = 3;
 
 const placeTypeOptions: {
-  type: PlaceType;
+  type: PlaceCategory;
   label: string;
   icon: ReactNode;
   required?: boolean;
 }[] = [
     {
-      type: "UNIVERSITY",
-      label: "학교 건물",
+      type: "SCHOOL",
+      label: PLACE_CATEGORY_LABELS.SCHOOL,
       icon: <School className="h-4 w-4" />,
       required: true,
     },
     {
       type: "HOME",
-      label: "본가",
+      label: PLACE_CATEGORY_LABELS.HOME,
       icon: <Home className="h-4 w-4" />,
     },
     {
-      type: "WORK",
-      label: "아르바이트",
+      type: "WORK_PLACE",
+      label: PLACE_CATEGORY_LABELS.WORK_PLACE,
       icon: <Briefcase className="h-4 w-4" />,
     },
     {
-      type: "CUSTOM",
-      label: "기타",
+      type: "SUBWAY_STATION",
+      label: PLACE_CATEGORY_LABELS.SUBWAY_STATION,
+      icon: <TrainFront className="h-4 w-4" />,
+    },
+    {
+      type: "BUS_TERMINAL",
+      label: PLACE_CATEGORY_LABELS.BUS_TERMINAL,
+      icon: <Bus className="h-4 w-4" />,
+    },
+    {
+      type: "ETC",
+      label: PLACE_CATEGORY_LABELS.ETC,
       icon: <MapPin className="h-4 w-4" />,
     },
   ];
@@ -112,9 +119,14 @@ async function searchPlacesByKeyword(
 export default function OnboardingScreen() {
   const navigate = useNavigate();
 
-  const [places, setPlaces] = useState<UserPlacePayload[]>([]);
-  const [placeType, setPlaceType] = useState<PlaceType>("UNIVERSITY");
+  // 화면 이동·새로고침 시 유지되는 입력(주요 장소·선호 조건)은 draft 훅에서 관리한다.
+  const { places, preferences, setPlaces, setPreferences } =
+    useOnboardingDraft();
+  const [placeType, setPlaceType] = useState<PlaceCategory>(
+    REQUIRED_PLACE_CATEGORY
+  );
 
+  // 검색 보조용 일시 상태(유지하지 않음).
   const [keyword, setKeyword] = useState("");
   const [searchResults, setSearchResults] = useState<PlaceSearchResult[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<PlaceSearchResult | null>(
@@ -126,12 +138,16 @@ export default function OnboardingScreen() {
 
   const canAddMorePlace = places.length < MAX_PLACE_COUNT;
   const isUniversityRegistered = places.some(
-    (place) => place.placeType === "UNIVERSITY"
+    (place) => place.category === REQUIRED_PLACE_CATEGORY
   );
 
-  const selectedTypeOption = placeTypeOptions.find(
-    (option) => option.type === placeType
-  );
+  const togglePreference = (label: string) => {
+    setPreferences((prev) =>
+      prev.includes(label)
+        ? prev.filter((item) => item !== label)
+        : [...prev, label]
+    );
+  };
 
   const handleSearchPlace = async () => {
     if (!keyword.trim()) {
@@ -165,18 +181,17 @@ export default function OnboardingScreen() {
       return;
     }
 
-    if (placeType === "UNIVERSITY" && isUniversityRegistered) {
+    if (placeType === REQUIRED_PLACE_CATEGORY && isUniversityRegistered) {
       alert("학교 건물은 한 개만 등록할 수 있습니다.");
       return;
     }
 
-    const newPlace: UserPlacePayload = {
-      placeType,
+    const newPlace: OnboardingPlaceDraft = {
+      category: placeType,
       placeName: selectedPlace.placeName,
       roadAddress: selectedPlace.roadAddress,
       location: selectedPlace.location,
       memo: memo.trim(),
-      isActive: true,
     };
 
     setPlaces((prev) => [...prev, newPlace]);
@@ -186,7 +201,7 @@ export default function OnboardingScreen() {
     setSelectedPlace(null);
     setMemo("");
 
-    setPlaceType(isUniversityRegistered ? "HOME" : "UNIVERSITY");
+    setPlaceType(isUniversityRegistered ? "HOME" : REQUIRED_PLACE_CATEGORY);
   };
 
   const handleRemovePlace = (index: number) => {
@@ -199,7 +214,14 @@ export default function OnboardingScreen() {
       return;
     }
 
-    console.log("POST /users/me/user-places", places);
+    // 주요 장소 → target-place 요청 payload, 선호 조건 → recommendation preferences로 변환.
+    // (실제 API 호출은 후속 이슈 #19에서 연결한다.)
+    const targetPlaceRequests = places.map(toTargetPlaceCreateRequest);
+    const recommendationPreferences = toRecommendationPreferences(preferences);
+
+    console.log("POST target-place payloads", targetPlaceRequests);
+    console.log("recommendation preferences", recommendationPreferences);
+
     navigate("/map");
   };
 
@@ -252,7 +274,8 @@ export default function OnboardingScreen() {
                   {placeTypeOptions.map((option) => {
                     const isSelected = placeType === option.type;
                     const isUniversityDisabled =
-                      option.type === "UNIVERSITY" && isUniversityRegistered;
+                      option.type === REQUIRED_PLACE_CATEGORY &&
+                      isUniversityRegistered;
 
                     return (
                       <button
@@ -419,12 +442,12 @@ export default function OnboardingScreen() {
                 ) : (
                   places.map((place, index) => {
                     const option = placeTypeOptions.find(
-                      (item) => item.type === place.placeType
+                      (item) => item.type === place.category
                     );
 
                     return (
                       <div
-                        key={`${place.placeType}-${place.placeName}-${index}`}
+                        key={`${place.category}-${place.placeName}-${index}`}
                         className="rounded-2xl border border-border bg-card p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -439,7 +462,7 @@ export default function OnboardingScreen() {
                                   {option?.label}
                                 </p>
 
-                                {place.placeType === "UNIVERSITY" && (
+                                {place.category === REQUIRED_PLACE_CATEGORY && (
                                   <span className="rounded-full bg-green-300/40 px-2 py-0.5 text-[10px] font-bold text-text-secondary">
                                     필수 등록
                                   </span>
@@ -491,7 +514,10 @@ export default function OnboardingScreen() {
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              <PreferenceBoard />
+              <PreferenceBoard
+                selected={preferences}
+                onToggle={togglePreference}
+              />
             </div>
           </section>
         </div>

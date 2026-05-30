@@ -8,6 +8,13 @@ type Category = {
   options: string[];
 };
 
+type PreferenceBoardProps = {
+  /** 선택된 선호 조건 라벨. 전달 시 controlled 모드로 동작한다. */
+  selected?: string[];
+  /** 선택 토글 콜백. controlled 모드에서 상위 상태(onboarding draft)를 갱신한다. */
+  onToggle?: (label: string) => void;
+};
+
 // ─── Hardcoded label data ─────────────────────────────────────────────────────
 
 const CATEGORIES: Category[] = [
@@ -87,14 +94,33 @@ const CATEGORIES: Category[] = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function PreferenceBoard() {
+export default function PreferenceBoard({
+  selected: controlledSelected,
+  onToggle,
+}: PreferenceBoardProps = {}) {
   const [activeCategory, setActiveCategory] = useState("transport");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // controlled(상위 draft) ↔ uncontrolled(내부 상태) 모두 지원한다.
+  const isControlled = controlledSelected !== undefined;
+  const [internalSelected, setInternalSelected] = useState<Set<string>>(
+    new Set()
+  );
+  const selected = isControlled
+    ? new Set(controlledSelected)
+    : internalSelected;
 
   const toggle = (label: string) => {
-    setSelected((prev) => {
+    if (isControlled) {
+      onToggle?.(label);
+      return;
+    }
+    setInternalSelected((prev) => {
       const next = new Set(prev);
-      next.has(label) ? next.delete(label) : next.add(label);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
       return next;
     });
   };
