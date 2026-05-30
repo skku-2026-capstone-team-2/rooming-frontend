@@ -23,10 +23,13 @@ import {
   getFavoriteProperties,
   type ListMode,
 } from "../utils/propertyListItems";
-import { useProperties } from "../hooks/queries/propertyQueries";
+import {
+  isSearchCompleted,
+  loadSearchRequest,
+} from "../utils/recommendationSearch";
+import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
+import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
 import type { PropertyCardView } from "../types";
-
-const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
 
 const MAP_CENTER = {
   lat: 37.5882,
@@ -47,10 +50,6 @@ const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
 function getValidListMode(value: string | null): ListMode {
   if (value === "favorites") return "favorites";
   return "recommended";
-}
-
-function getIsAISearchCompleted() {
-  return sessionStorage.getItem(AI_SEARCH_COMPLETED_KEY) === "true";
 }
 
 export default function MainMapScreen() {
@@ -74,8 +73,14 @@ export default function MainMapScreen() {
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
 
-  // 지도 전체(추천) 매물은 property API에서 React Query로 로드/캐싱한다.
-  const { data: recommendedProperties = [] } = useProperties();
+  // 지도 "추천" 목록은 AI 검색 결과(mock recommendation API)에서 가져온다.
+  // 저장된 검색 요청을 키로 추천 결과 화면과 React Query 캐시를 공유한다.
+  const searchRequest = useMemo(() => loadSearchRequest(), []);
+  const { data: recommendationData } = useRecommendationSearch(searchRequest);
+  const recommendedProperties = useMemo<PropertyCardView[]>(
+    () => (recommendationData?.results ?? []).map(mapRecommendationToCardView),
+    [recommendationData]
+  );
   const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
 
   // 찜(MY) 매물은 recommendation 도메인이라 후속 이슈에서 API 연동 (현재 더미).
@@ -115,8 +120,7 @@ export default function MainMapScreen() {
   }, [currentProperties, selectedPropertyId, hasSearchResult]);
 
   useEffect(() => {
-    const isCompleted = getIsAISearchCompleted();
-    setHasSearchResult(isCompleted);
+    setHasSearchResult(isSearchCompleted());
   }, []);
 
   // imperative 마커 코드가 최신 목록을 읽도록 query 결과를 ref에 동기화한다.
@@ -289,7 +293,7 @@ export default function MainMapScreen() {
         label: "성균관대 정문",
       });
 
-      const isCompleted = getIsAISearchCompleted();
+      const isCompleted = isSearchCompleted();
       const initialProperties = isCompleted
         ? resolveProperties(listModeRef.current)
         : [];
