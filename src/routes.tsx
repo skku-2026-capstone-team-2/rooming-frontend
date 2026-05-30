@@ -7,7 +7,6 @@ import InfraSearchModal from "./pages/InfraSearchModal";
 import InfraViewScreen from "./pages/InfraViewScreen";
 import ThreeDViewScreen from "./pages/ThreeDViewScreen";
 import AdminScreen from "./pages/AdminScreen";
-import AIPanel from "./components/AIPanel";
 import AIResultScreen from "./pages/AIResultScreen";
 import DesignSystemDemo from "./figma/DesignSystem";
 
@@ -25,23 +24,11 @@ export const router = createBrowserRouter([
     Component: MainMapScreen,
   },
   {
-    path: "/ai-search",
-    Component: AIPanel,
-  },
-  {
-    path: "/ai-panel",
-    Component: AIPanel,
-  },
-  {
     path: "/ai-result",
     Component: AIResultScreen,
   },
   {
     path: "/property/:id",
-    Component: PropertyDetailScreen,
-  },
-  {
-    path: "/property-detail",
     Component: PropertyDetailScreen,
   },
   {

@@ -19,15 +19,12 @@ import {
   loadPropertyMarkers,
   loadSchoolMarker,
 } from "../utils/tmapMarkerUtils";
+import type { ListMode } from "../utils/propertyListItems";
+import { loadSearchRequest } from "../utils/recommendationSearch";
 import {
-  getFavoriteProperties,
-  type ListMode,
-} from "../utils/propertyListItems";
-import {
-  isSearchCompleted,
-  loadSearchRequest,
-} from "../utils/recommendationSearch";
-import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
+  useFavorites,
+  useRecommendationSearch,
+} from "../hooks/queries/recommendationQueries";
 import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
 import type { PropertyCardView } from "../types";
 
@@ -47,9 +44,11 @@ const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
   customKeyword: "",
 };
 
-function getValidListMode(value: string | null): ListMode {
+/** 지도가 무엇을 보여줄지. `view`가 없으면(검색 전) 아무것도 노출하지 않는다. */
+function getValidView(value: string | null): ListMode | null {
+  if (value === "recommended") return "recommended";
   if (value === "favorites") return "favorites";
-  return "recommended";
+  return null;
 }
 
 export default function MainMapScreen() {
@@ -65,10 +64,13 @@ export default function MainMapScreen() {
 
   const setSearchParamsRef = useRef(setSearchParams);
 
-  const listMode = getValidListMode(searchParams.get("mode"));
+  // view 없음(null) = 검색 전 빈 상태, "recommended"/"favorites" = 해당 목록 노출.
+  // (검색 완료 여부를 sessionStorage 플래그 대신 URL로 표현 → 새로고침/딥링크 안전)
+  const view = getValidView(searchParams.get("view"));
+  const hasSearchResult = view !== null;
+  const listMode: ListMode = view ?? "recommended";
   const listModeRef = useRef<ListMode>(listMode);
-
-  const [hasSearchResult, setHasSearchResult] = useState(false);
+  const hasSearchResultRef = useRef(hasSearchResult);
 
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
@@ -83,9 +85,14 @@ export default function MainMapScreen() {
   );
   const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
 
-  // 찜(MY) 매물은 recommendation 도메인이라 후속 이슈에서 API 연동 (현재 더미).
-  const favoriteProperties = useMemo(() => getFavoriteProperties(), []);
-  const favoritePropertiesRef = useRef<PropertyCardView[]>(favoriteProperties);
+  // 찜(MY) 매물은 favorites 쿼리를 단일 출처로 사용한다.
+  // (토글 mutation 연동은 #30)
+  const { data: favoriteData } = useFavorites();
+  const favoriteProperties = useMemo(
+    () => favoriteData ?? [],
+    [favoriteData]
+  );
+  const favoritePropertiesRef = useRef<PropertyCardView[]>([]);
 
   // 마커 갱신 등 imperative 코드에서 최신 목록을 읽기 위한 resolver.
   const resolveProperties = useCallback(
@@ -119,9 +126,10 @@ export default function MainMapScreen() {
     );
   }, [currentProperties, selectedPropertyId, hasSearchResult]);
 
+  // imperative 지도 init 코드가 최신 노출 여부를 읽도록 ref에 동기화한다.
   useEffect(() => {
-    setHasSearchResult(isSearchCompleted());
-  }, []);
+    hasSearchResultRef.current = hasSearchResult;
+  }, [hasSearchResult]);
 
   // imperative 마커 코드가 최신 목록을 읽도록 query 결과를 ref에 동기화한다.
   useEffect(() => {
@@ -159,7 +167,7 @@ export default function MainMapScreen() {
         onClickProperty: (nextParams) => {
           setSearchParamsRef.current((prev) => {
             const params = new URLSearchParams(prev);
-            params.set("mode", listModeRef.current);
+            params.set("view", listModeRef.current);
             params.set("propertyId", nextParams.propertyId);
             return params;
           });
@@ -185,18 +193,20 @@ export default function MainMapScreen() {
   }, []);
 
   const handleChangeListMode = (mode: ListMode) => {
-    const nextProperties = hasSearchResult ? resolveProperties(mode) : [];
-
     listModeRef.current = mode;
+    hasSearchResultRef.current = true;
 
     setSearchParams((prev) => {
       const params = new URLSearchParams(prev);
-      params.set("mode", mode);
+      params.set("view", mode);
       params.delete("propertyId");
       return params;
     });
 
-    renderPropertyMarkers(nextProperties, showPropertyMarkersRef.current);
+    renderPropertyMarkers(
+      resolveProperties(mode),
+      showPropertyMarkersRef.current
+    );
   };
 
   const handleTogglePropertyMarkers = () => {
@@ -237,14 +247,17 @@ export default function MainMapScreen() {
     });
   };
 
+  // 모달에서 하위 화면 진입 시 `replace`로 이동한다.
+  // → 모달이 열린 URL(?propertyId)을 히스토리에서 소비하므로, 하위 화면의 뒤로가기가
+  //   모달이 다시 열리는 대신 깨끗한 지도(?view=..., 모달 닫힘)로 복귀한다.
   const handleClickPropertyDetail = () => {
     if (!selectedProperty) return;
-    navigate(`/property/${selectedProperty.propertyId}`);
+    navigate(`/property/${selectedProperty.propertyId}`, { replace: true });
   };
 
   const handleClickInfra = () => {
     if (!selectedProperty) {
-      navigate("/infra-view");
+      navigate("/infra-view", { replace: true });
       return;
     }
 
@@ -255,14 +268,15 @@ export default function MainMapScreen() {
     if (selectedProperty.recommendationId != null) {
       params.set("recommendationId", String(selectedProperty.recommendationId));
     }
-    navigate(`/infra-view?${params.toString()}`);
+    navigate(`/infra-view?${params.toString()}`, { replace: true });
   };
 
   const handleClick3D = () => {
     navigate(
       selectedProperty
         ? `/3d-view?propertyId=${selectedProperty.propertyId}`
-        : "/3d-view"
+        : "/3d-view",
+      { replace: true }
     );
   };
 
@@ -301,12 +315,10 @@ export default function MainMapScreen() {
         label: "성균관대 정문",
       });
 
-      const isCompleted = isSearchCompleted();
-      const initialProperties = isCompleted
+      const initialProperties = hasSearchResultRef.current
         ? resolveProperties(listModeRef.current)
         : [];
 
-      setHasSearchResult(isCompleted);
       renderPropertyMarkers(initialProperties, showPropertyMarkersRef.current);
 
       loadPoiMarkers({

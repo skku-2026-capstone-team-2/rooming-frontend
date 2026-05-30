@@ -1,20 +1,18 @@
 /**
- * AI 추천 검색 흐름의 입력/상태를 sessionStorage로 관리한다.
+ * AI 추천 검색 흐름의 "검색 요청"을 sessionStorage로 관리한다.
  *
- * - AI 검색 입력(query) + 선호 조건(preferences) + topN을 `RecommendationRequest` 형태로 보관한다.
- * - "검색 완료" 플래그로 지도 화면이 추천 결과를 노출할지 제어한다.
- * - 화면 이동/새로고침 후에도 동일 요청을 복원해 React Query 캐시를 공유한다.
+ * - AI 검색 입력(query) + 선호 조건(preferences) + topN을 `RecommendationRequest` 형태로
+ *   단일 키(`rooming_ai_search`)에 JSON으로 보관한다.
+ * - 화면 이동/새로고침 후에도 동일 요청을 복원해 React Query 캐시 키를 공유한다.
+ * - `useSearchRequest()`로 구독하면 저장 변경이 화면에 반응형으로 반영된다.
  *
- * preferences의 실제 소스(온보딩 선호 조건)는 #20에서 채워질 예정이며,
- * 여기서는 저장/복원 경로만 제공한다.
+ * "지도에 추천 결과를 노출할지"는 더 이상 여기서 다루지 않고 URL(`/map?view=...`)로 표현한다.
  */
 
+import { useSyncExternalStore } from "react";
 import type { RecommendationRequest } from "../types";
 
-const QUERY_KEY = "rooming_ai_search_query";
-const PREFERENCES_KEY = "rooming_ai_search_preferences";
-const TOP_N_KEY = "rooming_ai_search_topn";
-const COMPLETED_KEY = "rooming_ai_search_completed";
+const STORAGE_KEY = "rooming_ai_search";
 
 /** OpenAPI 제한: topN 1~5, 기본 3. */
 export const MIN_TOP_N = 1;
@@ -27,47 +25,99 @@ export function clampTopN(value: number): number {
   return Math.min(MAX_TOP_N, Math.max(MIN_TOP_N, Math.floor(value)));
 }
 
-/** 저장된 선호 조건(preferences) 배열을 읽는다. (#20에서 채움) */
-export function loadSearchPreferences(): string[] {
+/* ---------- 외부 스토어(useSyncExternalStore) ---------- */
+
+// 동일 raw 문자열이면 같은 객체 참조를 돌려줘 useSyncExternalStore 무한 렌더를 막는다.
+let cachedRaw: string | null = null;
+let cachedRequest: RecommendationRequest | null = null;
+
+function readRequest(): RecommendationRequest | null {
+  let raw: string | null = null;
   try {
-    const raw = sessionStorage.getItem(PREFERENCES_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+    raw = sessionStorage.getItem(STORAGE_KEY);
   } catch {
-    return [];
+    return null;
+  }
+
+  if (!raw) {
+    cachedRaw = null;
+    cachedRequest = null;
+    return null;
+  }
+  if (raw === cachedRaw) return cachedRequest;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<RecommendationRequest>;
+    cachedRequest = {
+      query: typeof parsed.query === "string" ? parsed.query : "",
+      preferences: Array.isArray(parsed.preferences)
+        ? parsed.preferences.filter((v) => typeof v === "string")
+        : [],
+      topN: clampTopN(Number(parsed.topN)),
+    };
+    cachedRaw = raw;
+    return cachedRequest;
+  } catch {
+    return null;
   }
 }
 
-/** 선호 조건(preferences)을 저장한다. */
-export function saveSearchPreferences(preferences: string[]): void {
-  sessionStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+const listeners = new Set<() => void>();
+
+function emit(): void {
+  for (const listener of listeners) listener();
 }
 
-/** AI 검색 요청을 저장한다. */
-export function saveSearchRequest(request: RecommendationRequest): void {
-  sessionStorage.setItem(QUERY_KEY, request.query);
-  saveSearchPreferences(request.preferences ?? []);
-  sessionStorage.setItem(TOP_N_KEY, String(clampTopN(request.topN ?? DEFAULT_TOP_N)));
-}
-
-/** 저장된 AI 검색 요청을 복원한다. 입력이 없으면 null. */
-export function loadSearchRequest(): RecommendationRequest | null {
-  const query = sessionStorage.getItem(QUERY_KEY);
-  if (!query) return null;
-
-  return {
-    query,
-    preferences: loadSearchPreferences(),
-    topN: clampTopN(Number(sessionStorage.getItem(TOP_N_KEY))),
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  // 다른 탭/창에서의 변경도 반영한다.
+  window.addEventListener("storage", listener);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", listener);
   };
 }
 
-/** "검색 완료"(추천 결과 화면을 거쳐 지도에 노출 가능) 플래그를 설정한다. */
-export function setSearchCompleted(completed: boolean): void {
-  sessionStorage.setItem(COMPLETED_KEY, String(completed));
+/* ---------- 읽기/쓰기 API ---------- */
+
+/** 저장된 AI 검색 요청을 복원한다. 입력이 없으면 null. */
+export function loadSearchRequest(): RecommendationRequest | null {
+  return readRequest();
 }
 
-/** "검색 완료" 여부. */
-export function isSearchCompleted(): boolean {
-  return sessionStorage.getItem(COMPLETED_KEY) === "true";
+/** 저장된 선호 조건(preferences) 배열을 읽는다. */
+export function loadSearchPreferences(): string[] {
+  return readRequest()?.preferences ?? [];
+}
+
+/** AI 검색 요청을 저장하고 구독자에게 알린다. */
+export function saveSearchRequest(request: RecommendationRequest): void {
+  const normalized: RecommendationRequest = {
+    query: request.query,
+    preferences: request.preferences ?? [],
+    topN: clampTopN(request.topN ?? DEFAULT_TOP_N),
+  };
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+  } catch {
+    // 저장 실패(용량/프라이빗 모드)는 무시하고 메모리 캐시만 갱신한다.
+  }
+  cachedRaw = null; // 다음 read에서 재파싱하도록 강제
+  emit();
+}
+
+/** 저장된 검색 요청을 비운다. */
+export function clearSearchRequest(): void {
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+  cachedRaw = null;
+  emit();
+}
+
+/** 검색 요청을 반응형으로 구독한다. 저장/삭제 시 자동 갱신된다. */
+export function useSearchRequest(): RecommendationRequest | null {
+  return useSyncExternalStore(subscribe, readRequest, () => null);
 }

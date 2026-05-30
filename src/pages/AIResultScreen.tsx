@@ -9,10 +9,7 @@ import {
   Map,
 } from "lucide-react";
 
-import {
-  loadSearchRequest,
-  setSearchCompleted,
-} from "../utils/recommendationSearch";
+import { useSearchRequest } from "../utils/recommendationSearch";
 import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
 import {
   formatRouteDurationLabel,
@@ -25,13 +22,13 @@ import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 export default function AIResultScreen() {
   const navigate = useNavigate();
 
-  const request = useMemo(() => loadSearchRequest(), []);
+  const request = useSearchRequest();
   const { data, isPending, isError } = useRecommendationSearch(request);
 
   const results = useMemo(() => data?.results ?? [], [data]);
 
   // 로컬 MY 선택: API favorite 값을 기본으로 두고, 토글 시 로컬에서 뒤집어 표시한다.
-  // (실제 찜 추가/삭제 API 연동은 #24)
+  // (useToggleFavorite mutation 연동 및 에러 롤백은 #30)
   const [toggledFavorites, setToggledFavorites] = useState<Set<number>>(
     new Set()
   );
@@ -62,9 +59,8 @@ export default function AIResultScreen() {
   };
 
   const handleExitResult = () => {
-    // 결과 화면을 빠져나온 뒤에만 지도 화면에 추천 결과를 노출한다.
-    setSearchCompleted(true);
-    navigate("/map");
+    // 결과 화면을 거친 뒤 지도에 추천 결과를 노출한다(노출 의도를 URL로 전달).
+    navigate("/map?view=recommended");
   };
 
   // 검색 입력이 없으면 검색을 유도한다.

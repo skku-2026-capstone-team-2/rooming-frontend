@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Heart, Sparkles } from "lucide-react";
 import type { ListMode } from "../utils/propertyListItems";
-import { isSearchCompleted } from "../utils/recommendationSearch";
 import type { PropertyCardView } from "../types";
 
 type PropertyListPanelProps = {
@@ -16,12 +14,12 @@ export default function PropertyListPanel({
   properties,
   onChangeListMode,
 }: PropertyListPanelProps) {
-  const [hasSearchResult] = useState(() => isSearchCompleted());
-
   const isRecommendedMode = listMode === "recommended";
   const isFavoritesMode = listMode === "favorites";
 
-  const visibleProperties = hasSearchResult ? properties : [];
+  // 노출 여부 게이트는 상위(MainMapScreen)가 URL view로 판단해 properties로 전달한다.
+  const visibleProperties = properties;
+  const hasSearchResult = properties.length > 0;
 
   return (
     <div className="absolute bottom-5 left-5 z-10 flex max-h-[60vh] w-[260px] flex-col rounded-2xl border border-border bg-card/95 p-4 shadow-md backdrop-blur-sm">
@@ -102,9 +100,19 @@ function EmptyPropertyList({ isRecommendedMode }: EmptyPropertyListProps) {
       </p>
 
       <p className="mt-1 break-keep text-[11px] leading-4 text-text-tertiary">
-        검색이 완료되면 이 영역에
-        <br />
-        매물 목록이 표시됩니다.
+        {isRecommendedMode ? (
+          <>
+            AI 검색이 완료되면 이 영역에
+            <br />
+            추천 매물이 표시됩니다.
+          </>
+        ) : (
+          <>
+            저장(MY)한 매물이 아직 없어요.
+            <br />
+            추천 결과에서 MY로 담아보세요.
+          </>
+        )}
       </p>
     </div>
   );

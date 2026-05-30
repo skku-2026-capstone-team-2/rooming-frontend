@@ -6,9 +6,14 @@
  *   → 별도 전역 상태 없이 화면 간 추천 결과 전달이 이루어진다.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recommendationApi } from "../../api";
-import type { RecommendationRequest, RouteGeometryDetail } from "../../types";
+import { mapRecommendationToCardView } from "../../api/mappers/recommendationMapper";
+import type {
+  PropertyCardView,
+  RecommendationRequest,
+  RouteGeometryDetail,
+} from "../../types";
 
 export const recommendationKeys = {
   /** AI 검색 요청 기반 추천 결과 */
@@ -17,6 +22,8 @@ export const recommendationKeys = {
   /** 추천 경로 geometry (detail 단계별) */
   route: (recommendationId: number, detail: RouteGeometryDetail) =>
     ["recommendations", recommendationId, "route", detail] as const,
+  /** 찜(MY) 추천 목록 */
+  favorites: ["recommendations", "favorites"] as const,
 };
 
 /**
@@ -57,5 +64,49 @@ export function useRecommendationRoute(
     staleTime: Infinity,
     // 경로 표시는 보조 정보이므로 실패해도 화면 전체를 막지 않는다.
     retry: false,
+  });
+}
+
+/**
+ * 찜(MY) 추천 목록.
+ *
+ * `GET /api/v1/recommendations/favorites`를 단일 출처로 사용한다.
+ * 원시 응답을 캐시하고 `select`로 카드 view model로 변환한다.
+ */
+export function useFavorites() {
+  return useQuery({
+    queryKey: recommendationKeys.favorites,
+    queryFn: () => recommendationApi.getFavorites(),
+    select: (data): PropertyCardView[] =>
+      data.results.map(mapRecommendationToCardView),
+  });
+}
+
+/**
+ * 찜 토글 mutation.
+ *
+ * #24에서는 인터페이스만 정의한다(낙관적 업데이트·에러 롤백·실제 화면 연동은 #30).
+ * 성공 시 favorites 목록과 검색 결과 캐시를 무효화해 favorite 상태를 재동기화한다.
+ */
+export function useToggleFavorite() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      recommendationId,
+      favorite,
+    }: {
+      recommendationId: number;
+      favorite: boolean;
+    }) =>
+      favorite
+        ? recommendationApi.addFavorite(recommendationId)
+        : recommendationApi.removeFavorite(recommendationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recommendationKeys.favorites });
+      queryClient.invalidateQueries({
+        queryKey: ["recommendations", "search"],
+      });
+    },
   });
 }
