@@ -243,11 +243,19 @@ export default function MainMapScreen() {
   };
 
   const handleClickInfra = () => {
-    navigate(
-      selectedProperty
-        ? `/infra-view?propertyId=${selectedProperty.propertyId}`
-        : "/infra-view"
-    );
+    if (!selectedProperty) {
+      navigate("/infra-view");
+      return;
+    }
+
+    // 인프라 화면은 추천 응답(infrastructures/route)을 쓰므로 recommendationId를 함께 넘긴다.
+    const params = new URLSearchParams({
+      propertyId: String(selectedProperty.propertyId),
+    });
+    if (selectedProperty.recommendationId != null) {
+      params.set("recommendationId", String(selectedProperty.recommendationId));
+    }
+    navigate(`/infra-view?${params.toString()}`);
   };
 
   const handleClick3D = () => {

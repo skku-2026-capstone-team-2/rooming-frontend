@@ -5,8 +5,34 @@ import type {
   FavoriteRecommendationData,
   RecommendationRouteDetailData,
   RecommendationRequest,
+  RouteGeometryDetail,
+  CoordinateDto,
 } from "../../types";
 import { mockData, mockError } from "./runtime";
+
+/** mock 경로의 도착지(성균관대 정문). 실제 서버에서는 targetPlace 좌표로 대체된다. */
+const MOCK_TARGET: CoordinateDto = { latitude: 37.5849, longitude: 126.9953 };
+
+/**
+ * 출발지 → 도착지 사이를 직선 보간해 simplified geometry 좌표를 생성한다.
+ * SUMMARY는 적은 포인트(개요용), DETAIL은 많은 포인트(상세 지도용)를 돌려준다.
+ */
+function buildMockGeometry(
+  from: CoordinateDto,
+  to: CoordinateDto,
+  detail: RouteGeometryDetail
+): CoordinateDto[] {
+  const segments = detail === "DETAIL" ? 24 : 8;
+  const points: CoordinateDto[] = [];
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments;
+    points.push({
+      latitude: from.latitude + (to.latitude - from.latitude) * t,
+      longitude: from.longitude + (to.longitude - from.longitude) * t,
+    });
+  }
+  return points;
+}
 
 const mockResults: RecommendationResult[] = [
   {
@@ -154,27 +180,39 @@ export const recommendationMock = {
     return mockData({ results: favorites });
   },
 
-  getRoute(recommendationId: number): Promise<RecommendationRouteDetailData> {
+  getRoute(
+    recommendationId: number,
+    detail: RouteGeometryDetail = "SUMMARY"
+  ): Promise<RecommendationRouteDetailData> {
     const rec = mockResults.find((r) => r.recommendationId === recommendationId);
     if (!rec || !rec.firstTargetPlaceRoute) {
       return mockError(404, `경로를 찾을 수 없습니다. (id=${recommendationId})`);
     }
     const route = rec.firstTargetPlaceRoute;
+    const from = rec.property.location ?? MOCK_TARGET;
+    const geometry = buildMockGeometry(from, MOCK_TARGET, detail);
+
+    // 단일 WALK 구간(요약)을 detail 단계 수만큼 보간한 좌표로 채운다.
+    // 다구간 경로면 구간 수로 좌표를 분배한다.
+    const subPathCount = route.subPaths.length || 1;
+    const chunkSize = Math.ceil(geometry.length / subPathCount);
+    const pathList = route.subPaths.map((sp, index) => ({
+      ...sp,
+      points: geometry.slice(index * chunkSize, (index + 1) * chunkSize + 1),
+    }));
+
     const result: RecommendationRouteDetailData = {
       recommendationId: rec.recommendationId,
       propertyId: rec.propertyId,
       targetPlaceId: route.targetPlaceId,
       transportMode: route.transportMode,
       durationMinutes: route.durationMinutes,
-      detail: "SUMMARY",
+      detail,
       path: {
         totalTime: route.durationMinutes,
         transferCount: route.transferCount,
-        totalPointCount: route.subPaths.length,
-        pathList: route.subPaths.map((sp) => ({
-          ...sp,
-          points: [],
-        })),
+        totalPointCount: geometry.length,
+        pathList,
       },
     };
     return mockData(result);

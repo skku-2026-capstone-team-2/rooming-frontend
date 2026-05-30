@@ -8,11 +8,19 @@
  */
 
 import type {
+  RecommendationInfrastructureDetails,
   RecommendationResult,
+  RecommendationRouteSubPathSummary,
   RecommendationTargetPlaceRoute,
+  RouteSubPathType,
   TransportMode,
 } from "../../types";
-import type { PropertyCardView } from "../../types";
+import type {
+  InfraMarkerView,
+  PropertyCardView,
+  RouteSubPathView,
+  RouteSummaryView,
+} from "../../types";
 import { formatAreaLabel, formatPriceLabel } from "./propertyMapper";
 
 /** 이동 수단 라벨 (예: "도보", "대중교통"). */
@@ -31,6 +39,68 @@ export function formatRouteDurationLabel(
 /** 인프라 도보 시간 라벨 (예: "도보 5분"). */
 export function formatWalkingLabel(minutes: number | null): string | null {
   return minutes != null ? `도보 ${minutes}분` : null;
+}
+
+/** 경로 구간 유형 라벨 (예: "지하철", "버스", "도보"). */
+export function formatSubPathTypeLabel(type: RouteSubPathType): string {
+  switch (type) {
+    case "SUBWAY":
+      return "지하철";
+    case "BUS":
+      return "버스";
+    case "WALK":
+      return "도보";
+    default:
+      return "이동";
+  }
+}
+
+/** 미터 → 거리 라벨 (예: 320 → "320m", 1570 → "1.6km"). */
+export function formatDistanceLabel(meters: number | null): string | null {
+  if (meters == null) return null;
+  if (meters < 1000) return `${Math.round(meters)}m`;
+  return `${(meters / 1000).toFixed(1)}km`;
+}
+
+/** 추천 인프라 → 인프라 마커/리스트 view model. */
+export function mapInfrastructureToMarkerView(
+  infra: RecommendationInfrastructureDetails
+): InfraMarkerView {
+  return {
+    infrastructureId: infra.infrastructureId,
+    name: infra.name ?? "이름 미상",
+    category: infra.category ?? "ETC",
+    lat: infra.location?.latitude ?? null,
+    lng: infra.location?.longitude ?? null,
+    walkingLabel: formatWalkingLabel(infra.walkingMinutes),
+  };
+}
+
+/** 요약 경로 구간 → view model. */
+export function mapRouteSubPathToView(
+  subPath: RecommendationRouteSubPathSummary
+): RouteSubPathView {
+  return {
+    type: subPath.type,
+    durationLabel: `${formatSubPathTypeLabel(subPath.type)} ${subPath.time}분`,
+    startName: subPath.startName,
+    endName: subPath.endName,
+    lane: subPath.lane,
+    distanceLabel: formatDistanceLabel(subPath.distance),
+  };
+}
+
+/** 첫 목적지 요약 경로 → 결과 카드/지도용 요약 view model. */
+export function mapRouteSummaryToView(
+  route: RecommendationTargetPlaceRoute | null
+): RouteSummaryView | null {
+  if (!route) return null;
+  return {
+    transportMode: route.transportMode,
+    durationLabel: `${route.durationMinutes}분`,
+    transferCount: route.transferCount,
+    subPaths: route.subPaths.map(mapRouteSubPathToView),
+  };
 }
 
 /** 추천 결과 → 지도/리스트 카드 view model. */

@@ -8,15 +8,28 @@ import {
   School,
   Home,
   Bus,
+  MapPin,
 } from "lucide-react";
 
-import { properties } from "../data/dummyProperties";
-import { infraPlaces } from "../data/dummyInfraPlaces";
+import {
+  useRecommendationRoute,
+  useRecommendationSearch,
+} from "../hooks/queries/recommendationQueries";
+import { loadSearchRequest } from "../utils/recommendationSearch";
+import {
+  formatRouteDurationLabel,
+  mapInfrastructureToMarkerView,
+  mapRecommendationToCardView,
+} from "../api/mappers/recommendationMapper";
 import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
-import { createInfraMarkerHTML } from "../utils/createInfraMarkerHTML";
+import {
+  createInfraMarkerHTML,
+  type InfraMarkerType,
+} from "../utils/createInfraMarkerHTML";
 import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 import { drawDistanceLine } from "../utils/drawDistanceLine";
-import { drawPedestrianRoute } from "../utils/drawPedestrianRoute";
+import { drawRecommendationRoute } from "../utils/drawRecommendationRoute";
+import type { InfrastructureCategory } from "../types";
 
 declare global {
   interface Window {
@@ -30,45 +43,98 @@ const SCHOOL_PLACE = {
   lng: 126.9953,
 };
 
-const infraCategoryLabel: Record<string, string> = {
-  cafe: "카페",
-  gym: "헬스장",
-  store: "편의점",
-  bus: "버스정류장",
+/** 백엔드 인프라 category(12종) → 마커/아이콘 표현 타입(5종) 매핑. */
+const MARKER_TYPE_BY_CATEGORY: Record<InfrastructureCategory, InfraMarkerType> = {
+  CONVENIENT_STORE: "store",
+  MART: "store",
+  CAFE: "cafe",
+  GYM: "gym",
+  SUBWAY: "bus",
+  PHARMACY: "default",
+  HOSPITAL: "default",
+  LAUNDRY: "default",
+  BANK: "default",
+  KARAOKE: "default",
+  PC_ROOM: "default",
+  ETC: "default",
 };
 
-const infraCategoryIcon: Record<string, React.ElementType> = {
+const CATEGORY_LABEL: Record<InfrastructureCategory, string> = {
+  CONVENIENT_STORE: "편의점",
+  MART: "마트",
+  PHARMACY: "약국",
+  HOSPITAL: "병원",
+  LAUNDRY: "세탁소",
+  CAFE: "카페",
+  SUBWAY: "지하철역",
+  BANK: "은행",
+  GYM: "헬스장",
+  KARAOKE: "노래방",
+  PC_ROOM: "PC방",
+  ETC: "기타",
+};
+
+const MARKER_ICON: Record<InfraMarkerType, React.ElementType> = {
+  store: Store,
   cafe: Coffee,
   gym: Dumbbell,
-  store: Store,
   bus: Bus,
+  default: MapPin,
 };
 
-const infraCategoryColorToken: Record<string, string> = {
+const MARKER_COLOR_TOKEN: Record<InfraMarkerType, string> = {
   cafe: "--token-color-infra-cafe",
   gym: "--token-color-infra-gym",
   store: "--token-color-infra-store",
   bus: "--token-color-infra-bus",
+  default: "--token-color-purple-600",
 };
 
 export default function InfraViewScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const selectedPropertyId = searchParams.get("propertyId");
+  // 인프라/경로 데이터의 출처는 추천 응답이다. 지도 화면과 동일한 검색 요청을
+  // 키로 React Query 캐시를 공유한다. (별도 전역 상태 없음)
+  const request = useMemo(() => loadSearchRequest(), []);
+  const { data, isPending, isError } = useRecommendationSearch(request);
+  const results = useMemo(() => data?.results ?? [], [data]);
 
-  const selectedProperty = useMemo(() => {
+  const recommendationIdParam = Number(searchParams.get("recommendationId"));
+  const propertyIdParam = searchParams.get("propertyId");
+
+  const selectedResult = useMemo(() => {
+    if (results.length === 0) return null;
     return (
-      properties.find((property) => String(property.id) === selectedPropertyId) ??
-      properties[0]
+      results.find((r) => r.recommendationId === recommendationIdParam) ??
+      results.find((r) => String(r.propertyId) === propertyIdParam) ??
+      results[0]
     );
-  }, [selectedPropertyId]);
+  }, [results, recommendationIdParam, propertyIdParam]);
 
-  const nearbyInfraPlaces = useMemo(() => {
-    return infraPlaces;
-  }, []);
+  // 지도에 경로 선을 그릴 때만 route geometry endpoint를 호출한다(상세 지도이므로 DETAIL).
+  const { data: routeData } = useRecommendationRoute(
+    selectedResult?.recommendationId ?? null,
+    "DETAIL",
+    !!selectedResult
+  );
+
+  const card = selectedResult
+    ? mapRecommendationToCardView(selectedResult)
+    : null;
+
+  const infraMarkers = useMemo(
+    () => (selectedResult?.infrastructures ?? []).map(mapInfrastructureToMarkerView),
+    [selectedResult]
+  );
+
+  const routeDurationLabel = formatRouteDurationLabel(
+    selectedResult?.firstTargetPlaceRoute ?? null
+  );
 
   useEffect(() => {
+    if (!selectedResult) return;
+
     const loadTmapScript = () => {
       return new Promise<void>((resolve, reject) => {
         if (window.Tmapv2?.Map) {
@@ -114,13 +180,14 @@ export default function InfraViewScreen() {
         const getThemeColor = (token: string) =>
           themeStyles.getPropertyValue(token).trim();
 
+        // 매물 좌표가 없으면 학교 기준으로 지도를 띄운다(fallback).
+        const propertyLat = selectedResult.property.location?.latitude ?? SCHOOL_PLACE.lat;
+        const propertyLng = selectedResult.property.location?.longitude ?? SCHOOL_PLACE.lng;
+
         mapContainer.innerHTML = "";
 
         const map = new window.Tmapv2.Map("infra_map_div", {
-          center: new window.Tmapv2.LatLng(
-            selectedProperty.lat,
-            selectedProperty.lng
-          ),
+          center: new window.Tmapv2.LatLng(propertyLat, propertyLng),
           width: "100%",
           height: "100%",
           zoom: 17,
@@ -135,54 +202,57 @@ export default function InfraViewScreen() {
 
         // 선택 매물 마커
         new window.Tmapv2.Marker({
-          position: new window.Tmapv2.LatLng(
-            selectedProperty.lat,
-            selectedProperty.lng
-          ),
+          position: new window.Tmapv2.LatLng(propertyLat, propertyLng),
           map,
-          title: selectedProperty.title,
-          iconHTML: createPropertyMarkerHTML(selectedProperty.price),
+          title: card?.title,
+          iconHTML: createPropertyMarkerHTML(card?.priceLabel ?? ""),
           zIndex: 30,
         });
 
-        // 매물 ↔ 학교 도보 경로
-        drawPedestrianRoute({
-          map,
-          from: {
-            lat: selectedProperty.lat,
-            lng: selectedProperty.lng,
-            name: selectedProperty.title,
-          },
-          to: {
-            lat: SCHOOL_PLACE.lat,
-            lng: SCHOOL_PLACE.lng,
-            name: SCHOOL_PLACE.label,
-          },
-          strokeColor: getThemeColor("--token-color-purple-700"),
-        });
+        // 추천 응답의 저장된 경로 geometry를 그린다.
+        const drawnPoints = routeData
+          ? drawRecommendationRoute({
+              map,
+              path: routeData.path,
+              colorByType: {
+                WALK: getThemeColor("--token-color-purple-700"),
+                BUS: getThemeColor("--token-color-infra-bus"),
+                SUBWAY: getThemeColor("--token-color-infra-bus"),
+              },
+              defaultColor: getThemeColor("--token-color-purple-700"),
+            })
+          : 0;
 
-        // 인프라 마커 + 매물과의 점선
-        nearbyInfraPlaces.forEach((place) => {
+        // geometry가 없으면(응답 누락 등) 매물 ↔ 학교 직선으로 fallback.
+        if (drawnPoints === 0) {
+          drawDistanceLine({
+            map,
+            from: { lat: propertyLat, lng: propertyLng },
+            to: { lat: SCHOOL_PLACE.lat, lng: SCHOOL_PLACE.lng },
+            strokeColor: getThemeColor("--token-color-purple-700"),
+          });
+        }
+
+        // 인프라 마커 + 매물과의 점선 (추천 응답 infrastructures 기반)
+        infraMarkers.forEach((infra) => {
+          if (infra.lat == null || infra.lng == null) return;
+
+          const markerType = MARKER_TYPE_BY_CATEGORY[infra.category];
+
           new window.Tmapv2.Marker({
-            position: new window.Tmapv2.LatLng(place.lat, place.lng),
+            position: new window.Tmapv2.LatLng(infra.lat, infra.lng),
             map,
             iconHTML: createInfraMarkerHTML({
-              label: place.label,
-              type: place.type,
+              label: infra.name,
+              type: markerType,
             }),
             zIndex: 10,
           });
 
           drawDistanceLine({
             map,
-            from: {
-              lat: selectedProperty.lat,
-              lng: selectedProperty.lng,
-            },
-            to: {
-              lat: place.lat,
-              lng: place.lng,
-            },
+            from: { lat: propertyLat, lng: propertyLng },
+            to: { lat: infra.lat, lng: infra.lng },
             strokeColor: getThemeColor("--token-color-green-400"),
           });
         });
@@ -192,7 +262,47 @@ export default function InfraViewScreen() {
     };
 
     initMap();
-  }, [selectedProperty, nearbyInfraPlaces]);
+  }, [selectedResult, routeData, infraMarkers, card?.title, card?.priceLabel]);
+
+  // 검색 전 / 로딩 / 실패 / 결과 없음 상태 fallback.
+  if (!request) {
+    return (
+      <CenteredMessage
+        title="추천 결과가 없어요"
+        description="지도 화면의 AI 검색에서 먼저 매물을 추천받아 주세요."
+        onBack={() => navigate("/map")}
+      />
+    );
+  }
+
+  if (isPending) {
+    return (
+      <CenteredMessage
+        title="인프라 정보를 불러오고 있어요"
+        description="추천 매물의 주변 생활 인프라를 정리하는 중이에요."
+      />
+    );
+  }
+
+  if (isError) {
+    return (
+      <CenteredMessage
+        title="인프라 정보를 불러오지 못했어요"
+        description="잠시 후 다시 시도해 주세요."
+        onBack={() => navigate(-1)}
+      />
+    );
+  }
+
+  if (!selectedResult || !card) {
+    return (
+      <CenteredMessage
+        title="표시할 매물이 없어요"
+        description="다른 조건으로 다시 검색해 보세요."
+        onBack={() => navigate("/map")}
+      />
+    );
+  }
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-background">
@@ -216,71 +326,79 @@ export default function InfraViewScreen() {
               주변 생활 인프라
             </h3>
             <p className="mt-1 text-xs text-text-tertiary">
-              선택한 매물 기준으로 가까운 시설을 지도에 표시합니다.
+              추천 매물 기준으로 가까운 시설을 지도에 표시합니다.
             </p>
           </div>
         </div>
 
-        <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
-          {nearbyInfraPlaces.map((place) => {
-            const Icon = infraCategoryIcon[place.type] ?? Store;
-            const infraColor = `var(${infraCategoryColorToken[place.type] ?? "--token-color-purple-600"
-              })`;
+        {infraMarkers.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm text-text-tertiary">
+            주변 인프라 정보가 없어요.
+          </div>
+        ) : (
+          <div className="max-h-[420px] space-y-3 overflow-y-auto pr-1">
+            {infraMarkers.map((infra) => {
+              const markerType = MARKER_TYPE_BY_CATEGORY[infra.category];
+              const Icon = MARKER_ICON[markerType];
+              const infraColor = `var(${MARKER_COLOR_TOKEN[markerType]})`;
 
-            return (
-              <div
-                key={place.id}
-                style={{
-                  borderColor: `color-mix(in srgb, ${infraColor} 42%, var(--token-color-white))`,
-                  backgroundColor: `color-mix(in srgb, ${infraColor} 4%, var(--token-color-white))`,
-                }}
-                className="flex items-center justify-between rounded-2xl border p-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    style={{
-                      backgroundColor: `color-mix(in srgb, ${infraColor} 10%, var(--token-color-white))`,
-                      color: infraColor,
-                    }}
-                    className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
-                  >
-                    <Icon className="h-5 w-5" />
-                  </div>
-
-                  <div>
-                    <div className="text-sm font-bold text-foreground">
-                      {place.label}
-                    </div>
-                    <div className="text-xs text-text-tertiary">
-                      {infraCategoryLabel[place.type] ?? place.type}
-                    </div>
-                  </div>
-                </div>
-
-                <span
+              return (
+                <div
+                  key={infra.infrastructureId}
                   style={{
-                    borderColor: `color-mix(in srgb, ${infraColor} 58%, var(--token-color-white))`,
-                    backgroundColor: `color-mix(in srgb, ${infraColor} 8%, var(--token-color-white))`,
-                    color: infraColor,
+                    borderColor: `color-mix(in srgb, ${infraColor} 42%, var(--token-color-white))`,
+                    backgroundColor: `color-mix(in srgb, ${infraColor} 4%, var(--token-color-white))`,
                   }}
-                  className="rounded-full border px-3 py-1 text-xs font-semibold"
+                  className="flex items-center justify-between rounded-2xl border p-3"
                 >
-                  {place.distance}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                  <div className="flex items-center gap-3">
+                    <div
+                      style={{
+                        backgroundColor: `color-mix(in srgb, ${infraColor} 10%, var(--token-color-white))`,
+                        color: infraColor,
+                      }}
+                      className="flex h-10 w-10 items-center justify-center rounded-full shadow-sm"
+                    >
+                      <Icon className="h-5 w-5" />
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-bold text-foreground">
+                        {infra.name}
+                      </div>
+                      <div className="text-xs text-text-tertiary">
+                        {CATEGORY_LABEL[infra.category]}
+                      </div>
+                    </div>
+                  </div>
+
+                  {infra.walkingLabel && (
+                    <span
+                      style={{
+                        borderColor: `color-mix(in srgb, ${infraColor} 58%, var(--token-color-white))`,
+                        backgroundColor: `color-mix(in srgb, ${infraColor} 8%, var(--token-color-white))`,
+                        color: infraColor,
+                      }}
+                      className="rounded-full border px-3 py-1 text-xs font-semibold"
+                    >
+                      {infra.walkingLabel}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* 우측 하단 선택 매물 카드 */}
       <section className="absolute bottom-6 right-6 z-20 w-[360px] rounded-3xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-sm">
-        {/* 매물 사진 영역 */}
+        {/* 매물 사진 영역 (추천 응답에는 이미지가 없어 placeholder) */}
         <div className="relative mb-4 h-44 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-border/30 to-purple-300/30">
-          {selectedProperty.image ? (
+          {card.imageUrl ? (
             <img
-              src={selectedProperty.image}
-              alt={selectedProperty.title}
+              src={card.imageUrl}
+              alt={card.title}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -300,40 +418,68 @@ export default function InfraViewScreen() {
               <span className="rounded-full border border-card/40 bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-purple-800">
                 AI 추천
               </span>
-              <span className="rounded-full border border-card/40 bg-card/90 px-2.5 py-1 text-[11px] font-semibold text-text-tertiary">
-                원룸
-              </span>
             </div>
 
             <h2 className="line-clamp-1 text-base font-bold text-primary-foreground">
-              {selectedProperty.title}
+              {card.title}
             </h2>
 
-            {selectedProperty.description && (
+            {card.description && (
               <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-primary-foreground/85">
-                {selectedProperty.description}
+                {card.description}
               </p>
             )}
           </div>
         </div>
+
         {/* 가격 */}
         <div className="flex items-center justify-between rounded-2xl border border-beige-300 bg-green-300 px-4 py-3">
           <span className="text-sm font-medium text-text-tertiary">
             보증금 / 월세
           </span>
           <span className="text-base font-bold text-text-secondary">
-            {selectedProperty.price}
+            {card.priceLabel}
           </span>
         </div>
 
-        {/* 학교까지 거리 */}
+        {/* 학교까지 거리 (추천 요약 경로) */}
         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-100 px-4 py-3 text-sm text-purple-800">
           <School className="h-4 w-4 shrink-0" />
           <span className="line-clamp-1">
-            {SCHOOL_PLACE.label}까지 {selectedProperty.distance ?? "도보 12분"}
+            {SCHOOL_PLACE.label}까지 {routeDurationLabel ?? "경로 정보 없음"}
           </span>
         </div>
       </section>
+    </div>
+  );
+}
+
+type CenteredMessageProps = {
+  title: string;
+  description: string;
+  onBack?: () => void;
+};
+
+function CenteredMessage({ title, description, onBack }: CenteredMessageProps) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
+        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
+
+        <p className="mt-3 text-sm leading-6 text-text-tertiary">
+          {description}
+        </p>
+
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="mt-6 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-green-800"
+          >
+            돌아가기
+          </button>
+        )}
+      </div>
     </div>
   );
 }
