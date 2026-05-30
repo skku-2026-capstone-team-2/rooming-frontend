@@ -247,14 +247,17 @@ export default function MainMapScreen() {
     });
   };
 
+  // 모달에서 하위 화면 진입 시 `replace`로 이동한다.
+  // → 모달이 열린 URL(?propertyId)을 히스토리에서 소비하므로, 하위 화면의 뒤로가기가
+  //   모달이 다시 열리는 대신 깨끗한 지도(?view=..., 모달 닫힘)로 복귀한다.
   const handleClickPropertyDetail = () => {
     if (!selectedProperty) return;
-    navigate(`/property/${selectedProperty.propertyId}`);
+    navigate(`/property/${selectedProperty.propertyId}`, { replace: true });
   };
 
   const handleClickInfra = () => {
     if (!selectedProperty) {
-      navigate("/infra-view");
+      navigate("/infra-view", { replace: true });
       return;
     }
 
@@ -265,14 +268,15 @@ export default function MainMapScreen() {
     if (selectedProperty.recommendationId != null) {
       params.set("recommendationId", String(selectedProperty.recommendationId));
     }
-    navigate(`/infra-view?${params.toString()}`);
+    navigate(`/infra-view?${params.toString()}`, { replace: true });
   };
 
   const handleClick3D = () => {
     navigate(
       selectedProperty
         ? `/3d-view?propertyId=${selectedProperty.propertyId}`
-        : "/3d-view"
+        : "/3d-view",
+      { replace: true }
     );
   };
 
