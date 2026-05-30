@@ -1,28 +1,49 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { ArrowLeft, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router";
+import { ArrowLeft, Box, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
+
+import { useProperty3D } from "../hooks/queries/propertyQueries";
 
 type ViewMode = "normal" | "floor";
 
-const SPLINE_VIEWER_URL =
-  "https://my.spline.design/visionosiconsin3d-bgOTCJ1k5Mwy3fuy2T18tQAz/";
-
 export default function ThreeDViewScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
 
+  const propertyId = Number(searchParams.get("propertyId"));
+  const isValidId = !!searchParams.get("propertyId") && !Number.isNaN(propertyId);
+
+  // propertyId가 유효할 때만 3D 데이터를 조회한다. (mock 토글·mapper는 훅 내부에서 재사용)
+  const { data: model, isPending, isError } = useProperty3D(
+    propertyId,
+    isValidId
+  );
+
+  const isLoading = isValidId && isPending;
+  // 3D 모델 노출 가능 여부. id가 없거나 에러/없음이면 빈 상태로 본다.
+  const hasModel = isValidId && !isError && (model?.available ?? false);
   const isNormalMode = viewMode === "normal";
 
   return (
     <div className="relative h-screen w-full bg-green-900">
       <div className="h-full w-full bg-gradient-to-br from-green-900 to-green-900">
         {isNormalMode ? (
-          <iframe
-            src={SPLINE_VIEWER_URL}
-            title="3D room viewer"
-            className="h-full w-full border-none"
-            allow="autoplay; fullscreen; xr-spatial-tracking"
-          />
+          isLoading ? (
+            <ViewerMessage text="3D 모델을 불러오는 중이에요..." />
+          ) : hasModel ? (
+            <iframe
+              src={model!.modelUrl!}
+              title="3D room viewer"
+              className="h-full w-full border-none"
+              allow="autoplay; fullscreen; xr-spatial-tracking"
+            />
+          ) : (
+            <Empty3DState
+              isError={isValidId && isError}
+              previewImageUrl={model?.previewImageUrl ?? null}
+            />
+          )
         ) : (
           <img
             src="/images/dummy-floor-plan.png"
@@ -32,7 +53,7 @@ export default function ThreeDViewScreen() {
         )}
       </div>
 
-      {isNormalMode && (
+      {isNormalMode && hasModel && (
         <div className="absolute bottom-6 left-6 z-10 w-[240px] space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-3">
@@ -80,7 +101,7 @@ export default function ThreeDViewScreen() {
         </div>
       )}
 
-      {isNormalMode && (
+      {isNormalMode && hasModel && (
         <div className="absolute right-6 top-6 z-10 rounded-2xl border border-green-800 bg-green-900/95 p-5 shadow-xl backdrop-blur-sm">
           <h4 className="mb-3 text-sm font-bold text-primary-foreground">
             뷰 컨트롤
@@ -117,6 +138,50 @@ export default function ThreeDViewScreen() {
         <ArrowLeft className="h-4 w-4" />
         뒤로가기
       </button>
+    </div>
+  );
+}
+
+function ViewerMessage({ text }: { text: string }) {
+  return (
+    <div className="flex h-full w-full items-center justify-center">
+      <p className="text-sm font-medium text-green-300">{text}</p>
+    </div>
+  );
+}
+
+function Empty3DState({
+  isError,
+  previewImageUrl,
+}: {
+  isError: boolean;
+  previewImageUrl: string | null;
+}) {
+  return (
+    <div className="flex h-full w-full items-center justify-center px-6">
+      <div className="w-full max-w-sm rounded-3xl border border-green-800 bg-green-900/95 p-8 text-center shadow-xl backdrop-blur-sm">
+        {previewImageUrl ? (
+          <img
+            src={previewImageUrl}
+            alt="3D 미리보기"
+            className="mb-5 h-40 w-full rounded-2xl object-cover"
+          />
+        ) : (
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-green-800 bg-green-900">
+            <Box className="h-7 w-7 text-green-300" />
+          </div>
+        )}
+
+        <h2 className="text-lg font-bold text-primary-foreground">
+          {isError ? "3D 모델을 불러오지 못했어요" : "3D 모델이 없는 매물이에요"}
+        </h2>
+
+        <p className="mt-2 text-sm leading-6 text-text-muted">
+          {isError
+            ? "잠시 후 다시 시도해 주세요."
+            : "이 매물은 아직 3D 모델이 준비되지 않았어요. 평면도 보기를 이용해 주세요."}
+        </p>
+      </div>
     </div>
   );
 }
