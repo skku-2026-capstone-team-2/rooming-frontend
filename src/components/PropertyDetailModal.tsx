@@ -1,5 +1,6 @@
-import { Home, X } from "lucide-react";
+import { X } from "lucide-react";
 import { formatTradeTypeLabel } from "../api/mappers/propertyMapper";
+import PropertyImagePlaceholder from "./PropertyImagePlaceholder";
 import type { PropertyCardView } from "../types";
 
 type PropertyDetailModalProps = {
@@ -43,14 +44,7 @@ export default function PropertyDetailModal({
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="text-center">
-                <Home className="mx-auto mb-2 h-14 w-14 text-text-secondary" />
-                <p className="text-xs font-medium text-text-secondary">
-                  매물 사진 영역
-                </p>
-              </div>
-            </div>
+            <PropertyImagePlaceholder size="md" />
           )}
 
           {/* 하단 오버레이 */}

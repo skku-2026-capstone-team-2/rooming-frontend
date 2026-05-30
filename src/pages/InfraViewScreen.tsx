@@ -6,7 +6,6 @@ import {
   Dumbbell,
   Store,
   School,
-  Home,
   Bus,
   MapPin,
 } from "lucide-react";
@@ -30,6 +29,8 @@ import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 import { drawDistanceLine } from "../utils/drawDistanceLine";
 import { drawRecommendationRoute } from "../utils/drawRecommendationRoute";
 import type { InfrastructureCategory } from "../types";
+import CenteredMessage from "../components/CenteredMessage";
+import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 
 declare global {
   interface Window {
@@ -402,14 +403,7 @@ export default function InfraViewScreen() {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="text-center">
-                <Home className="mx-auto mb-2 h-12 w-12 text-text-secondary" />
-                <p className="text-xs font-medium text-text-secondary">
-                  매물 사진 영역
-                </p>
-              </div>
-            </div>
+            <PropertyImagePlaceholder size="md" />
           )}
 
           {/* 하단 오버레이 */}
@@ -454,32 +448,3 @@ export default function InfraViewScreen() {
   );
 }
 
-type CenteredMessageProps = {
-  title: string;
-  description: string;
-  onBack?: () => void;
-};
-
-function CenteredMessage({ title, description, onBack }: CenteredMessageProps) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-
-        <p className="mt-3 text-sm leading-6 text-text-tertiary">
-          {description}
-        </p>
-
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-6 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-green-800"
-          >
-            돌아가기
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}

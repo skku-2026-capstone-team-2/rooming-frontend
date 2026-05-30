@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
-  Home,
   Sparkles,
   Heart,
   CheckCircle2,
@@ -20,6 +19,8 @@ import {
   formatWalkingLabel,
   mapRecommendationToCardView,
 } from "../api/mappers/recommendationMapper";
+import CenteredMessage from "../components/CenteredMessage";
+import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 
 export default function AIResultScreen() {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ export default function AIResultScreen() {
               {/* 이미지(placeholder) + 제목 오버레이 영역 */}
               <div>
                 <div className="relative flex h-[360px] items-center justify-center overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-border/50 to-purple-300/50">
-                  <Home className="h-24 w-24 text-text-secondary" />
+                  <PropertyImagePlaceholder size="xl" />
 
                   <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-foreground/65 via-foreground/35 to-transparent px-5 pb-5 pt-16">
                     <div className="mb-2">
@@ -377,32 +378,3 @@ function SimpleInfoBadge({ icon, text }: SimpleInfoBadgeProps) {
   );
 }
 
-type CenteredMessageProps = {
-  title: string;
-  description: string;
-  onBack?: () => void;
-};
-
-function CenteredMessage({ title, description, onBack }: CenteredMessageProps) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
-        <h1 className="text-2xl font-bold text-foreground">{title}</h1>
-
-        <p className="mt-3 text-sm leading-6 text-text-tertiary">
-          {description}
-        </p>
-
-        {onBack && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="mt-6 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-md transition hover:bg-green-800"
-          >
-            지도로 돌아가기
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}

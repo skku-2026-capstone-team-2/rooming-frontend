@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Home, Phone, ArrowLeft } from "lucide-react";
+import { Phone, ArrowLeft } from "lucide-react";
+
+import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 
 import { ApiError } from "../api";
 import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
@@ -102,14 +104,7 @@ export default function PropertyDetailScreen() {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <div className="text-center">
-                    <Home className="mx-auto mb-3 h-20 w-20 text-text-secondary" />
-                    <div className="text-base font-medium text-text-secondary">
-                      매물 사진 영역
-                    </div>
-                  </div>
-                </div>
+                <PropertyImagePlaceholder size="lg" />
               )}
 
               {/* 하단 오버레이 */}
