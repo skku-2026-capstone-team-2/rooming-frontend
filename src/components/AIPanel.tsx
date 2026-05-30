@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import {
   CheckCircle2,
@@ -7,58 +7,39 @@ import {
   Sparkles,
 } from "lucide-react";
 
-const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
-const AI_SEARCH_QUERY_KEY = "rooming_ai_search_query";
+import {
+  DEFAULT_TOP_N,
+  isSearchCompleted,
+  loadSearchPreferences,
+  loadSearchRequest,
+  saveSearchRequest,
+  setSearchCompleted,
+} from "../utils/recommendationSearch";
+import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
+import { formatRouteDurationLabel } from "../api/mappers/recommendationMapper";
 
-const aiResult = {
-  userPrompt:
-    "학교까지 20분 이내이고 보증금 1000만원 이하, 헬스장이 가깝고 BHC가 가까운 원룸 추천해줘",
-  summaryText:
-    "추천 결과를 종합하면 1번 매물은 학교까지 도보 11분이며, 아르바이트 장소와 가깝고 헬스장, BHC 접근성이 좋습니다.",
-  recommendedPropertyNames: ["스테이원룸 101호", "캠퍼스빌 203호", "헬스장 근처 투룸", "카페거리 원룸"],
-  topProperty: {
-    id: 1,
-    title: "스테이원룸 101호",
-    depositAmount: 10000000,
-    monthlyRent: 450000,
-    maintenanceFee: 50000,
-    areaM2: 23.5,
-    matchScore: 0.94,
-    matchReasons: [
-      "학교까지 도보 11분",
-      "아르바이트 장소까지 대중교통 17분",
-      "헬스장 도보 4분",
-      "BHC 도보 6분",
-    ],
-    hasProperty3D: true,
-  },
-};
+/** 입력이 비어 있을 때 사용하는 예시 검색어 (mock 흐름 데모용). */
+const EXAMPLE_QUERY =
+  "학교까지 20분 이내이고 보증금 1000만원 이하, 헬스장이 가깝고 BHC가 가까운 원룸 추천해줘";
 
 export default function AIPanel() {
   const navigate = useNavigate();
 
-  const [query, setQuery] = useState("");
-  const [hasAIResult, setHasAIResult] = useState(false);
-
-  useEffect(() => {
-    const savedQuery = sessionStorage.getItem(AI_SEARCH_QUERY_KEY);
-    const isCompleted =
-      sessionStorage.getItem(AI_SEARCH_COMPLETED_KEY) === "true";
-
-    if (savedQuery) {
-      setQuery(savedQuery);
-    }
-
-    setHasAIResult(isCompleted);
-  }, []);
+  const [query, setQuery] = useState(() => loadSearchRequest()?.query ?? "");
+  const [hasAIResult] = useState(() => isSearchCompleted());
 
   const handleSearch = () => {
-    const finalQuery = query.trim() || aiResult.userPrompt;
+    const finalQuery = query.trim() || EXAMPLE_QUERY;
 
-    sessionStorage.setItem(AI_SEARCH_QUERY_KEY, finalQuery);
+    // AI 검색 입력 → RecommendationRequest로 변환해 저장.
+    saveSearchRequest({
+      query: finalQuery,
+      preferences: loadSearchPreferences(),
+      topN: DEFAULT_TOP_N,
+    });
 
-    // 검색하기 직후에는 아직 채팅 기록 등록 X
-    sessionStorage.setItem(AI_SEARCH_COMPLETED_KEY, "false");
+    // 검색하기 직후에는 아직 채팅 기록 등록 X (결과 화면을 거쳐야 지도에 노출)
+    setSearchCompleted(false);
 
     navigate("/ai-result");
   };
@@ -150,8 +131,17 @@ function EmptyAIResult() {
 }
 
 function AIResultContent() {
-  const savedQuery =
-    sessionStorage.getItem(AI_SEARCH_QUERY_KEY) || aiResult.userPrompt;
+  const request = loadSearchRequest();
+  const { data, isPending, isError } = useRecommendationSearch(request);
+
+  const results = data?.results ?? [];
+  const topResult = results[0] ?? null;
+  const topReasons = topResult?.explanation
+    ? topResult.explanation.split(/\s*[,·]\s*/).filter(Boolean)
+    : [];
+  const topRouteLabel = formatRouteDurationLabel(
+    topResult?.firstTargetPlaceRoute ?? null
+  );
 
   return (
     <div className="space-y-5">
@@ -167,7 +157,7 @@ function AIResultContent() {
           </div>
 
           <p className="break-keep rounded-xl bg-background px-3 py-2 text-xs leading-5 text-foreground">
-            {savedQuery}
+            {request?.query ?? "입력한 검색 조건이 없어요."}
           </p>
         </div>
       </section>
@@ -182,7 +172,13 @@ function AIResultContent() {
         </div>
 
         <div className="rounded-xl border border-purple-300 bg-purple-100 px-3 py-2.5 text-xs leading-5 text-purple-800">
-          <p className="break-keep">{aiResult.summaryText}</p>
+          <p className="break-keep">
+            {isPending
+              ? "AI가 조건을 분석하고 있어요..."
+              : isError
+                ? "추천 결과를 불러오지 못했어요."
+                : (data?.message ?? "추천 결과가 없어요.")}
+          </p>
         </div>
       </section>
 
@@ -192,81 +188,97 @@ function AIResultContent() {
           <h3 className="text-sm font-semibold text-foreground">추천 매물</h3>
         </div>
 
-        <ul className="space-y-1.5">
-          {aiResult.recommendedPropertyNames.map((name, index) => (
-            <li
-              key={`${name}-${index}`}
-              className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground"
-            >
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                  {index + 1}
-                </span>
-
-                <span className="min-w-0 break-keep font-medium">{name}</span>
-              </div>
-
-              {index === 0 && (
-                <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">
-                  BEST
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* 1순위 매칭 근거 */}
-      <section>
-        <div className="sticky top-0 z-10 mb-2 bg-card/95 py-1 backdrop-blur-sm">
-          <h3 className="text-sm font-semibold text-foreground">
-            1순위 매칭 근거
-          </h3>
-        </div>
-
-        <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
-          <div className="mb-3 flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
-                <Home className="h-3.5 w-3.5 shrink-0" />
-                <span className="min-w-0 break-keep">
-                  {aiResult.topProperty.title}
-                </span>
-              </div>
-
-              <p className="mt-1 text-[11px] leading-4 text-text-tertiary">
-                보증금 {formatPrice(aiResult.topProperty.depositAmount)} · 월세{" "}
-                {formatPrice(aiResult.topProperty.monthlyRent)}
-              </p>
-            </div>
-
-            <div className="shrink-0 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground">
-              {Math.round(aiResult.topProperty.matchScore * 100)}%
-            </div>
-          </div>
-
-          <div className="mb-3 grid grid-cols-2 gap-2 text-[11px]">
-            <InfoChip label="면적" value={`${aiResult.topProperty.areaM2}㎡`} />
-
-            <InfoChip
-              label="관리비"
-              value={formatPrice(aiResult.topProperty.maintenanceFee)}
-            />
-          </div>
-
+        {results.length > 0 ? (
           <ul className="space-y-1.5">
-            {aiResult.topProperty.matchReasons.map((reason) => (
+            {results.map((result, index) => (
               <li
-                key={reason}
-                className="flex items-start gap-2 text-xs leading-5 text-text-secondary"
+                key={result.recommendationId}
+                className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground"
               >
-                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secondary" />
-                <span className="break-keep">{reason}</span>
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {index + 1}
+                  </span>
+
+                  <span className="min-w-0 break-keep font-medium">
+                    추천 매물 #{result.propertyId}
+                  </span>
+                </div>
+
+                {index === 0 && (
+                  <span className="shrink-0 rounded-full bg-background px-2 py-0.5 text-[10px] font-semibold text-text-tertiary">
+                    BEST
+                  </span>
+                )}
               </li>
             ))}
           </ul>
-        </div>
+        ) : (
+          <p className="rounded-xl border border-dashed border-border bg-background px-3 py-3 text-center text-[11px] text-text-tertiary">
+            {isPending ? "추천 결과를 불러오는 중..." : "표시할 추천 매물이 없어요."}
+          </p>
+        )}
       </section>
+
+      {/* 1순위 매칭 근거 */}
+      {topResult && (
+        <section>
+          <div className="sticky top-0 z-10 mb-2 bg-card/95 py-1 backdrop-blur-sm">
+            <h3 className="text-sm font-semibold text-foreground">
+              1순위 매칭 근거
+            </h3>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-3 shadow-sm">
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
+                  <Home className="h-3.5 w-3.5 shrink-0" />
+                  <span className="min-w-0 break-keep">
+                    추천 매물 #{topResult.propertyId}
+                  </span>
+                </div>
+
+                <p className="mt-1 text-[11px] leading-4 text-text-tertiary">
+                  보증금 {formatPrice(topResult.property.depositAmount)} · 월세{" "}
+                  {formatPrice(topResult.property.monthlyRent)}
+                </p>
+              </div>
+
+              {topRouteLabel && (
+                <div className="shrink-0 rounded-full bg-primary px-2 py-1 text-[10px] font-bold text-primary-foreground">
+                  {topRouteLabel}
+                </div>
+              )}
+            </div>
+
+            <div className="mb-3 grid grid-cols-2 gap-2 text-[11px]">
+              <InfoChip
+                label="관리비"
+                value={formatPrice(topResult.property.maintenanceFee)}
+              />
+
+              {topRouteLabel && (
+                <InfoChip label="정문까지" value={topRouteLabel} />
+              )}
+            </div>
+
+            {topReasons.length > 0 && (
+              <ul className="space-y-1.5">
+                {topReasons.map((reason) => (
+                  <li
+                    key={reason}
+                    className="flex items-start gap-2 text-xs leading-5 text-text-secondary"
+                  >
+                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secondary" />
+                    <span className="break-keep">{reason}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
@@ -283,7 +295,8 @@ function InfoChip({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatPrice(value: number) {
+function formatPrice(value: number | null) {
+  if (value == null) return "정보 없음";
   if (value >= 10000) {
     return `${Math.floor(value / 10000).toLocaleString()}만원`;
   }

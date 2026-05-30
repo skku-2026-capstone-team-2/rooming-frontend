@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Heart, Sparkles } from "lucide-react";
 import type { ListMode } from "../utils/propertyListItems";
+import { isSearchCompleted } from "../utils/recommendationSearch";
 import type { PropertyCardView } from "../types";
-
-const AI_SEARCH_COMPLETED_KEY = "rooming_ai_search_completed";
 
 type PropertyListPanelProps = {
   listMode: ListMode;
@@ -17,17 +16,10 @@ export default function PropertyListPanel({
   properties,
   onChangeListMode,
 }: PropertyListPanelProps) {
-  const [hasSearchResult, setHasSearchResult] = useState(false);
+  const [hasSearchResult] = useState(() => isSearchCompleted());
 
   const isRecommendedMode = listMode === "recommended";
   const isFavoritesMode = listMode === "favorites";
-
-  useEffect(() => {
-    const isCompleted =
-      sessionStorage.getItem(AI_SEARCH_COMPLETED_KEY) === "true";
-
-    setHasSearchResult(isCompleted);
-  }, []);
 
   const visibleProperties = hasSearchResult ? properties : [];
 
@@ -83,7 +75,11 @@ export default function PropertyListPanel({
       <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto pr-1">
         {visibleProperties.length > 0 ? (
           visibleProperties.map((property) => (
-            <PropertyCard key={property.propertyId} property={property} />
+            <PropertyCard
+              key={property.propertyId}
+              property={property}
+              isFavoriteMode={isFavoritesMode}
+            />
           ))
         ) : (
           <EmptyPropertyList isRecommendedMode={isRecommendedMode} />
@@ -116,11 +112,11 @@ function EmptyPropertyList({ isRecommendedMode }: EmptyPropertyListProps) {
 
 type PropertyCardProps = {
   property: PropertyCardView;
+  isFavoriteMode: boolean;
 };
 
-function PropertyCard({ property }: PropertyCardProps) {
+function PropertyCard({ property, isFavoriteMode }: PropertyCardProps) {
   const navigate = useNavigate();
-  const isFavoriteMode = property.favorite === true;
 
   return (
     <button
