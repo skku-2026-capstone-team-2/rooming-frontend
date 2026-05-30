@@ -21,6 +21,10 @@ import {
   toTargetPlaceCreateRequest,
   type OnboardingPlaceDraft,
 } from "../api/mappers/onboardingMapper";
+import {
+  DEFAULT_TOP_N,
+  saveSearchRequest,
+} from "../utils/recommendationSearch";
 import type { PlaceCategory } from "../types";
 
 type PlaceSearchResult = {
@@ -214,13 +218,16 @@ export default function OnboardingScreen() {
       return;
     }
 
-    // 주요 장소 → target-place 요청 payload, 선호 조건 → recommendation preferences로 변환.
-    // (실제 API 호출은 후속 이슈 #19에서 연결한다.)
+    // 주요 장소 → target-place 요청 payload (실제 API 호출은 #25 실서버 연결 후).
     const targetPlaceRequests = places.map(toTargetPlaceCreateRequest);
-    const recommendationPreferences = toRecommendationPreferences(preferences);
-
     console.log("POST target-place payloads", targetPlaceRequests);
-    console.log("recommendation preferences", recommendationPreferences);
+
+    // 선호 조건을 AI 검색 요청에 반영되도록 저장한다.
+    saveSearchRequest({
+      query: "",
+      preferences: toRecommendationPreferences(preferences),
+      topN: DEFAULT_TOP_N,
+    });
 
     navigate("/map");
   };
