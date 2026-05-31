@@ -25,6 +25,7 @@ import {
   DEFAULT_TOP_N,
   saveSearchRequest,
 } from "../utils/recommendationSearch";
+import { targetPlaceApi } from "../api/targetPlaceApi";
 import type { PlaceCategory } from "../types";
 
 type PlaceSearchResult = {
@@ -146,6 +147,7 @@ export default function OnboardingScreen() {
 
   const [memo, setMemo] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const canAddMorePlace = places.length < MAX_PLACE_COUNT;
   const isUniversityRegistered = places.some(
@@ -219,17 +221,28 @@ export default function OnboardingScreen() {
     setPlaces((prev) => prev.filter((_, placeIndex) => placeIndex !== index));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!isUniversityRegistered) {
       alert("학교 건물은 필수로 등록해야 합니다.");
       return;
     }
 
-    // 주요 장소 → target-place 요청 payload (실제 API 호출은 #25 실서버 연결 후).
-    const targetPlaceRequests = places.map(toTargetPlaceCreateRequest);
-    console.log("POST target-place payloads", targetPlaceRequests);
+    try {
+      setIsSubmitting(true);
 
-    // 선호 조건을 AI 검색 요청에 반영되도록 저장한다.
+      await Promise.all(
+        places.map((place) =>
+          targetPlaceApi.createTargetPlace(toTargetPlaceCreateRequest(place))
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      alert("장소 등록에 실패했습니다. 다시 시도해 주세요.");
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+
     saveSearchRequest({
       query: "",
       preferences: toRecommendationPreferences(preferences),
@@ -549,8 +562,10 @@ export default function OnboardingScreen() {
           <button
             type="button"
             onClick={handleNext}
-            className="rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-beige-200"
           >
+            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
             다음으로
           </button>
         </div>
