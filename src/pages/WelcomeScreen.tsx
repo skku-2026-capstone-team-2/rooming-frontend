@@ -1,4 +1,7 @@
 import { useNavigate } from "react-router";
+import { authApi } from "../api/authApi";
+import { USE_MOCK } from "../api/config";
+import { setAuth } from "../store/authStore";
 
 const previewProperties = [
   {
@@ -25,6 +28,24 @@ const previewProperties = [
 
 export default function WelcomeScreen() {
   const navigate = useNavigate();
+
+  const handleSeekerLogin = () => {
+    if (USE_MOCK) {
+      setAuth({ accountType: "SEEKER", profileComplete: false });
+      navigate("/onboarding");
+    } else {
+      authApi.startSeekerGoogleLogin();
+    }
+  };
+
+  const handleBrokerLogin = () => {
+    if (USE_MOCK) {
+      setAuth({ accountType: "BROKER", profileComplete: false });
+      navigate("/admin");
+    } else {
+      authApi.startBrokerGoogleLogin();
+    }
+  };
 
   const marqueeProperties = [...previewProperties, ...previewProperties];
 
@@ -169,14 +190,14 @@ export default function WelcomeScreen() {
         {/* Buttons - 기존 구성 유지 */}
         <div className="mt-10 flex flex-col gap-4 sm:flex-row">
           <button
-            onClick={() => navigate("/onboarding")}
+            onClick={handleSeekerLogin}
             className="min-w-[220px] rounded-xl bg-primary px-8 py-4.5 text-lg font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
           >
             일반 사용자 로그인
           </button>
 
           <button
-            onClick={() => navigate("/admin")}
+            onClick={handleBrokerLogin}
             className="min-w-[220px] rounded-xl border border-purple-500 bg-card px-8 py-4.5 text-lg font-semibold text-secondary transition-all hover:bg-purple-100"
           >
             관리자 로그인
