@@ -24,6 +24,15 @@ export function getAccessToken(): string | null {
   return _accessToken;
 }
 
+/* ---------- 401 전역 콜백 ---------- */
+
+let _onUnauthorized: (() => void) | null = null;
+
+/** 401 응답 시 호출될 콜백을 등록한다. 앱 초기화 시점에 한 번 설정. */
+export function setOnUnauthorized(fn: () => void): void {
+  _onUnauthorized = fn;
+}
+
 /* ---------- 에러 ---------- */
 
 export class ApiError extends Error {
@@ -84,6 +93,9 @@ export async function request<T>(
       errorBody = (await res.json()) as ErrorResponse;
     } catch {
       errorBody = null;
+    }
+    if (res.status === 401) {
+      _onUnauthorized?.();
     }
     throw new ApiError(
       res.status,

@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router";
 import WelcomeScreen from "./pages/WelcomeScreen";
+import OAuthRedirectScreen from "./pages/OAuthRedirectScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import MainMapScreen from "./pages/MainMapScreen";
 import PropertyDetailScreen from "./pages/PropertyDetailScreen";
@@ -14,6 +15,10 @@ export const router = createBrowserRouter([
   {
     path: "/",
     Component: WelcomeScreen,
+  },
+  {
+    path: "/oauth2/redirect",
+    Component: OAuthRedirectScreen,
   },
   {
     path: "/onboarding",
