@@ -8,10 +8,12 @@ import { queryClient } from "./api/queryClient";
 import { setOnUnauthorized } from "./api/http";
 import { clearAuth } from "./store/authStore";
 
-setOnUnauthorized(() => {
-  clearAuth();
-  window.location.href = "/";
-});
+if (import.meta.env.VITE_DISABLE_AUTH_REDIRECT !== "true") {
+  setOnUnauthorized(() => {
+    clearAuth();
+    window.location.href = "/";
+  });
+}
 
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
