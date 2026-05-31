@@ -50,7 +50,7 @@ export default function WelcomeScreen() {
     const { accountType, profileComplete } = oauthResult;
     setAuth({ accountType, profileComplete });
     if (accountType === "SEEKER") {
-      navigate(profileComplete ? "/map" : "/onboarding", { replace: true });
+      navigate("/onboarding", { replace: true });
     } else {
       navigate("/admin", { replace: true });
     }
@@ -242,9 +242,9 @@ export default function WelcomeScreen() {
               <p className="mt-2 text-sm leading-6 text-text-tertiary">
                 Google 계정으로 로그인되었습니다.
                 <br />
-                {oauthResult.accountType === "SEEKER" && !oauthResult.profileComplete
+                {oauthResult.accountType === "SEEKER"
                   ? "선호 조건을 설정하고 맞춤 매물을 찾아보세요."
-                  : "바로 시작해볼까요?"}
+                  : "관리자 페이지로 이동합니다."}
               </p>
             </div>
             <button
