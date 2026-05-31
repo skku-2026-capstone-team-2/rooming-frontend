@@ -1,7 +1,9 @@
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import { authApi } from "../api/authApi";
 import { USE_MOCK } from "../api/config";
 import { setAuth } from "../store/authStore";
+import type { AccountType } from "../types";
 
 const previewProperties = [
   {
@@ -28,6 +30,31 @@ const previewProperties = [
 
 export default function WelcomeScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [oauthResult, setOauthResult] = useState<{
+    accountType: AccountType;
+    profileComplete: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    const rawType = searchParams.get("accountType");
+    const profileComplete = searchParams.get("profileComplete") === "true";
+    if (rawType === "SEEKER" || rawType === "BROKER") {
+      setOauthResult({ accountType: rawType as AccountType, profileComplete });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleOAuthConfirm = () => {
+    if (!oauthResult) return;
+    const { accountType, profileComplete } = oauthResult;
+    setAuth({ accountType, profileComplete });
+    if (accountType === "SEEKER") {
+      navigate(profileComplete ? "/map" : "/onboarding", { replace: true });
+    } else {
+      navigate("/admin", { replace: true });
+    }
+  };
 
   const handleSeekerLogin = () => {
     if (USE_MOCK) {
@@ -204,6 +231,31 @@ export default function WelcomeScreen() {
           </button>
         </div>
       </section>
+
+      {/* OAuth 로그인 완료 환영 모달 */}
+      {oauthResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-xl">
+            <div className="text-center">
+              <div className="mb-3 text-4xl">👋</div>
+              <h2 className="text-xl font-bold text-foreground">환영합니다!</h2>
+              <p className="mt-2 text-sm leading-6 text-text-tertiary">
+                Google 계정으로 로그인되었습니다.
+                <br />
+                {oauthResult.accountType === "SEEKER" && !oauthResult.profileComplete
+                  ? "선호 조건을 설정하고 맞춤 매물을 찾아보세요."
+                  : "바로 시작해볼까요?"}
+              </p>
+            </div>
+            <button
+              onClick={handleOAuthConfirm}
+              className="mt-6 w-full rounded-xl bg-primary py-3 text-base font-semibold text-primary-foreground transition-all hover:bg-green-800"
+            >
+              시작하기
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
