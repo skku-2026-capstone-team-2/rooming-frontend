@@ -27,15 +27,15 @@ const ROOM_TYPE_LABELS: Record<string, string> = {
   officetel: "오피스텔",
 };
 
-/** 원 단위 → "만원 단위 정수" 문자열 (예: 5_000_000 → "500"). */
-function toManwon(won: number): string {
-  return Math.floor(won / 10000).toLocaleString("ko-KR");
+/** 만원 단위 → 표시 문자열 (예: 500 → "500"). */
+function toManwon(manwon: number): string {
+  return manwon.toLocaleString("ko-KR");
 }
 
-/** 원 단위 → 억/만 한글 라벨 (예: 100_000_000 → "1억", 150_000_000 → "1억 5,000만"). */
-function toKoreanMoney(won: number): string {
-  const eok = Math.floor(won / 100_000_000);
-  const man = Math.floor((won % 100_000_000) / 10_000);
+/** 만원 단위 → 억/만 한글 라벨 (예: 10000 → "1억", 15000 → "1억 5,000만"). */
+function toKoreanMoney(manwon: number): string {
+  const eok = Math.floor(manwon / 10000);
+  const man = manwon % 10000;
 
   if (eok > 0) {
     return man > 0 ? `${eok}억 ${man.toLocaleString("ko-KR")}만` : `${eok}억`;
@@ -75,7 +75,7 @@ export function formatAreaLabel(areaM2: number | null): string {
 export function formatMaintenanceFeeLabel(fee: number | null): string {
   if (fee == null) return "정보 없음";
   if (fee === 0) return "없음";
-  return `${toManwon(fee)}만원`;
+  return `${fee.toLocaleString("ko-KR")}만원`;
 }
 
 /** 층 정보 라벨 (예: "3층"). */
