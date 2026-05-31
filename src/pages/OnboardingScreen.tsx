@@ -77,47 +77,54 @@ const placeTypeOptions: {
     },
   ];
 
-// TODO: 실제 API 연결 시 이 함수만 fetch로 교체하면 됨
 async function searchPlacesByKeyword(
   keyword: string
 ): Promise<PlaceSearchResult[]> {
   const trimmedKeyword = keyword.trim();
-
   if (!trimmedKeyword) return [];
 
-  // 실제 API 연결 예시
-  // const response = await fetch(
-  //   `/api/places/search?keyword=${encodeURIComponent(trimmedKeyword)}`
-  // );
-  //
-  // const result = await response.json();
-  //
-  // if (!result.success) {
-  //   throw new Error(result.message || "장소 검색에 실패했습니다.");
-  // }
-  //
-  // return result.data.places;
+  const TMAP_APP_KEY = import.meta.env.VITE_TMAP_APP_KEY;
+  if (!TMAP_APP_KEY) {
+    throw new Error("VITE_TMAP_APP_KEY가 설정되어 있지 않습니다.");
+  }
 
-  await new Promise((resolve) => setTimeout(resolve, 400));
+  const params = new URLSearchParams({
+    version: "1",
+    searchKeyword: trimmedKeyword,
+    count: "5",
+  });
 
-  return [
+  const response = await fetch(
+    `https://apis.openapi.sk.com/tmap/pois?${params.toString()}`,
     {
-      placeName: trimmedKeyword,
-      roadAddress: "경기 수원시 장안구 서부로 2066",
-      location: {
-        latitude: 37.2945,
-        longitude: 126.9748,
+      headers: {
+        appKey: TMAP_APP_KEY,
+        Accept: "application/json",
       },
-    },
-    {
-      placeName: `${trimmedKeyword} 정문`,
-      roadAddress: "서울 종로구 성균관로 25-2",
-      location: {
-        latitude: 37.5882,
-        longitude: 126.9936,
-      },
-    },
-  ];
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("장소 검색에 실패했습니다.");
+  }
+
+  const data = await response.json();
+  const poiList: any[] = data?.searchPoiInfo?.pois?.poi ?? [];
+
+  return poiList
+    .map((poi) => {
+      const latitude = Number(poi.noorLat);
+      const longitude = Number(poi.noorLon);
+      if (Number.isNaN(latitude) || Number.isNaN(longitude)) return null;
+      return {
+        placeName: poi.name as string,
+        roadAddress:
+          (poi.newAddressList?.newAddress?.[0]?.fullAddressRoad as string) ??
+          "",
+        location: { latitude, longitude },
+      };
+    })
+    .filter(Boolean) as PlaceSearchResult[];
 }
 
 export default function OnboardingScreen() {
