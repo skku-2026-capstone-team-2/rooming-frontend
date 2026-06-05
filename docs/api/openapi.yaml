@@ -4,6 +4,8 @@ info:
   version: 0.2.0
   description: Current HTTP surface exposed by the Spring controllers in this repository. Every path below is the literal controller URL path, including /api/v1 where the controller maps it.
 servers:
+  - url: https://rooming.cloud
+    description: Production HTTPS backend
   - url: http://localhost:8080
     description: Local Spring application root
 tags:
@@ -39,7 +41,7 @@ paths:
             Set-Cookie:
               schema:
                 type: string
-              example: ROOMING_OAUTH_ACCOUNT_TYPE=SEEKER; Path=/; HttpOnly; SameSite=Lax
+              example: ROOMING_OAUTH_ACCOUNT_TYPE=SEEKER; Path=/; HttpOnly; Secure; SameSite=None
 
   /api/v1/auth/broker/google:
     get:
@@ -57,34 +59,7 @@ paths:
             Set-Cookie:
               schema:
                 type: string
-              example: ROOMING_OAUTH_ACCOUNT_TYPE=BROKER; Path=/; HttpOnly; SameSite=Lax
-
-  /oauth2/redirect:
-    get:
-      tags: [Auth]
-      summary: Render the local OAuth success redirect view
-      description: View controller used by the configured OAuth success redirect URI.
-      security: []
-      parameters:
-        - in: query
-          name: accountType
-          required: false
-          schema:
-            type: string
-          description: Optional view-model value. The OAuth success handler currently redirects with SEEKER or BROKER, but this controller does not validate the query value.
-          example: SEEKER
-        - in: query
-          name: profileComplete
-          required: false
-          schema:
-            type: boolean
-      responses:
-        '200':
-          description: OAuth redirect page rendered.
-          content:
-            text/html:
-              schema:
-                type: string
+              example: ROOMING_OAUTH_ACCOUNT_TYPE=BROKER; Path=/; HttpOnly; Secure; SameSite=None
 
   /api/v1/user/seeker/me:
     get:
@@ -294,6 +269,32 @@ paths:
         '409':
           $ref: '#/components/responses/Conflict'
 
+  /api/v1/broker/me/properties:
+    get:
+      tags: [Broker]
+      summary: List properties registered by the current broker
+      responses:
+        '200':
+          description: Broker property list fetched.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrokerPropertyListResponse'
+              example:
+                success: true
+                data:
+                  - propertyId: 2
+                    title: 캠퍼스빌 502호
+                  - propertyId: 1
+                    title: Campus-side one-room 3F
+                message: Broker property list fetched.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/user/broker/me/properties:
     post:
       tags: [Broker]
@@ -317,6 +318,7 @@ paths:
               roomCount: 1
               bathroomCount: 1
               description: 캠퍼스 접근성이 좋은 원룸입니다.
+              splineUrl: https://prod.spline.design/example-room/scene.splinecode
               roadAddress: 경기도 수원시 장안구 천천동 45-2
               location:
                 latitude: 37.2992
@@ -346,7 +348,8 @@ paths:
                   floorInfo: 5층
                   description: 캠퍼스 접근성이 좋은 원룸입니다.
                   tags: [캠퍼스, 원룸]
-                  hasProperty3D: false
+                  hasProperty3D: true
+                  splineUrl: https://prod.spline.design/example-room/scene.splinecode
                 message: Property saved.
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -702,6 +705,82 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '500':
           $ref: '#/components/responses/InternalServerError'
+    post:
+      tags: [Property]
+      summary: Upload property images
+      description: Authenticated broker owner uploads image files. The server stores the files in S3 and returns image URLs.
+      parameters:
+        - $ref: '#/components/parameters/propertyReadId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [images]
+              properties:
+                images:
+                  type: array
+                  description: One or more property image files.
+                  items:
+                    type: string
+                    format: binary
+      responses:
+        '200':
+          description: Property images saved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyImagesResponse'
+              example:
+                success: true
+                data:
+                  propertyId: 103
+                  images:
+                    - imageId: 1
+                      imageUrl: https://rooming-property-image.s3.ap-northeast-2.amazonaws.com/properties/103/images/example-main.png
+                      imageOrder: 1
+                    - imageId: 2
+                      imageUrl: https://rooming-property-image.s3.ap-northeast-2.amazonaws.com/properties/103/images/example-bath.png
+                      imageOrder: 2
+                message: Property images saved.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/properties/{id}/images/{imageId}:
+    delete:
+      tags: [Property]
+      summary: Delete one property image
+      description: imageId is the current 1-based image order returned by the property images API.
+      parameters:
+        - $ref: '#/components/parameters/propertyReadId'
+        - $ref: '#/components/parameters/propertyImageId'
+      responses:
+        '200':
+          description: Property image deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropertyImagesResponse'
+              example:
+                success: true
+                data:
+                  propertyId: 103
+                  images:
+                    - imageId: 1
+                      imageUrl: https://rooming-property-image.s3.ap-northeast-2.amazonaws.com/properties/103/images/example-bath.png
+                      imageOrder: 1
+                message: Property image deleted.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
 
   /api/v1/properties/{id}/3d:
     get:
@@ -741,6 +820,15 @@ components:
         type: integer
         format: int64
       example: 101
+    propertyImageId:
+      in: path
+      name: imageId
+      required: true
+      description: Current 1-based image id/order from the property images response.
+      schema:
+        type: integer
+        minimum: 1
+      example: 2
     propertyId:
       in: path
       name: propertyId
@@ -1196,6 +1284,10 @@ components:
           type: string
           nullable: true
           example: 캠퍼스 접근성이 좋은 원룸입니다.
+        splineUrl:
+          type: string
+          nullable: true
+          example: https://prod.spline.design/example-room/scene.splinecode
         roadAddress:
           type: string
           minLength: 1
@@ -1233,8 +1325,44 @@ components:
           floorInfo: 5층
           description: 캠퍼스 접근성이 좋은 원룸입니다.
           tags: [캠퍼스, 원룸]
-          hasProperty3D: false
+          hasProperty3D: true
+          splineUrl: https://prod.spline.design/example-room/scene.splinecode
         message: Property saved.
+
+    BrokerPropertyListResponse:
+      type: object
+      required: [success, data, message]
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BrokerPropertySummaryData'
+        message:
+          type: string
+          example: Broker property list fetched.
+      example:
+        success: true
+        data:
+          - propertyId: 2
+            title: 캠퍼스빌 502호
+          - propertyId: 1
+            title: Campus-side one-room 3F
+        message: Broker property list fetched.
+
+    BrokerPropertySummaryData:
+      type: object
+      required: [propertyId, title]
+      properties:
+        propertyId:
+          type: integer
+          format: int64
+          example: 104
+        title:
+          type: string
+          example: Campus-side one-room 3F
 
     BrokerPropertyData:
       type: object
@@ -1281,6 +1409,9 @@ components:
             type: string
         hasProperty3D:
           type: boolean
+        splineUrl:
+          type: string
+          nullable: true
 
     TargetPlaceCreateRequest:
       type: object
