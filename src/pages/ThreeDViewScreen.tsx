@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { createElement, useEffect, useState } from "react";
+import type { ElementType, HTMLAttributes } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Box, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
 
 import { useProperty3D } from "../hooks/queries/propertyQueries";
 
 type ViewMode = "normal" | "floor";
+type ScriptStatus = "loading" | "ready" | "error";
+
+const SPLINE_VIEWER_SCRIPT_SRC =
+  "https://unpkg.com/@splinetool/viewer/build/spline-viewer.js";
+const SPLINE_VIEWER_SCRIPT_SELECTOR = `script[src="${SPLINE_VIEWER_SCRIPT_SRC}"]`;
+const SPLINE_SCENE_FILE = "scene.splinecode";
 
 export default function ThreeDViewScreen() {
   const navigate = useNavigate();
@@ -32,12 +39,7 @@ export default function ThreeDViewScreen() {
           isLoading ? (
             <ViewerMessage text="3D 모델을 불러오는 중이에요..." />
           ) : hasModel ? (
-            <iframe
-              src={model!.modelUrl!}
-              title="3D room viewer"
-              className="h-full w-full border-none"
-              allow="autoplay; fullscreen; xr-spatial-tracking"
-            />
+            <SplineModelViewer modelUrl={model!.modelUrl!} />
           ) : (
             <Empty3DState
               isError={isValidId && isError}
@@ -142,6 +144,127 @@ export default function ThreeDViewScreen() {
   );
 }
 
+function SplineModelViewer({ modelUrl }: { modelUrl: string }) {
+  const normalizedUrl = modelUrl.trim();
+
+  if (isSplineSceneUrl(normalizedUrl)) {
+    return <SplineSceneViewer url={normalizedUrl} />;
+  }
+
+  return (
+    <iframe
+      src={normalizedUrl}
+      title="3D room viewer"
+      className="h-full w-full border-none"
+      allow="autoplay; fullscreen; xr-spatial-tracking"
+      allowFullScreen
+    />
+  );
+}
+
+function SplineSceneViewer({ url }: { url: string }) {
+  const [scriptStatus, setScriptStatus] = useState<ScriptStatus>(() =>
+    isSplineViewerDefined() ? "ready" : "loading"
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    setScriptStatus(isSplineViewerDefined() ? "ready" : "loading");
+
+    loadSplineViewerScript()
+      .then(() => {
+        if (isMounted) setScriptStatus("ready");
+      })
+      .catch(() => {
+        if (isMounted) setScriptStatus("error");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const splineViewerProps: HTMLAttributes<HTMLElement> & { url: string } = {
+    url,
+    className: "h-full w-full",
+    style: { display: "block", height: "100%", width: "100%" },
+  };
+
+  return (
+    <div className="relative h-full w-full">
+      {scriptStatus === "error" ? (
+        <ViewerMessage text="3D 뷰어를 불러오지 못했어요. 잠시 후 다시 시도해 주세요." />
+      ) : (
+        createElement("spline-viewer", splineViewerProps)
+      )}
+
+      {scriptStatus === "loading" && (
+        <div className="absolute inset-0 bg-green-900">
+          <ViewerMessage text="3D 뷰어를 준비하는 중이에요..." />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function isSplineSceneUrl(modelUrl: string): boolean {
+  const lowerUrl = modelUrl.toLowerCase();
+
+  if (
+    lowerUrl.includes(`/${SPLINE_SCENE_FILE}`) ||
+    lowerUrl.endsWith(".splinecode")
+  ) {
+    return true;
+  }
+
+  try {
+    return new URL(modelUrl).hostname === "prod.spline.design";
+  } catch {
+    return lowerUrl.includes("prod.spline.design");
+  }
+}
+
+function isSplineViewerDefined(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "customElements" in window &&
+    window.customElements.get("spline-viewer") != null
+  );
+}
+
+function loadSplineViewerScript(): Promise<void> {
+  if (isSplineViewerDefined()) return Promise.resolve();
+
+  const existingScript = document.querySelector<HTMLScriptElement>(
+    SPLINE_VIEWER_SCRIPT_SELECTOR
+  );
+
+  if (existingScript?.dataset.loaded === "true") {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = existingScript ?? document.createElement("script");
+
+    const handleLoad = () => {
+      script.dataset.loaded = "true";
+      resolve();
+    };
+    const handleError = () => reject();
+
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+
+    if (!existingScript) {
+      script.type = "module";
+      script.async = true;
+      script.src = SPLINE_VIEWER_SCRIPT_SRC;
+      document.head.appendChild(script);
+    }
+  });
+}
+
 function ViewerMessage({ text }: { text: string }) {
   return (
     <div className="flex h-full w-full items-center justify-center">
@@ -201,7 +324,7 @@ function ViewButton({
   Icon,
   label,
 }: {
-  Icon: React.ElementType;
+  Icon: ElementType;
   label: string;
 }) {
   return (

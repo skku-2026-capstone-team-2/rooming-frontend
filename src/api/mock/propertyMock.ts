@@ -61,7 +61,7 @@ const mockProperties: Property[] = [
     description: "강의실까지 도보 5분, 헬스장·편의점 인접",
     tags: ["헬스장", "편의점"],
     has3DModel: true,
-    splineUrl: "https://prod.spline.design/example-room/scene.splinecode",
+    splineUrl: "https://prod.spline.design/wfb4c8rbD6tko0mP/scene.splinecode",
     imageUrls: null,
   },
   {
