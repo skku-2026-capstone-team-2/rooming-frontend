@@ -1,4 +1,4 @@
-import { createElement, useEffect, useState } from "react";
+import { createElement, useEffect, useRef, useState } from "react";
 import type { ElementType, HTMLAttributes } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Box, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
@@ -6,12 +6,17 @@ import { ArrowLeft, Box, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
 import { useProperty3D } from "../hooks/queries/propertyQueries";
 
 type ViewMode = "normal" | "floor";
-type ScriptStatus = "loading" | "ready" | "error";
+type SplineViewerStatus =
+  | "script-loading"
+  | "scene-loading"
+  | "ready"
+  | "error";
 
 const SPLINE_VIEWER_SCRIPT_SRC =
   "https://unpkg.com/@splinetool/viewer/build/spline-viewer.js";
 const SPLINE_VIEWER_SCRIPT_SELECTOR = `script[src="${SPLINE_VIEWER_SCRIPT_SRC}"]`;
 const SPLINE_SCENE_FILE = "scene.splinecode";
+const LONG_SPLINE_LOAD_DELAY_MS = 10000;
 
 export default function ThreeDViewScreen() {
   const navigate = useNavigate();
@@ -163,45 +168,101 @@ function SplineModelViewer({ modelUrl }: { modelUrl: string }) {
 }
 
 function SplineSceneViewer({ url }: { url: string }) {
-  const [scriptStatus, setScriptStatus] = useState<ScriptStatus>(() =>
-    isSplineViewerDefined() ? "ready" : "loading"
+  const viewerRef = useRef<HTMLElement>(null);
+  const [viewerStatus, setViewerStatus] = useState<SplineViewerStatus>(() =>
+    isSplineViewerDefined() ? "scene-loading" : "script-loading"
   );
+  const [isSlowLoading, setIsSlowLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
-    setScriptStatus(isSplineViewerDefined() ? "ready" : "loading");
+    setViewerStatus(
+      isSplineViewerDefined() ? "scene-loading" : "script-loading"
+    );
 
     loadSplineViewerScript()
       .then(() => {
-        if (isMounted) setScriptStatus("ready");
+        if (isMounted) {
+          setViewerStatus((status) =>
+            status === "script-loading" ? "scene-loading" : status
+          );
+        }
       })
       .catch(() => {
-        if (isMounted) setScriptStatus("error");
+        if (isMounted) setViewerStatus("error");
       });
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [url]);
 
-  const splineViewerProps: HTMLAttributes<HTMLElement> & { url: string } = {
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    const handleLoad = () => setViewerStatus("ready");
+    const handleError = () => setViewerStatus("error");
+
+    viewer.addEventListener("load", handleLoad);
+    viewer.addEventListener("error", handleError);
+
+    return () => {
+      viewer.removeEventListener("load", handleLoad);
+      viewer.removeEventListener("error", handleError);
+    };
+  }, [url]);
+
+  useEffect(() => {
+    if (viewerStatus !== "scene-loading") {
+      setIsSlowLoading(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(
+      () => setIsSlowLoading(true),
+      LONG_SPLINE_LOAD_DELAY_MS
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [url, viewerStatus]);
+
+  const splineViewerProps: HTMLAttributes<HTMLElement> & {
+    ref: typeof viewerRef;
+    url: string;
+    "loading-anim-type": string;
+  } = {
+    ref: viewerRef,
     url,
+    "loading-anim-type": "spinner-small-light",
     className: "h-full w-full",
     style: { display: "block", height: "100%", width: "100%" },
   };
 
   return (
     <div className="relative h-full w-full">
-      {scriptStatus === "error" ? (
-        <ViewerMessage text="3D 뷰어를 불러오지 못했어요. 잠시 후 다시 시도해 주세요." />
-      ) : (
-        createElement("spline-viewer", splineViewerProps)
-      )}
+      {createElement("spline-viewer", splineViewerProps)}
 
-      {scriptStatus === "loading" && (
+      {viewerStatus === "script-loading" && (
         <div className="absolute inset-0 bg-green-900">
           <ViewerMessage text="3D 뷰어를 준비하는 중이에요..." />
+        </div>
+      )}
+
+      {viewerStatus === "scene-loading" && (
+        <div className="pointer-events-none absolute inset-x-0 top-24 z-10 flex justify-center px-6">
+          <div className="rounded-full border border-green-500/30 bg-green-900/90 px-5 py-3 text-sm font-semibold text-green-200 shadow-xl backdrop-blur-sm">
+            {isSlowLoading
+              ? "3D 모델 용량이 커서 로딩에 시간이 걸리고 있어요..."
+              : "3D 모델을 불러오는 중이에요..."}
+          </div>
+        </div>
+      )}
+
+      {viewerStatus === "error" && (
+        <div className="absolute inset-0 bg-green-900">
+          <ViewerMessage text="3D 뷰어를 불러오지 못했어요. 잠시 후 다시 시도해 주세요." />
         </div>
       )}
     </div>
