@@ -29,6 +29,15 @@ const mockBroker: BrokerProfileData = {
   profileComplete: false,
 };
 
+/** registrationNo, phoneNumber, 증빙 서류가 모두 제출되면 profileComplete=true. */
+function computeProfileComplete(): boolean {
+  return (
+    !!mockBroker.registrationNo &&
+    !!mockBroker.phoneNumber &&
+    mockBroker.hasVerificationDocument
+  );
+}
+
 export const profileMock = {
   getSeekerProfile(): Promise<SeekerProfileData> {
     return mockData({ ...mockSeeker });
@@ -43,8 +52,15 @@ export const profileMock = {
       officeId: body.officeId ?? null,
       registrationNo: body.registrationNo,
       phoneNumber: body.phoneNumber,
-      profileComplete: !!(body.registrationNo && body.phoneNumber),
     });
+    mockBroker.profileComplete = computeProfileComplete();
+    return mockData({ ...mockBroker });
+  },
+
+  uploadBrokerVerificationDocument(file: File): Promise<BrokerProfileData> {
+    mockBroker.hasVerificationDocument = true;
+    mockBroker.verificationDocumentFileName = file.name;
+    mockBroker.profileComplete = computeProfileComplete();
     return mockData({ ...mockBroker });
   },
 };

@@ -6,7 +6,7 @@
  * - 화면은 `useState`/`useEffect` 패칭 대신 이 훅들의 상태(data/isLoading/error)를 사용한다.
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { propertyApi } from "../../api";
 import {
   mapProperty3DToView,
@@ -77,5 +77,20 @@ export function useProperty3D(id: number, enabled = true) {
     queryFn: () => propertyApi.getProperty3D(id),
     enabled,
     select: (data): Property3DView => mapProperty3DToView(data),
+  });
+}
+
+/**
+ * 매물 이미지 업로드. 성공 시 해당 매물의 이미지 캐시를 무효화한다.
+ * (중개사 매물 등록 흐름에서 사용)
+ */
+export function useUploadPropertyImages() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ propertyId, files }: { propertyId: number; files: File[] }) =>
+      propertyApi.uploadPropertyImages(propertyId, files),
+    onSuccess: (_data, { propertyId }) => {
+      queryClient.invalidateQueries({ queryKey: propertyKeys.images(propertyId) });
+    },
   });
 }

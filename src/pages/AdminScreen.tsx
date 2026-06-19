@@ -1,16 +1,35 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { Plus } from "lucide-react";
 
-const properties = [
-  { id: 101, title: "매물 #101", status: "공개", price: "500/55" },
-  { id: 102, title: "매물 #102", status: "대기", price: "700/60" },
-  { id: 103, title: "매물 #103", status: "공개", price: "1000/65" },
-  { id: 104, title: "매물 #104", status: "비공개", price: "800/58" },
-];
+import BrokerVerificationPanel from "../components/broker/BrokerVerificationPanel";
+import BrokerPropertyForm from "../components/broker/BrokerPropertyForm";
+
+import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
+import {
+  useBrokerProfile,
+  useMyBrokerProperties,
+} from "../hooks/queries/brokerQueries";
+import { useProperty } from "../hooks/queries/propertyQueries";
+
+type RightPanel = "create" | "detail";
 
 export default function AdminScreen() {
   const navigate = useNavigate();
-  const [selectedProperty, setSelectedProperty] = useState(properties[0]);
+
+  const profileQuery = useBrokerProfile();
+  const propertiesQuery = useMyBrokerProperties();
+
+  const [panel, setPanel] = useState<RightPanel>("create");
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  const canRegister = profileQuery.data?.isVerified ?? false;
+  const properties = propertiesQuery.data ?? [];
+
+  const handleSelect = (propertyId: number) => {
+    setSelectedId(propertyId);
+    setPanel("detail");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -18,128 +37,101 @@ export default function AdminScreen() {
         {/* 헤더 */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">관리자 대시보드</h1>
+            <h1 className="text-3xl font-bold text-foreground">중개사 대시보드</h1>
             <p className="mt-2 text-text-secondary">매물 등록 및 관리</p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate("/")}
-              className="rounded-xl border border-purple-300 bg-card px-5 py-3 text-base font-semibold text-secondary hover:bg-purple-100 transition-all"
-            >
-              사용자 화면으로
-            </button>
-            <button className="rounded-xl bg-primary px-5 py-3 text-base font-semibold text-primary-foreground hover:bg-green-800 transition-all shadow-md hover:shadow-lg">
-              + 새 매물 등록
-            </button>
-          </div>
+          <button
+            onClick={() => navigate("/")}
+            className="rounded-xl border border-purple-300 bg-card px-5 py-3 text-base font-semibold text-secondary transition-all hover:bg-purple-100"
+          >
+            사용자 화면으로
+          </button>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-          {/* 좌측: 매물 목록 */}
-          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-foreground">매물 목록</h3>
-              <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-secondary border border-purple-200">
-                {properties.length}개
-              </span>
-            </div>
+        <div className="space-y-6">
+          {/* 인증 패널 */}
+          <BrokerVerificationPanel />
 
-            <div className="space-y-2">
-              {properties.map((property) => (
+          {/* 매물 영역 */}
+          <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+            {/* 좌측: 내 매물 목록 */}
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-foreground">내 매물</h3>
+                <span className="rounded-full border border-purple-200 bg-purple-100 px-3 py-1 text-xs font-semibold text-secondary">
+                  {properties.length}개
+                </span>
+              </div>
+
+              {canRegister && (
                 <button
-                  key={property.id}
-                  onClick={() => setSelectedProperty(property)}
-                  className={`w-full rounded-xl border p-4 text-left transition-all ${selectedProperty.id === property.id
-                      ? "border-accent bg-background shadow-md"
-                      : "border-border bg-card hover:bg-background hover:border-accent"
-                    }`}
+                  type="button"
+                  onClick={() => {
+                    setPanel("create");
+                    setSelectedId(null);
+                  }}
+                  className={`mb-3 flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-sm font-semibold shadow-md transition-all ${
+                    panel === "create"
+                      ? "bg-primary text-primary-foreground hover:bg-green-800"
+                      : "border border-border bg-card text-text-secondary hover:bg-background"
+                  }`}
                 >
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-bold text-text-secondary">{property.title}</span>
-                    <StatusBadge status={property.status} />
-                  </div>
-                  <div className="text-sm text-accent font-medium">{property.price}</div>
+                  <Plus className="h-4 w-4" />새 매물 등록
                 </button>
-              ))}
-            </div>
-          </div>
+              )}
 
-          {/* 우측: 매물 관리 폼 */}
-          <div className="space-y-6">
-            {/* 기본 정보 */}
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <h3 className="mb-5 text-lg font-bold text-foreground">기본 정보</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField label="매물명" value="성대 정문 도보권 원룸" />
-                <FormField label="매물 ID" value={`#${selectedProperty.id}`} disabled />
-                <FormField label="보증금 (만원)" value="500" />
-                <FormField label="월세 (만원)" value="55" />
-                <FormField label="관리비 (만원)" value="5" />
-                <FormField label="면적 (㎡)" value="23.1" />
-                <FormField label="구조" value="원룸" />
-                <FormField label="층수" value="3/5" />
-              </div>
-            </div>
-
-            {/* 위치 정보 */}
-            <div className="rounded-2xl border border-purple-300 bg-card p-6 shadow-sm">
-              <h3 className="mb-5 text-lg font-bold text-purple-800">위치 정보</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="md:col-span-2">
-                  <FormField label="주소" value="서울특별시 종로구 성균관로" color="lavender" />
-                </div>
-                <FormField label="위도" value="37.5894" color="lavender" />
-                <FormField label="경도" value="126.9978" color="lavender" />
-              </div>
-            </div>
-
-            {/* 미디어 자산 */}
-            <div className="rounded-2xl border border-accent-purple-border bg-card p-6 shadow-sm">
-              <h3 className="mb-5 text-lg font-bold text-accent-purple">이미지 / 3D 자산</h3>
-
-              <div className="mb-5">
-                <label className="mb-2 block text-sm font-semibold text-accent-purple-light">매물 사진</label>
-                <div className="grid grid-cols-4 gap-3">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-accent-purple-border bg-accent-purple-bg text-xs text-accent-purple-light hover:border-accent-purple-light hover:bg-accent-purple-pale cursor-pointer transition"
+              {propertiesQuery.isPending ? (
+                <p className="px-1 py-6 text-center text-sm text-text-tertiary">
+                  매물을 불러오는 중이에요...
+                </p>
+              ) : properties.length === 0 ? (
+                <p className="px-1 py-6 text-center text-sm text-text-tertiary">
+                  등록된 매물이 없어요.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {properties.map((property) => (
+                    <button
+                      key={property.propertyId}
+                      onClick={() => handleSelect(property.propertyId)}
+                      className={`w-full rounded-xl border p-4 text-left transition-all ${
+                        panel === "detail" && selectedId === property.propertyId
+                          ? "border-accent bg-background shadow-md"
+                          : "border-border bg-card hover:border-accent hover:bg-background"
+                      }`}
                     >
-                      사진 {i}
-                    </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-bold text-text-secondary">
+                          {property.title}
+                        </span>
+                        <span className="text-xs text-text-tertiary">
+                          #{property.propertyId}
+                        </span>
+                      </div>
+                    </button>
                   ))}
                 </div>
-                <button className="mt-3 rounded-xl border border-accent-purple-border bg-card px-4 py-2 text-sm font-semibold text-accent-purple-light hover:bg-accent-purple-bg transition-all">
-                  + 사진 추가
-                </button>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-accent-purple-light">3D 모델 URL</label>
-                <input
-                  type="text"
-                  placeholder="https://example.com/3d-model.glb"
-                  className="w-full rounded-xl border border-accent-purple-border bg-card px-4 py-3 text-sm text-text-secondary placeholder:text-text-muted focus:border-accent-purple-light focus:outline-none focus:ring-2 focus:ring-accent-purple-light/10"
-                />
-              </div>
+              )}
             </div>
 
-            {/* 상태 관리 */}
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <h3 className="mb-5 text-lg font-bold text-foreground">상태 관리</h3>
-              <div className="flex gap-3">
-                <select className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium text-accent focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring/10">
-                  <option>공개</option>
-                  <option>대기</option>
-                  <option>비공개</option>
-                </select>
-                <button className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-green-800 transition-all shadow-md hover:shadow-lg">
-                  저장
-                </button>
-                <button className="rounded-xl border border-accent-purple-border bg-card px-6 py-3 text-sm font-semibold text-accent-purple-light hover:bg-accent-purple-bg transition-all">
-                  삭제
-                </button>
-              </div>
+            {/* 우측: 등록 폼 또는 상세 */}
+            <div>
+              {panel === "detail" && selectedId != null ? (
+                <PropertyDetailPanel propertyId={selectedId} />
+              ) : canRegister ? (
+                <BrokerPropertyForm
+                  onCreated={() => setPanel("create")}
+                />
+              ) : (
+                <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+                  <h3 className="text-lg font-bold text-foreground">
+                    인증 완료 후 매물을 등록할 수 있어요
+                  </h3>
+                  <p className="mt-2 text-sm text-text-tertiary">
+                    위 인증 패널에서 사업자 정보와 증빙 서류를 제출해 주세요.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -148,48 +140,61 @@ export default function AdminScreen() {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const colors = {
-    "공개": "bg-purple-100 text-purple-800 border border-purple-200",
-    "대기": "bg-background text-text-tertiary border border-beige-400",
-    "비공개": "bg-accent-purple-bg text-accent-purple border border-accent-purple-lighter",
-  };
+/** 선택한 매물의 상세 정보(읽기 전용). 매물 수정·삭제 API가 없어 조회만 제공한다. */
+function PropertyDetailPanel({ propertyId }: { propertyId: number }) {
+  const detailQuery = useProperty(propertyId);
+
+  if (detailQuery.isPending) {
+    return (
+      <div className="rounded-2xl border border-border bg-card p-6 text-sm text-text-tertiary shadow-sm">
+        매물 정보를 불러오는 중이에요...
+      </div>
+    );
+  }
+
+  if (detailQuery.isError || !detailQuery.data) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-card p-6 text-sm text-destructive shadow-sm">
+        매물 정보를 불러오지 못했어요.
+      </div>
+    );
+  }
+
+  const view = mapPropertyDetailToView(detailQuery.data);
 
   return (
-    <span className={`rounded-full px-2 py-1 text-xs font-medium ${colors[status as keyof typeof colors]}`}>
-      {status}
-    </span>
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="text-lg font-bold text-foreground">{view.title}</h3>
+        <span className="text-xs text-text-tertiary">#{view.propertyId}</span>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <InfoRow label="가격" value={view.priceLabel} />
+        <InfoRow label="구조" value={view.roomTypeLabel} />
+        <InfoRow label="면적" value={view.areaLabel} />
+        <InfoRow label="층수" value={view.floorLabel} />
+        <InfoRow label="관리비" value={view.maintenanceFeeLabel} />
+        <InfoRow label="3D" value={view.has3DModel ? "가능" : "없음"} />
+        <div className="md:col-span-2">
+          <InfoRow label="주소" value={view.address} />
+        </div>
+      </div>
+
+      {view.description && (
+        <p className="mt-4 rounded-xl bg-background px-4 py-3 text-sm leading-6 text-text-secondary">
+          {view.description}
+        </p>
+      )}
+    </div>
   );
 }
 
-function FormField({
-  label,
-  value,
-  disabled = false,
-  color = "tan",
-}: {
-  label: string;
-  value: string;
-  disabled?: boolean;
-  color?: string;
-}) {
-  const colorClasses = {
-    tan: "border-border focus:border-accent focus:ring-ring/10",
-    lavender: "border-purple-300 focus:border-secondary focus:ring-secondary/10",
-  };
-
+function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <label className="mb-2 block text-sm font-semibold text-text-secondary">{label}</label>
-      <input
-        type="text"
-        defaultValue={value}
-        disabled={disabled}
-        className={`w-full rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 transition-all ${disabled
-            ? "border-border bg-background text-text-muted"
-            : `bg-card text-text-secondary ${colorClasses[color as keyof typeof colorClasses]}`
-          }`}
-      />
+    <div className="flex items-center justify-between rounded-xl border border-border bg-background px-4 py-3">
+      <span className="text-sm font-medium text-text-tertiary">{label}</span>
+      <span className="text-sm font-semibold text-text-secondary">{value}</span>
     </div>
   );
 }

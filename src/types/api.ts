@@ -374,6 +374,19 @@ export interface BrokerProfileData {
 
 export type BrokerProfileResponse = ApiResponse<BrokerProfileData>;
 
+/**
+ * 매물 상세 화면 "부동산 연결하기"에 노출하는 담당 중개사 연락처.
+ *
+ * TODO(#25~#26): 실서버 연동 시 정식 엔드포인트로 교체. 현재는 mock 전용이며
+ * 매물(propertyId) 기준으로 담당 중개사 연락처를 조회한다.
+ */
+export interface BrokerContact {
+  brokerId: number;
+  name: string;
+  officeName: string | null;
+  phoneNumber: string;
+}
+
 /** `PUT /api/v1/user/broker/me/additional-info`. */
 export interface BrokerAdditionalInfoRequest {
   officeId?: number | null;

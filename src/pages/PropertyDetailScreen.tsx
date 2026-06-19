@@ -4,6 +4,7 @@ import { Phone, ArrowLeft } from "lucide-react";
 
 import MyFavoriteButton from "../components/MyFavoriteButton";
 import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
+import BrokerContactModal from "../components/BrokerContactModal";
 
 import { ApiError } from "../api";
 import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
@@ -13,6 +14,7 @@ import {
   useRecommendations,
   useToggleFavorite,
 } from "../hooks/queries/recommendationQueries";
+import { useBrokerContact } from "../hooks/queries/brokerQueries";
 import {
   useProperty,
   usePropertyImages,
@@ -86,6 +88,13 @@ export default function PropertyDetailScreen() {
     Record<number, boolean>
   >({});
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
+
+  // "부동산 연결하기" 모달은 열릴 때만 연락처를 lazy 하게 조회한다.
+  const [isBrokerModalOpen, setIsBrokerModalOpen] = useState(false);
+  const brokerContactQuery = useBrokerContact(
+    propertyId,
+    isValidId && isBrokerModalOpen
+  );
 
   const property = useMemo(
     () =>
@@ -382,7 +391,11 @@ export default function PropertyDetailScreen() {
                   문의하기
                 </h3>
 
-                <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg">
+                <button
+                  type="button"
+                  onClick={() => setIsBrokerModalOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
+                >
                   <Phone className="h-4 w-4" />
                   부동산 연결하기
                 </button>
@@ -391,6 +404,14 @@ export default function PropertyDetailScreen() {
           </div>
         </div>
       </div>
+
+      <BrokerContactModal
+        isOpen={isBrokerModalOpen}
+        contact={brokerContactQuery.data ?? null}
+        isLoading={brokerContactQuery.isPending}
+        isError={brokerContactQuery.isError}
+        onClose={() => setIsBrokerModalOpen(false)}
+      />
     </div>
   );
 }

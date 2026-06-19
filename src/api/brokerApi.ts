@@ -6,6 +6,7 @@
  *   POST /api/v1/broker-offices
  *   GET  /api/v1/broker/me/properties
  *   POST /api/v1/user/broker/me/properties
+ *   GET  /api/v1/properties/{propertyId}/broker  (담당 중개사 연락처, 실서버 미연동)
  */
 
 import type {
@@ -15,6 +16,7 @@ import type {
   BrokerPropertyData,
   BrokerPropertyCreateRequest,
   BrokerPropertySummaryData,
+  BrokerContact,
 } from "../types";
 import { USE_MOCK } from "./config";
 import { request } from "./http";
@@ -32,7 +34,7 @@ export const brokerApi = {
   },
 
   getMyProperties(): Promise<BrokerPropertySummaryData[]> {
-    if (USE_MOCK) return Promise.resolve([]);
+    if (USE_MOCK) return brokerMock.getMyProperties();
     return request<BrokerPropertySummaryData[]>("/api/v1/broker/me/properties");
   },
 
@@ -42,5 +44,15 @@ export const brokerApi = {
       method: "POST",
       body,
     });
+  },
+
+  /**
+   * 매물 담당 중개사 연락처 조회.
+   *
+   * TODO(#25~#26): 실서버 엔드포인트가 확정되면 경로를 교체한다. 현재는 mock 전용.
+   */
+  getBrokerContact(propertyId: number): Promise<BrokerContact> {
+    if (USE_MOCK) return brokerMock.getBrokerContact(propertyId);
+    return request<BrokerContact>(`/api/v1/properties/${propertyId}/broker`);
   },
 };
