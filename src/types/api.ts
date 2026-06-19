@@ -428,6 +428,8 @@ export interface BrokerPropertyCreateRequest {
   direction?: string | null;
   availableFrom?: string | null;
   description?: string | null;
+  /** Spline 3D 모델 URL */
+  splineUrl?: string | null;
   roadAddress: string;
   location: CoordinateDto;
 }
@@ -447,6 +449,8 @@ export interface BrokerPropertyData {
   description: string | null;
   tags: string[] | null;
   hasProperty3D: boolean;
+  /** Spline 3D 모델 URL */
+  splineUrl?: string | null;
 }
 
 export type BrokerPropertyResponse = ApiResponse<BrokerPropertyData>;
