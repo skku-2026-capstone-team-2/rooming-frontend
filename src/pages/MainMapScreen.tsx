@@ -25,6 +25,8 @@ import {
   useFavorites,
   useRecommendationSearch,
 } from "../hooks/queries/recommendationQueries";
+import { usePropertyList } from "../hooks/queries/propertyQueries";
+import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
 import type { PropertyCardView } from "../types";
 
@@ -79,18 +81,45 @@ export default function MainMapScreen() {
   // 저장된 검색 요청을 키로 추천 결과 화면과 React Query 캐시를 공유한다.
   const searchRequest = useMemo(() => loadSearchRequest(), []);
   const { data: recommendationData } = useRecommendationSearch(searchRequest);
+  const shouldLoadJoinData = searchRequest != null || hasSearchResult;
+  const { data: propertyList } = usePropertyList(shouldLoadJoinData);
+  const { data: targetPlaceData } = useTargetPlaces(shouldLoadJoinData);
+  const propertyById = useMemo(
+    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
+    [propertyList]
+  );
+  const targetPlaceById = useMemo(
+    () =>
+      new Map(
+        (targetPlaceData?.targetPlaces ?? []).map((place) => [
+          place.targetPlaceId,
+          place,
+        ])
+      ),
+    [targetPlaceData]
+  );
+  const recommendationMapperOptions = useMemo(
+    () => ({ propertyById, targetPlaceById }),
+    [propertyById, targetPlaceById]
+  );
   const recommendedProperties = useMemo<PropertyCardView[]>(
-    () => (recommendationData?.results ?? []).map(mapRecommendationToCardView),
-    [recommendationData]
+    () =>
+      (recommendationData?.results ?? []).map((result) =>
+        mapRecommendationToCardView(result, recommendationMapperOptions)
+      ),
+    [recommendationData, recommendationMapperOptions]
   );
   const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
 
   // 찜(MY) 매물은 favorites 쿼리를 단일 출처로 사용한다.
   // (토글 mutation 연동은 #30)
   const { data: favoriteData } = useFavorites();
-  const favoriteProperties = useMemo(
-    () => favoriteData ?? [],
-    [favoriteData]
+  const favoriteProperties = useMemo<PropertyCardView[]>(
+    () =>
+      (favoriteData?.results ?? []).map((result) =>
+        mapRecommendationToCardView(result, recommendationMapperOptions)
+      ),
+    [favoriteData, recommendationMapperOptions]
   );
   const favoritePropertiesRef = useRef<PropertyCardView[]>([]);
 

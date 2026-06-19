@@ -8,9 +8,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recommendationApi } from "../../api";
-import { mapRecommendationToCardView } from "../../api/mappers/recommendationMapper";
 import type {
-  PropertyCardView,
   RecommendationRequest,
   RouteGeometryDetail,
 } from "../../types";
@@ -77,8 +75,6 @@ export function useFavorites() {
   return useQuery({
     queryKey: recommendationKeys.favorites,
     queryFn: () => recommendationApi.getFavorites(),
-    select: (data): PropertyCardView[] =>
-      data.results.map(mapRecommendationToCardView),
   });
 }
 

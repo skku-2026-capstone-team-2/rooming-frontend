@@ -17,9 +17,13 @@ import {
 import { loadSearchRequest } from "../utils/recommendationSearch";
 import {
   formatRouteDurationLabel,
+  formatRoutePlaceDurationLabel,
+  getRecommendationRoutePlace,
   mapInfrastructureToMarkerView,
   mapRecommendationToCardView,
 } from "../api/mappers/recommendationMapper";
+import { usePropertyList } from "../hooks/queries/propertyQueries";
+import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
 import {
   createInfraMarkerHTML,
@@ -99,7 +103,27 @@ export default function InfraViewScreen() {
   // 키로 React Query 캐시를 공유한다. (별도 전역 상태 없음)
   const request = useMemo(() => loadSearchRequest(), []);
   const { data, isPending, isError } = useRecommendationSearch(request);
+  const { data: propertyList } = usePropertyList(request != null);
+  const { data: targetPlaceData } = useTargetPlaces(request != null);
   const results = useMemo(() => data?.results ?? [], [data]);
+  const propertyById = useMemo(
+    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
+    [propertyList]
+  );
+  const targetPlaceById = useMemo(
+    () =>
+      new Map(
+        (targetPlaceData?.targetPlaces ?? []).map((place) => [
+          place.targetPlaceId,
+          place,
+        ])
+      ),
+    [targetPlaceData]
+  );
+  const recommendationMapperOptions = useMemo(
+    () => ({ propertyById, targetPlaceById }),
+    [propertyById, targetPlaceById]
+  );
 
   const recommendationIdParam = Number(searchParams.get("recommendationId"));
   const propertyIdParam = searchParams.get("propertyId");
@@ -120,9 +144,13 @@ export default function InfraViewScreen() {
     !!selectedResult
   );
 
-  const card = selectedResult
-    ? mapRecommendationToCardView(selectedResult)
-    : null;
+  const card = useMemo(
+    () =>
+      selectedResult
+        ? mapRecommendationToCardView(selectedResult, recommendationMapperOptions)
+        : null,
+    [selectedResult, recommendationMapperOptions]
+  );
 
   const infraMarkers = useMemo(
     () => (selectedResult?.infrastructures ?? []).map(mapInfrastructureToMarkerView),
@@ -131,6 +159,26 @@ export default function InfraViewScreen() {
 
   const routeDurationLabel = formatRouteDurationLabel(
     selectedResult?.firstTargetPlaceRoute ?? null
+  );
+  const routePlace = useMemo(
+    () =>
+      getRecommendationRoutePlace(
+        selectedResult?.firstTargetPlaceRoute ?? null,
+        recommendationMapperOptions
+      ),
+    [selectedResult, recommendationMapperOptions]
+  );
+  const routePlaceLabel = routePlace?.placeName ?? SCHOOL_PLACE.label;
+  const routePlacePosition = useMemo(
+    () => ({
+      lat: routePlace?.location?.latitude ?? SCHOOL_PLACE.lat,
+      lng: routePlace?.location?.longitude ?? SCHOOL_PLACE.lng,
+    }),
+    [routePlace]
+  );
+  const routePlaceDurationLabel = formatRoutePlaceDurationLabel(
+    selectedResult?.firstTargetPlaceRoute ?? null,
+    routePlaceLabel
   );
 
   useEffect(() => {
@@ -181,9 +229,9 @@ export default function InfraViewScreen() {
         const getThemeColor = (token: string) =>
           themeStyles.getPropertyValue(token).trim();
 
-        // 매물 좌표가 없으면 학교 기준으로 지도를 띄운다(fallback).
-        const propertyLat = selectedResult.property.location?.latitude ?? SCHOOL_PLACE.lat;
-        const propertyLng = selectedResult.property.location?.longitude ?? SCHOOL_PLACE.lng;
+        // 매물 좌표가 없으면 목적지 기준으로 지도를 띄운다(fallback).
+        const propertyLat = card?.lat ?? routePlacePosition.lat;
+        const propertyLng = card?.lng ?? routePlacePosition.lng;
 
         mapContainer.innerHTML = "";
 
@@ -194,11 +242,14 @@ export default function InfraViewScreen() {
           zoom: 17,
         });
 
-        // 학교 마커
+        // 목적지 마커
         new window.Tmapv2.Marker({
-          position: new window.Tmapv2.LatLng(SCHOOL_PLACE.lat, SCHOOL_PLACE.lng),
+          position: new window.Tmapv2.LatLng(
+            routePlacePosition.lat,
+            routePlacePosition.lng
+          ),
           map,
-          iconHTML: createSchoolMarkerHTML(SCHOOL_PLACE.label),
+          iconHTML: createSchoolMarkerHTML(routePlaceLabel),
         });
 
         // 선택 매물 마커
@@ -224,12 +275,12 @@ export default function InfraViewScreen() {
             })
           : 0;
 
-        // geometry가 없으면(응답 누락 등) 매물 ↔ 학교 직선으로 fallback.
+        // geometry가 없으면(응답 누락 등) 매물 ↔ 목적지 직선으로 fallback.
         if (drawnPoints === 0) {
           drawDistanceLine({
             map,
             from: { lat: propertyLat, lng: propertyLng },
-            to: { lat: SCHOOL_PLACE.lat, lng: SCHOOL_PLACE.lng },
+            to: { lat: routePlacePosition.lat, lng: routePlacePosition.lng },
             strokeColor: getThemeColor("--token-color-purple-700"),
           });
         }
@@ -263,7 +314,18 @@ export default function InfraViewScreen() {
     };
 
     initMap();
-  }, [selectedResult, routeData, infraMarkers, card?.title, card?.priceLabel]);
+  }, [
+    selectedResult,
+    routeData,
+    infraMarkers,
+    card?.title,
+    card?.priceLabel,
+    card?.lat,
+    card?.lng,
+    routePlaceLabel,
+    routePlacePosition.lat,
+    routePlacePosition.lng,
+  ]);
 
   // 검색 전 / 로딩 / 실패 / 결과 없음 상태 fallback.
   if (!request) {
@@ -440,7 +502,8 @@ export default function InfraViewScreen() {
         <div className="mt-3 flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-100 px-4 py-3 text-sm text-purple-800">
           <School className="h-4 w-4 shrink-0" />
           <span className="line-clamp-1">
-            {SCHOOL_PLACE.label}까지 {routeDurationLabel ?? "경로 정보 없음"}
+            {routePlaceDurationLabel ??
+              `${routePlaceLabel}까지 ${routeDurationLabel ?? "경로 정보 없음"}`}
           </span>
         </div>
       </section>

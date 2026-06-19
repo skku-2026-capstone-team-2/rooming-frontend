@@ -167,6 +167,15 @@ export interface RecommendationPropertyDetails {
   maintenanceFee: number | null;
   description: string | null;
   tags: string[] | null;
+  /** Optional display fields for the planned backend denormalized response. */
+  title?: string | null;
+  address?: string | null;
+  areaM2?: number | null;
+  roomType?: string | null;
+  floorInfo?: string | null;
+  has3DModel?: boolean | null;
+  imageUrl?: string | null;
+  imageUrls?: string[] | null;
 }
 
 /** 추천 결과에 포함된 주변 인프라. */
@@ -201,6 +210,10 @@ export interface RecommendationTargetPlaceRoute {
   durationMinutes: number;
   transferCount: number;
   subPaths: RecommendationRouteSubPathSummary[];
+  /** Optional display fields for the planned backend denormalized response. */
+  placeName?: string | null;
+  name?: string | null;
+  location?: CoordinateDto | null;
 }
 
 /** 추천 결과 단위 (saved recommendation 포함). */

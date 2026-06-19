@@ -27,6 +27,14 @@ export const propertyKeys = {
 };
 
 /** 지도 전체(추천) 매물 목록. 원시 응답을 캐시하고 `select`로 카드 view model 변환. */
+export function usePropertyList(enabled = true) {
+  return useQuery({
+    queryKey: propertyKeys.list,
+    queryFn: () => propertyApi.getProperties(),
+    enabled,
+  });
+}
+
 export function useProperties() {
   return useQuery({
     queryKey: propertyKeys.list,

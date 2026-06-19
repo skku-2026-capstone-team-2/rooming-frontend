@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
   CheckCircle2,
@@ -15,7 +15,13 @@ import {
   useSearchRequest,
 } from "../utils/recommendationSearch";
 import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
-import { formatRouteDurationLabel } from "../api/mappers/recommendationMapper";
+import { usePropertyList } from "../hooks/queries/propertyQueries";
+import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
+import {
+  formatRouteDurationLabel,
+  formatRoutePlaceDurationLabel,
+  mapRecommendationToCardView,
+} from "../api/mappers/recommendationMapper";
 
 /** 입력이 비어 있을 때 사용하는 예시 검색어 (mock 흐름 데모용). */
 const EXAMPLE_QUERY =
@@ -130,14 +136,46 @@ function EmptyAIResult() {
 function AIResultContent() {
   const request = loadSearchRequest();
   const { data, isPending, isError } = useRecommendationSearch(request);
+  const { data: propertyList } = usePropertyList(request != null);
+  const { data: targetPlaceData } = useTargetPlaces(request != null);
 
-  const results = data?.results ?? [];
+  const results = useMemo(() => data?.results ?? [], [data]);
+  const propertyById = useMemo(
+    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
+    [propertyList]
+  );
+  const targetPlaceById = useMemo(
+    () =>
+      new Map(
+        (targetPlaceData?.targetPlaces ?? []).map((place) => [
+          place.targetPlaceId,
+          place,
+        ])
+      ),
+    [targetPlaceData]
+  );
+  const recommendationMapperOptions = useMemo(
+    () => ({ propertyById, targetPlaceById }),
+    [propertyById, targetPlaceById]
+  );
+  const cards = useMemo(
+    () =>
+      results.map((result) =>
+        mapRecommendationToCardView(result, recommendationMapperOptions)
+      ),
+    [results, recommendationMapperOptions]
+  );
   const topResult = results[0] ?? null;
+  const topCard = cards[0] ?? null;
   const topReasons = topResult?.explanation
     ? topResult.explanation.split(/\s*[,·]\s*/).filter(Boolean)
     : [];
   const topRouteLabel = formatRouteDurationLabel(
     topResult?.firstTargetPlaceRoute ?? null
+  );
+  const topRoutePlaceLabel = formatRoutePlaceDurationLabel(
+    topResult?.firstTargetPlaceRoute ?? null,
+    topCard?.routePlaceName
   );
 
   return (
@@ -185,11 +223,11 @@ function AIResultContent() {
           <h3 className="text-sm font-semibold text-foreground">추천 매물</h3>
         </div>
 
-        {results.length > 0 ? (
+        {cards.length > 0 ? (
           <ul className="space-y-1.5">
-            {results.map((result, index) => (
+            {cards.map((card, index) => (
               <li
-                key={result.recommendationId}
+                key={card.recommendationId ?? card.propertyId}
                 className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs text-foreground"
               >
                 <div className="flex min-w-0 items-center gap-2">
@@ -198,7 +236,7 @@ function AIResultContent() {
                   </span>
 
                   <span className="min-w-0 break-keep font-medium">
-                    추천 매물 #{result.propertyId}
+                    {card.title}
                   </span>
                 </div>
 
@@ -232,7 +270,7 @@ function AIResultContent() {
                 <div className="flex items-center gap-1.5 text-sm font-bold text-foreground">
                   <Home className="h-3.5 w-3.5 shrink-0" />
                   <span className="min-w-0 break-keep">
-                    추천 매물 #{topResult.propertyId}
+                    {topCard?.title ?? `추천 매물 #${topResult.propertyId}`}
                   </span>
                 </div>
 
@@ -255,8 +293,11 @@ function AIResultContent() {
                 value={formatPrice(topResult.property.maintenanceFee)}
               />
 
-              {topRouteLabel && (
-                <InfoChip label="정문까지" value={topRouteLabel} />
+              {topRoutePlaceLabel && (
+                <InfoChip
+                  label={topCard?.routePlaceName ? `${topCard.routePlaceName}까지` : "목적지까지"}
+                  value={topRouteLabel ?? topRoutePlaceLabel}
+                />
               )}
             </div>
 

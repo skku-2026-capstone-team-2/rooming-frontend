@@ -39,6 +39,8 @@ export interface PropertyCardView {
   explanation?: string | null;
   /** 첫 목적지까지 소요 시간 라벨, 예: "도보 11분" */
   routeDurationLabel?: string | null;
+  /** 경로 목적지 이름. target-place join 또는 추천 응답 표시 필드에서 온다. */
+  routePlaceName?: string | null;
 }
 
 /** 매물 상세 화면 view model. property 상세 + images 응답을 평탄화한다. */

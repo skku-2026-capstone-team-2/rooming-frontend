@@ -84,7 +84,10 @@ export default function PropertyDetailModal({
 
             {property.routeDurationLabel && (
               <p className="shrink-0 rounded-full bg-card/80 px-3 py-1 text-xs font-semibold text-text-tertiary">
-                정문까지 {property.routeDurationLabel}
+                {property.routePlaceName
+                  ? `${property.routePlaceName}까지`
+                  : "목적지까지"}{" "}
+                {property.routeDurationLabel}
               </p>
             )}
           </div>

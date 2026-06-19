@@ -8,11 +8,14 @@
  */
 
 import type {
+  CoordinateDto,
+  Property,
   RecommendationInfrastructureDetails,
   RecommendationResult,
   RecommendationRouteSubPathSummary,
   RecommendationTargetPlaceRoute,
   RouteSubPathType,
+  TargetPlaceResponseItem,
   TransportMode,
 } from "../../types";
 import type {
@@ -22,6 +25,23 @@ import type {
   RouteSummaryView,
 } from "../../types";
 import { formatAreaLabel, formatPriceLabel } from "./propertyMapper";
+
+export interface RecommendationCardMapperOptions {
+  propertyById?: ReadonlyMap<number, Property>;
+  targetPlaceById?: ReadonlyMap<number, TargetPlaceResponseItem>;
+}
+
+export interface RecommendationRoutePlaceView {
+  placeName: string | null;
+  location: CoordinateDto | null;
+}
+
+function firstValue<T>(...values: Array<T | null | undefined>): T | null {
+  for (const value of values) {
+    if (value !== null && value !== undefined) return value;
+  }
+  return null;
+}
 
 /** 이동 수단 라벨 (예: "도보", "대중교통"). */
 export function formatTransportModeLabel(mode: TransportMode): string {
@@ -34,6 +54,29 @@ export function formatRouteDurationLabel(
 ): string | null {
   if (!route) return null;
   return `${formatTransportModeLabel(route.transportMode)} ${route.durationMinutes}분`;
+}
+
+export function getRecommendationRoutePlace(
+  route: RecommendationTargetPlaceRoute | null,
+  options: RecommendationCardMapperOptions = {}
+): RecommendationRoutePlaceView | null {
+  if (!route) return null;
+
+  const joinedTargetPlace = options.targetPlaceById?.get(route.targetPlaceId);
+
+  return {
+    placeName: firstValue(route.placeName, route.name, joinedTargetPlace?.placeName),
+    location: firstValue(route.location, joinedTargetPlace?.location),
+  };
+}
+
+export function formatRoutePlaceDurationLabel(
+  route: RecommendationTargetPlaceRoute | null,
+  placeName?: string | null
+): string | null {
+  const durationLabel = formatRouteDurationLabel(route);
+  if (!durationLabel) return null;
+  return placeName ? `${placeName}까지 ${durationLabel}` : durationLabel;
 }
 
 /** 인프라 도보 시간 라벨 (예: "도보 5분"). */
@@ -105,32 +148,51 @@ export function mapRouteSummaryToView(
 
 /** 추천 결과 → 지도/리스트 카드 view model. */
 export function mapRecommendationToCardView(
-  result: RecommendationResult
+  result: RecommendationResult,
+  options: RecommendationCardMapperOptions = {}
 ): PropertyCardView {
   const property = result.property;
+  const joinedProperty = options.propertyById?.get(result.propertyId);
+  const routePlace = getRecommendationRoutePlace(
+    result.firstTargetPlaceRoute,
+    options
+  );
+
+  const title = firstValue(
+    property.title,
+    joinedProperty?.title,
+    `추천 매물 #${result.propertyId}`
+  ) ?? `추천 매물 #${result.propertyId}`;
+  const address = firstValue(property.address, joinedProperty?.address, "") ?? "";
+  const areaM2 = firstValue(property.areaM2, joinedProperty?.areaM2);
+  const imageUrl = firstValue(
+    property.imageUrl,
+    property.imageUrls?.[0],
+    joinedProperty?.imageUrls?.[0]
+  );
+  const has3DModel = firstValue(property.has3DModel, joinedProperty?.has3DModel);
 
   return {
     propertyId: result.propertyId,
-    // 추천 응답에 매물 제목이 없어 식별용으로 합성한다.
-    title: `추천 매물 #${result.propertyId}`,
-    address: "",
+    title,
+    address,
     tradeType: property.tradeType,
     priceLabel: formatPriceLabel(
       property.tradeType,
       property.depositAmount,
       property.monthlyRent
     ),
-    // 면적은 추천 응답에 없음 → "면적 정보 없음".
-    areaLabel: formatAreaLabel(null),
-    description: property.description,
-    imageUrl: null,
-    lat: property.location?.latitude ?? null,
-    lng: property.location?.longitude ?? null,
-    tags: property.tags ?? [],
-    has3DModel: false,
+    areaLabel: formatAreaLabel(areaM2),
+    description: firstValue(property.description, joinedProperty?.description),
+    imageUrl,
+    lat: firstValue(property.location?.latitude, joinedProperty?.latitude),
+    lng: firstValue(property.location?.longitude, joinedProperty?.longitude),
+    tags: firstValue(property.tags, joinedProperty?.tags, []) ?? [],
+    has3DModel: has3DModel ?? false,
     favorite: result.favorite,
     recommendationId: result.recommendationId,
     explanation: result.explanation,
     routeDurationLabel: formatRouteDurationLabel(result.firstTargetPlaceRoute),
+    routePlaceName: routePlace?.placeName ?? null,
   };
 }

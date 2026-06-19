@@ -6,13 +6,16 @@ import {
   CheckCircle2,
   Footprints,
   MapPin,
-  Map,
+  Map as MapIcon,
 } from "lucide-react";
 
 import { useSearchRequest } from "../utils/recommendationSearch";
 import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
+import { usePropertyList } from "../hooks/queries/propertyQueries";
+import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import {
   formatRouteDurationLabel,
+  formatRoutePlaceDurationLabel,
   formatWalkingLabel,
   mapRecommendationToCardView,
 } from "../api/mappers/recommendationMapper";
@@ -24,8 +27,28 @@ export default function AIResultScreen() {
 
   const request = useSearchRequest();
   const { data, isPending, isError } = useRecommendationSearch(request);
+  const { data: propertyList } = usePropertyList(request != null);
+  const { data: targetPlaceData } = useTargetPlaces(request != null);
 
   const results = useMemo(() => data?.results ?? [], [data]);
+  const propertyById = useMemo(
+    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
+    [propertyList]
+  );
+  const targetPlaceById = useMemo(
+    () =>
+      new Map(
+        (targetPlaceData?.targetPlaces ?? []).map((place) => [
+          place.targetPlaceId,
+          place,
+        ])
+      ),
+    [targetPlaceData]
+  );
+  const recommendationMapperOptions = useMemo(
+    () => ({ propertyById, targetPlaceById }),
+    [propertyById, targetPlaceById]
+  );
 
   // 로컬 MY 선택: API favorite 값을 기본으로 두고, 토글 시 로컬에서 뒤집어 표시한다.
   // (useToggleFavorite mutation 연동 및 에러 롤백은 #30)
@@ -39,7 +62,7 @@ export default function AIResultScreen() {
     results[0] ??
     null;
   const selectedCard = selectedResult
-    ? mapRecommendationToCardView(selectedResult)
+    ? mapRecommendationToCardView(selectedResult, recommendationMapperOptions)
     : null;
 
   const isFavorite = (recommendationId: number, apiFavorite: boolean) =>
@@ -106,6 +129,10 @@ export default function AIResultScreen() {
   const selectedRouteLabel = formatRouteDurationLabel(
     selectedResult.firstTargetPlaceRoute
   );
+  const selectedRoutePlaceLabel = formatRoutePlaceDurationLabel(
+    selectedResult.firstTargetPlaceRoute,
+    selectedCard.routePlaceName
+  );
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
@@ -128,7 +155,7 @@ export default function AIResultScreen() {
             onClick={handleExitResult}
             className="flex items-center gap-2.5 rounded-2xl bg-primary px-5 py-3 text-base font-semibold text-primary-foreground shadow-sm transition hover:bg-green-800"
           >
-            <Map className="h-5 w-5" />
+            <MapIcon className="h-5 w-5" />
             지도에서 확인하기
           </button>
         </div>
@@ -143,7 +170,15 @@ export default function AIResultScreen() {
               {/* 이미지(placeholder) + 제목 오버레이 영역 */}
               <div>
                 <div className="relative flex h-[360px] items-center justify-center overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-border/50 to-purple-300/50">
-                  <PropertyImagePlaceholder size="xl" />
+                  {selectedCard.imageUrl ? (
+                    <img
+                      src={selectedCard.imageUrl}
+                      alt={selectedCard.title}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <PropertyImagePlaceholder size="xl" />
+                  )}
 
                   <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-foreground/65 via-foreground/35 to-transparent px-5 pb-5 pt-16">
                     <div className="mb-2">
@@ -171,7 +206,7 @@ export default function AIResultScreen() {
                   {selectedRouteLabel && (
                     <SimpleInfoBadge
                       icon={<Footprints className="h-3.5 w-3.5" />}
-                      text={`정문까지 ${selectedRouteLabel}`}
+                      text={selectedRoutePlaceLabel ?? selectedRouteLabel}
                     />
                   )}
                 </div>
@@ -244,7 +279,10 @@ export default function AIResultScreen() {
                     result.recommendationId,
                     result.favorite
                   );
-                  const card = mapRecommendationToCardView(result);
+                  const card = mapRecommendationToCardView(
+                    result,
+                    recommendationMapperOptions
+                  );
 
                   return (
                     <button

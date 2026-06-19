@@ -49,7 +49,7 @@ const mockResults: RecommendationResult[] = [
       tags: ["편의점", "인프라"],
     },
     firstTargetPlaceRoute: {
-      targetPlaceId: 3,
+      targetPlaceId: 1,
       transportMode: "WALK",
       durationMinutes: 11,
       transferCount: 0,
@@ -92,7 +92,7 @@ const mockResults: RecommendationResult[] = [
       tags: ["헬스장", "음식점"],
     },
     firstTargetPlaceRoute: {
-      targetPlaceId: 3,
+      targetPlaceId: 1,
       transportMode: "WALK",
       durationMinutes: 12,
       transferCount: 0,
@@ -135,7 +135,7 @@ const mockResults: RecommendationResult[] = [
       tags: ["카페", "편의점"],
     },
     firstTargetPlaceRoute: {
-      targetPlaceId: 3,
+      targetPlaceId: 1,
       transportMode: "WALK",
       durationMinutes: 8,
       transferCount: 0,
