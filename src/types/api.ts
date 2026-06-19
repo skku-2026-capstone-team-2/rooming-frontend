@@ -450,3 +450,10 @@ export interface BrokerPropertyData {
 }
 
 export type BrokerPropertyResponse = ApiResponse<BrokerPropertyData>;
+
+export interface BrokerPropertySummaryData {
+  propertyId: number;
+  title: string;
+}
+
+export type BrokerPropertyListResponse = ApiResponse<BrokerPropertySummaryData[]>;

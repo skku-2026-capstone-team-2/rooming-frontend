@@ -109,3 +109,44 @@ export async function request<T>(
   const wrapper = (await res.json()) as ApiResponse<T>;
   return wrapper.data;
 }
+
+export async function requestFormData<T>(
+  path: string,
+  formData: FormData,
+  options: Omit<RequestOptions, "body"> = {}
+): Promise<T> {
+  const { method = "POST", query, signal } = options;
+
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (_accessToken) headers.Authorization = `Bearer ${_accessToken}`;
+
+  const res = await fetch(buildUrl(path, query), {
+    method,
+    headers,
+    credentials: "include",
+    body: formData,
+    signal,
+  });
+
+  if (!res.ok) {
+    let errorBody: ErrorResponse | null = null;
+    try {
+      errorBody = (await res.json()) as ErrorResponse;
+    } catch {
+      errorBody = null;
+    }
+    if (res.status === 401) {
+      _onUnauthorized?.();
+    }
+    throw new ApiError(
+      res.status,
+      errorBody?.message ?? `API 요청 실패 (${res.status})`,
+      errorBody
+    );
+  }
+
+  if (res.status === 204) return null as T;
+
+  const wrapper = (await res.json()) as ApiResponse<T>;
+  return wrapper.data;
+}
