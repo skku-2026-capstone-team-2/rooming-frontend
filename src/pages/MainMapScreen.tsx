@@ -16,6 +16,8 @@ import {
   clearMarkers,
   clearSingleMarker,
   getCurrentMapCenter,
+  getPropertiesCenter,
+  getPropertyViewportZoom,
   loadPropertyMarkers,
   loadSchoolMarker,
 } from "../utils/tmapMarkerUtils";
@@ -136,10 +138,18 @@ export default function MainMapScreen() {
     isPending: isTargetPlacesPending,
   } = useTargetPlaces();
   const shouldWaitForTargetPlaces = isTargetPlacesPending && !targetPlaceData;
+
   const propertyById = useMemo(
-    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
+    () =>
+      new Map(
+        (propertyList ?? []).map((property) => [
+          property.propertyId,
+          property,
+        ])
+      ),
     [propertyList]
   );
+
   const targetPlaceById = useMemo(
     () =>
       new Map(
@@ -150,6 +160,7 @@ export default function MainMapScreen() {
       ),
     [targetPlaceData]
   );
+
   const mainTargetPlaceMarker = useMemo(
     () =>
       toTargetPlaceMarker(
@@ -157,10 +168,12 @@ export default function MainMapScreen() {
       ) ?? DEFAULT_TARGET_PLACE,
     [targetPlaceData]
   );
+
   const recommendationMapperOptions = useMemo(
     () => ({ propertyById, targetPlaceById }),
     [propertyById, targetPlaceById]
   );
+
   const recommendedProperties = useMemo<PropertyCardView[]>(
     () =>
       (recommendationData?.results ?? []).map((result) =>
@@ -316,20 +329,36 @@ export default function MainMapScreen() {
     []
   );
 
-  const updateMapCenter = useCallback((position: TargetPlaceMarker["position"]) => {
-    const map = mapRef.current;
-    const tmap = window.Tmapv2;
+  const updateMapViewport = useCallback(
+    (
+      properties: PropertyCardView[],
+      fallbackCenter: TargetPlaceMarker["position"]
+    ) => {
+      const map = mapRef.current;
+      const tmap = window.Tmapv2;
 
-    if (!map || !tmap || typeof map.setCenter !== "function") return;
+      if (!map || !tmap || typeof map.setCenter !== "function") return;
 
-    map.setCenter(new tmap.LatLng(position.lat, position.lng));
-  }, []);
+      const center = getPropertiesCenter(properties, fallbackCenter);
+      const zoom = getPropertyViewportZoom(properties, 17);
+
+      map.setCenter(new tmap.LatLng(center.lat, center.lng));
+
+      const zoomableMap = map as TmapMap & {
+        setZoom?: (zoom: number) => void;
+      };
+
+      if (typeof zoomableMap.setZoom === "function") {
+        zoomableMap.setZoom(zoom);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     targetPlaceMarkerRef.current = targetPlaceMarker;
     renderTargetPlaceMarker(targetPlaceMarker);
-    updateMapCenter(targetPlaceMarker.position);
-  }, [targetPlaceMarker, renderTargetPlaceMarker, updateMapCenter]);
+  }, [targetPlaceMarker, renderTargetPlaceMarker]);
 
   const resetMapContainer = useCallback(() => {
     clearInfraMarkers(infraMarkersRef);
@@ -356,11 +385,6 @@ export default function MainMapScreen() {
       params.delete("propertyId");
       return params;
     });
-
-    renderPropertyMarkers(
-      resolveProperties(mode),
-      showPropertyMarkersRef.current
-    );
   };
 
   const handleTogglePropertyMarkers = () => {
@@ -406,11 +430,15 @@ export default function MainMapScreen() {
   //   모달이 다시 열리는 대신 깨끗한 지도(?view=..., 모달 닫힘)로 복귀한다.
   const handleClickPropertyDetail = () => {
     if (!selectedProperty) return;
+
     const params = new URLSearchParams();
+
     if (selectedProperty.recommendationId != null) {
       params.set("recommendationId", String(selectedProperty.recommendationId));
     }
+
     const query = params.toString();
+
     navigate(
       `/property/${selectedProperty.propertyId}${query ? `?${query}` : ""}`,
       { replace: true }
@@ -427,9 +455,11 @@ export default function MainMapScreen() {
     const params = new URLSearchParams({
       propertyId: String(selectedProperty.propertyId),
     });
+
     if (selectedProperty.recommendationId != null) {
       params.set("recommendationId", String(selectedProperty.recommendationId));
     }
+
     navigate(`/infra-view?${params.toString()}`, { replace: true });
   };
 
@@ -447,6 +477,10 @@ export default function MainMapScreen() {
   }, [visibleProperties, renderPropertyMarkers]);
 
   useEffect(() => {
+    updateMapViewport(visibleProperties, targetPlaceMarker.position);
+  }, [visibleProperties, targetPlaceMarker.position, updateMapViewport]);
+
+  useEffect(() => {
     if (shouldWaitForTargetPlaces) return;
 
     let timeoutId: number | null = null;
@@ -454,6 +488,7 @@ export default function MainMapScreen() {
 
     const initMap = () => {
       if (cancelled) return;
+
       const tmap = window.Tmapv2;
       if (!tmap) return;
       if (isMapInitializedRef.current || mapRef.current) return;
@@ -463,13 +498,23 @@ export default function MainMapScreen() {
 
       mapContainer.innerHTML = "";
       isMapInitializedRef.current = true;
-      const initialCenter = targetPlaceMarkerRef.current.position;
+
+      const initialProperties = hasSearchResultRef.current
+        ? resolveProperties(listModeRef.current)
+        : [];
+
+      const initialCenter = getPropertiesCenter(
+        initialProperties,
+        targetPlaceMarkerRef.current.position
+      );
+
+      const initialZoom = getPropertyViewportZoom(initialProperties, 17);
 
       const map = new tmap.Map("map_div", {
         center: new tmap.LatLng(initialCenter.lat, initialCenter.lng),
         width: "100%",
         height: "100%",
-        zoom: 17,
+        zoom: initialZoom,
       });
 
       mapRef.current = map;
@@ -481,17 +526,13 @@ export default function MainMapScreen() {
         label: targetPlaceMarkerRef.current.label,
       });
 
-      const initialProperties = hasSearchResultRef.current
-        ? resolveProperties(listModeRef.current)
-        : [];
-
       renderPropertyMarkers(initialProperties, showPropertyMarkersRef.current);
 
       loadPoiMarkers({
         map,
         markersRef: infraMarkersRef,
         condition: DEFAULT_INFRA_CONDITION,
-        center: targetPlaceMarkerRef.current.position,
+        center: initialCenter,
       });
 
       console.log("지도 생성 완료");

@@ -57,6 +57,81 @@ export function getCurrentMapCenter(
   return { lat, lng };
 }
 
+/**
+ * 좌표가 있는 매물만 추출한다.
+ */
+export function getValidPropertyPositions(
+  properties: PropertyCardView[]
+): MapCenter[] {
+  return properties
+    .filter(
+      (property) =>
+        typeof property.lat === "number" &&
+        Number.isFinite(property.lat) &&
+        typeof property.lng === "number" &&
+        Number.isFinite(property.lng)
+    )
+    .map((property) => ({
+      lat: property.lat!,
+      lng: property.lng!,
+    }));
+}
+
+/**
+ * 매물 좌표들의 평균 중심점을 구한다.
+ * 좌표가 있는 매물이 없으면 fallbackCenter를 반환한다.
+ */
+export function getPropertiesCenter(
+  properties: PropertyCardView[],
+  fallbackCenter: MapCenter
+): MapCenter {
+  const positions = getValidPropertyPositions(properties);
+
+  if (positions.length === 0) {
+    return fallbackCenter;
+  }
+
+  const sum = positions.reduce(
+    (acc, position) => ({
+      lat: acc.lat + position.lat,
+      lng: acc.lng + position.lng,
+    }),
+    { lat: 0, lng: 0 }
+  );
+
+  return {
+    lat: sum.lat / positions.length,
+    lng: sum.lng / positions.length,
+  };
+}
+
+/**
+ * 매물 분포 범위에 따라 지도 zoom을 대략 조절한다.
+ * 숫자가 클수록 더 확대된다.
+ */
+export function getPropertyViewportZoom(
+  properties: PropertyCardView[],
+  fallbackZoom = 17
+): number {
+  const positions = getValidPropertyPositions(properties);
+
+  if (positions.length === 0) return fallbackZoom;
+  if (positions.length === 1) return 17;
+
+  const lats = positions.map((position) => position.lat);
+  const lngs = positions.map((position) => position.lng);
+
+  const latSpan = Math.max(...lats) - Math.min(...lats);
+  const lngSpan = Math.max(...lngs) - Math.min(...lngs);
+  const maxSpan = Math.max(latSpan, lngSpan);
+
+  if (maxSpan > 0.03) return 13;
+  if (maxSpan > 0.015) return 14;
+  if (maxSpan > 0.007) return 15;
+  if (maxSpan > 0.003) return 16;
+  return 17;
+}
+
 export function clearMarkers(
   markersRef: MutableRefObject<TmapMarker[]>,
   label = "마커"
@@ -126,15 +201,19 @@ export function loadPropertyMarkers({
   const tmap = window.Tmapv2;
   if (!tmap || !map) return;
 
-  // 기존 매물 마커는 항상 먼저 제거
   clearMarkers(markersRef, "매물 마커");
 
-  // toggle off 상태면 제거만 하고 새로 만들지 않음
   if (!enabled) return;
 
   properties.forEach((property) => {
-    // 좌표가 없는 매물은 지도에 표시할 수 없으므로 건너뛴다.
-    if (property.lat == null || property.lng == null) return;
+    if (
+      typeof property.lat !== "number" ||
+      !Number.isFinite(property.lat) ||
+      typeof property.lng !== "number" ||
+      !Number.isFinite(property.lng)
+    ) {
+      return;
+    }
 
     const marker = new tmap.Marker({
       position: new tmap.LatLng(property.lat, property.lng),
