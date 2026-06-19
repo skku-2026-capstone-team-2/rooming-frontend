@@ -45,34 +45,36 @@ export async function drawPedestrianRoute({
   }
 
   try {
+    const body: Record<string, unknown> = {
+      startX: from.lng,
+      startY: from.lat,
+      endX: to.lng,
+      endY: to.lat,
+      startName: from.name || "출발지",
+      endName: to.name || "도착지",
+      reqCoordType: "WGS84GEO",
+      resCoordType: "WGS84GEO",
+      searchOption: "0",
+      sort: "index",
+    };
+
     const response = await fetch(
-      "https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1",
+      `https://apis.openapi.sk.com/tmap/routes/pedestrian?version=1&appKey=${appKey}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          appKey,
         },
-        body: JSON.stringify({
-          startX: from.lng,
-          startY: from.lat,
-          endX: to.lng,
-          endY: to.lat,
-          startName: from.name,
-          endName: to.name,
-          reqCoordType: "WGS84GEO",
-          resCoordType: "WGS84GEO",
-          searchOption: "0",
-          sort: "index",
-        }),
+        body: JSON.stringify(body),
       }
     );
 
+    const data = (await response.json()) as PedestrianRouteResponse;
+
     if (!response.ok) {
+      console.error("보행자 경로 API 오류 응답:", data);
       throw new Error(`보행자 경로 API 실패: ${response.status}`);
     }
-
-    const data = (await response.json()) as PedestrianRouteResponse;
 
     const path: TmapLatLng[] = [];
 

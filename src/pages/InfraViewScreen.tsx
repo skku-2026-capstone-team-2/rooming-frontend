@@ -13,6 +13,7 @@ import {
 import {
   useRecommendationRoute,
   useRecommendationSearch,
+  useFavorites,
 } from "../hooks/queries/recommendationQueries";
 import { loadSearchRequest } from "../utils/recommendationSearch";
 import {
@@ -32,6 +33,7 @@ import {
 import { createSchoolMarkerHTML } from "../utils/createSchoolMarkerHTML";
 import { drawDistanceLine } from "../utils/drawDistanceLine";
 import { drawRecommendationRoute } from "../utils/drawRecommendationRoute";
+import { drawPedestrianRoute } from "../utils/drawPedestrianRoute";
 import type { InfrastructureCategory } from "../types";
 import CenteredMessage from "../components/CenteredMessage";
 import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
@@ -97,9 +99,16 @@ export default function InfraViewScreen() {
   // 키로 React Query 캐시를 공유한다. (별도 전역 상태 없음)
   const request = useMemo(() => loadSearchRequest(), []);
   const { data, isPending, isError } = useRecommendationSearch(request);
+  const { data: favoriteData } = useFavorites();
   const { data: propertyList } = usePropertyList(request != null);
   const { data: targetPlaceData } = useTargetPlaces(request != null);
-  const results = useMemo(() => data?.results ?? [], [data]);
+  const results = useMemo(
+    () => [
+      ...(data?.results ?? []),
+      ...(favoriteData?.results ?? []),
+    ],
+    [data, favoriteData]
+  );
   const propertyById = useMemo(
     () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
     [propertyList]
@@ -125,8 +134,8 @@ export default function InfraViewScreen() {
   const selectedResult = useMemo(() => {
     if (results.length === 0) return null;
     return (
-      results.find((r) => r.recommendationId === recommendationIdParam) ??
       results.find((r) => String(r.propertyId) === propertyIdParam) ??
+      results.find((r) => r.recommendationId === recommendationIdParam) ??
       results[0]
     );
   }, [results, recommendationIdParam, propertyIdParam]);
@@ -257,10 +266,14 @@ export default function InfraViewScreen() {
         });
 
         // 추천 응답의 저장된 경로 geometry를 그린다.
-        const drawnPoints = routeData
+        const routeResult = routeData
           ? drawRecommendationRoute({
               map,
               path: routeData.path,
+              propertyLat,
+              propertyLng,
+              destinationLat: routePlacePosition.lat,
+              destinationLng: routePlacePosition.lng,
               colorByType: {
                 WALK: getThemeColor("--token-color-purple-700"),
                 BUS: getThemeColor("--token-color-infra-bus"),
@@ -268,10 +281,28 @@ export default function InfraViewScreen() {
               },
               defaultColor: getThemeColor("--token-color-purple-700"),
             })
-          : 0;
+          : { drawnPoints: 0, emptySegments: [] };
 
-        // geometry가 없으면(응답 누락 등) 매물 ↔ 목적지 직선으로 fallback.
-        if (drawnPoints === 0) {
+        // 비어있는 각 도보 구간을 Tmap 도보 경로 API로 보강한다.
+        for (const segment of routeResult.emptySegments) {
+          await drawPedestrianRoute({
+            map,
+            from: {
+              lat: segment.startLat,
+              lng: segment.startLng,
+              name: "",
+            },
+            to: {
+              lat: segment.endLat,
+              lng: segment.endLng,
+              name: "",
+            },
+            strokeColor: getThemeColor("--token-color-purple-700"),
+          });
+        }
+
+        // 경로가 전혀 없으면 직선으로 fallback.
+        if (routeResult.drawnPoints === 0 && routeResult.emptySegments.length === 0) {
           drawDistanceLine({
             map,
             from: { lat: propertyLat, lng: propertyLng },
@@ -313,10 +344,7 @@ export default function InfraViewScreen() {
     selectedResult,
     routeData,
     infraMarkers,
-    card?.title,
-    card?.priceLabel,
-    card?.lat,
-    card?.lng,
+    card,
     routePlaceLabel,
     routePlacePosition.lat,
     routePlacePosition.lng,

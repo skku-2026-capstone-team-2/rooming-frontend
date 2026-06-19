@@ -16,6 +16,24 @@ type DrawRecommendationRouteParams = {
   /** 구간 유형별 폴리라인 색. 미지정 유형은 기본색. */
   colorByType?: Partial<Record<RouteSubPathType, string>>;
   defaultColor?: string;
+  /** 시작점(매물) 좌표 - 비어있는 도보 구간 계산용 */
+  propertyLat?: number;
+  propertyLng?: number;
+  /** 끝점(목적지) 좌표 - 비어있는 도보 구간 계산용 */
+  destinationLat?: number;
+  destinationLng?: number;
+};
+
+type EmptySegment = {
+  startLat: number;
+  startLng: number;
+  endLat: number;
+  endLng: number;
+};
+
+type DrawRecommendationRouteResult = {
+  drawnPoints: number;
+  emptySegments: EmptySegment[];
 };
 
 const SUBPATH_TYPE_LABEL: Record<RouteSubPathType, string> = {
@@ -26,42 +44,75 @@ const SUBPATH_TYPE_LABEL: Record<RouteSubPathType, string> = {
 };
 
 /**
+ * 두 좌표 간 비교용 거리(제곱). 위도에 따른 경도 축소를 반영하므로
+ * 실제 미터는 아니지만 후보 단말 중 더 가까운 쪽을 고르는 데 충분하다.
+ */
+function distanceSq(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const latDiff = lat1 - lat2;
+  const lngDiff = (lng1 - lng2) * Math.cos((lat1 * Math.PI) / 180);
+  return latDiff * latDiff + lngDiff * lngDiff;
+}
+
+/**
  * 경로 geometry를 그린다.
- * @returns 그린 좌표 총 개수 (0이면 표시할 geometry가 없음)
+ * @returns drawnPoints > 0이면 그려짐, emptySegments에 좌표 빈 구간 정보
  */
 export function drawRecommendationRoute({
   map,
   path,
   colorByType,
   defaultColor = "#6B67BB",
-}: DrawRecommendationRouteParams): number {
+  propertyLat,
+  propertyLng,
+  destinationLat,
+  destinationLng,
+}: DrawRecommendationRouteParams): DrawRecommendationRouteResult {
   const tmap = window.Tmapv2;
-  if (!map || !tmap) return 0;
+  if (!map || !tmap) return { drawnPoints: 0, emptySegments: [] };
 
   let drawnPointCount = 0;
+  const emptySegments: EmptySegment[] = [];
 
-  path.pathList.forEach((subPath) => {
+  // 각 pathList 구간의 좌표 범위 미리 계산
+  const segmentBounds = path.pathList.map((subPath, index) => {
     const points = subPath.points ?? [];
-    if (points.length < 2) return;
+    let startLat: number | null = null;
+    let startLng: number | null = null;
+    let endLat: number | null = null;
+    let endLng: number | null = null;
 
-    const latLngs = points.map(
+    if (points.length > 0) {
+      startLat = points[0].latitude;
+      startLng = points[0].longitude;
+      endLat = points[points.length - 1].latitude;
+      endLng = points[points.length - 1].longitude;
+    }
+
+    return { index, startLat, startLng, endLat, endLng, points, subPath };
+  });
+
+  // points가 있는 구간들을 그린다.
+  for (const segment of segmentBounds) {
+    if (segment.points.length < 2) continue;
+
+    const latLngs = segment.points.map(
       (point) => new tmap.LatLng(point.latitude, point.longitude)
     );
-    const strokeColor = colorByType?.[subPath.type] ?? defaultColor;
+    const strokeColor = colorByType?.[segment.subPath.type] ?? defaultColor;
 
     const polyline = new tmap.Polyline({
       path: latLngs,
       strokeColor,
       strokeWeight: 5,
       strokeOpacity: 0.9,
-      // 도보 구간은 점선으로 구분
-      strokeStyle: subPath.type === "WALK" ? "dash" : "solid",
+      strokeStyle: segment.subPath.type === "WALK" ? "dash" : "solid",
       map,
     });
 
     drawnPointCount += latLngs.length;
 
-    const label = `${SUBPATH_TYPE_LABEL[subPath.type]} ${subPath.time}분`;
+    // 라벨 마커 추가
+    const label = `${SUBPATH_TYPE_LABEL[segment.subPath.type]} ${segment.subPath.time}분`;
     const middlePosition = latLngs[Math.floor(latLngs.length / 2)];
 
     let labelMarker: TmapMarker | null = null;
@@ -82,7 +133,95 @@ export function drawRecommendationRoute({
       labelMarker.setMap(null);
       labelMarker = null;
     });
-  });
+  }
 
-  return drawnPointCount;
+  // 경계 도보 구간의 빈 쪽을 채울 단말 후보(매물/목적지).
+  const hasProperty = propertyLat != null && propertyLng != null;
+  const hasDestination = destinationLat != null && destinationLng != null;
+
+  // anchor(인접 지하철역 좌표)와 더 가까운 단말을 고른다.
+  // pathList 순서가 실제 이동 방향과 다를 수 있으므로 순서가 아닌 위치로 판단한다.
+  const pickClosestTerminal = (lat: number, lng: number) => {
+    const candidates: { lat: number; lng: number }[] = [];
+    if (hasProperty) candidates.push({ lat: propertyLat!, lng: propertyLng! });
+    if (hasDestination) {
+      candidates.push({ lat: destinationLat!, lng: destinationLng! });
+    }
+    if (candidates.length === 0) return null;
+
+    return candidates.reduce((closest, candidate) =>
+      distanceSq(lat, lng, candidate.lat, candidate.lng) <
+      distanceSq(lat, lng, closest.lat, closest.lng)
+        ? candidate
+        : closest
+    );
+  };
+
+  // points가 없는 구간들을 emptySegments로 기록
+  for (let i = 0; i < segmentBounds.length; i++) {
+    const current = segmentBounds[i];
+    if (current.points.length >= 2) continue; // points가 있으면 스킵
+
+    // 이전 구간(transit)의 끝점
+    let startLat: number | null = null;
+    let startLng: number | null = null;
+
+    for (let j = i - 1; j >= 0; j--) {
+      const prev = segmentBounds[j];
+      if (prev.endLat != null && prev.endLng != null) {
+        startLat = prev.endLat;
+        startLng = prev.endLng;
+        break;
+      }
+    }
+
+    // 다음 구간(transit)의 시작점
+    let endLat: number | null = null;
+    let endLng: number | null = null;
+
+    for (let j = i + 1; j < segmentBounds.length; j++) {
+      const next = segmentBounds[j];
+      if (next.startLat != null && next.startLng != null) {
+        endLat = next.startLat;
+        endLng = next.startLng;
+        break;
+      }
+    }
+
+    const startOpen = startLat == null || startLng == null;
+    const endOpen = endLat == null || endLng == null;
+
+    if (startOpen && endOpen) {
+      // 경유 구간이 전혀 없는 순수 도보: 매물 → 목적지.
+      if (hasProperty) {
+        startLat = propertyLat!;
+        startLng = propertyLng!;
+      }
+      if (hasDestination) {
+        endLat = destinationLat!;
+        endLng = destinationLng!;
+      }
+    } else if (startOpen && endLat != null && endLng != null) {
+      // 선행 경계 구간: 빈 시작점에 anchor(다음 역)와 가까운 단말을 배치.
+      const terminal = pickClosestTerminal(endLat, endLng);
+      if (terminal) {
+        startLat = terminal.lat;
+        startLng = terminal.lng;
+      }
+    } else if (endOpen && startLat != null && startLng != null) {
+      // 후행 경계 구간: 빈 끝점에 anchor(이전 역)와 가까운 단말을 배치.
+      const terminal = pickClosestTerminal(startLat, startLng);
+      if (terminal) {
+        endLat = terminal.lat;
+        endLng = terminal.lng;
+      }
+    }
+
+    // 유효한 시작/끝점이 있으면 emptySegments에 추가
+    if (startLat != null && startLng != null && endLat != null && endLng != null) {
+      emptySegments.push({ startLat, startLng, endLat, endLng });
+    }
+  }
+
+  return { drawnPoints: drawnPointCount, emptySegments };
 }
