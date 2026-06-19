@@ -38,12 +38,6 @@ import type { InfrastructureCategory } from "../types";
 import CenteredMessage from "../components/CenteredMessage";
 import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 
-const SCHOOL_PLACE = {
-  label: "성균관대 정문",
-  lat: 37.5849,
-  lng: 126.9953,
-};
-
 /** 백엔드 인프라 category(12종) → 마커/아이콘 표현 타입(5종) 매핑. */
 const MARKER_TYPE_BY_CATEGORY: Record<InfrastructureCategory, InfraMarkerType> = {
   CONVENIENT_STORE: "store",
@@ -171,14 +165,13 @@ export default function InfraViewScreen() {
       ),
     [selectedResult, recommendationMapperOptions]
   );
-  const routePlaceLabel = routePlace?.placeName ?? SCHOOL_PLACE.label;
-  const routePlacePosition = useMemo(
-    () => ({
-      lat: routePlace?.location?.latitude ?? SCHOOL_PLACE.lat,
-      lng: routePlace?.location?.longitude ?? SCHOOL_PLACE.lng,
-    }),
-    [routePlace]
-  );
+  const routePlaceLabel = routePlace?.placeName ?? null;
+  const routePlacePosition = useMemo(() => {
+    const lat = routePlace?.location?.latitude;
+    const lng = routePlace?.location?.longitude;
+    if (lat == null || lng == null) return null;
+    return { lat, lng };
+  }, [routePlace]);
   const routePlaceDurationLabel = formatRoutePlaceDurationLabel(
     selectedResult?.firstTargetPlaceRoute ?? null,
     routePlaceLabel
@@ -234,8 +227,9 @@ export default function InfraViewScreen() {
           themeStyles.getPropertyValue(token).trim();
 
         // 매물 좌표가 없으면 목적지 기준으로 지도를 띄운다(fallback).
-        const propertyLat = card?.lat ?? routePlacePosition.lat;
-        const propertyLng = card?.lng ?? routePlacePosition.lng;
+        const propertyLat = card?.lat ?? routePlacePosition?.lat;
+        const propertyLng = card?.lng ?? routePlacePosition?.lng;
+        if (propertyLat == null || propertyLng == null) return;
 
         mapContainer.innerHTML = "";
 
@@ -246,15 +240,17 @@ export default function InfraViewScreen() {
           zoom: 17,
         });
 
-        // 목적지 마커
-        new tmap.Marker({
-          position: new tmap.LatLng(
-            routePlacePosition.lat,
-            routePlacePosition.lng
-          ),
-          map,
-          iconHTML: createSchoolMarkerHTML(routePlaceLabel),
-        });
+        // 목적지 마커 (목적지 좌표가 있을 때만)
+        if (routePlacePosition) {
+          new tmap.Marker({
+            position: new tmap.LatLng(
+              routePlacePosition.lat,
+              routePlacePosition.lng
+            ),
+            map,
+            iconHTML: createSchoolMarkerHTML(routePlaceLabel ?? "목적지"),
+          });
+        }
 
         // 선택 매물 마커
         new tmap.Marker({
@@ -272,8 +268,8 @@ export default function InfraViewScreen() {
               path: routeData.path,
               propertyLat,
               propertyLng,
-              destinationLat: routePlacePosition.lat,
-              destinationLng: routePlacePosition.lng,
+              destinationLat: routePlacePosition?.lat,
+              destinationLng: routePlacePosition?.lng,
               colorByType: {
                 WALK: getThemeColor("--token-color-purple-700"),
                 BUS: getThemeColor("--token-color-infra-bus"),
@@ -301,8 +297,12 @@ export default function InfraViewScreen() {
           });
         }
 
-        // 경로가 전혀 없으면 직선으로 fallback.
-        if (routeResult.drawnPoints === 0 && routeResult.emptySegments.length === 0) {
+        // 경로가 전혀 없으면 직선으로 fallback. (목적지가 있을 때만)
+        if (
+          routePlacePosition &&
+          routeResult.drawnPoints === 0 &&
+          routeResult.emptySegments.length === 0
+        ) {
           drawDistanceLine({
             map,
             from: { lat: propertyLat, lng: propertyLng },
@@ -346,8 +346,8 @@ export default function InfraViewScreen() {
     infraMarkers,
     card,
     routePlaceLabel,
-    routePlacePosition.lat,
-    routePlacePosition.lng,
+    routePlacePosition?.lat,
+    routePlacePosition?.lng,
   ]);
 
   // 검색 전 / 로딩 / 실패 / 결과 없음 상태 fallback.
@@ -521,14 +521,16 @@ export default function InfraViewScreen() {
           </span>
         </div>
 
-        {/* 학교까지 거리 (추천 요약 경로) */}
-        <div className="mt-3 flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-100 px-4 py-3 text-sm text-purple-800">
-          <School className="h-4 w-4 shrink-0" />
-          <span className="line-clamp-1">
-            {routePlaceDurationLabel ??
-              `${routePlaceLabel}까지 ${routeDurationLabel ?? "경로 정보 없음"}`}
-          </span>
-        </div>
+        {/* 학교까지 거리 (추천 요약 경로) - 목적지 정보가 있을 때만 */}
+        {(routePlaceDurationLabel || routePlaceLabel) && (
+          <div className="mt-3 flex items-center gap-2 rounded-2xl border border-purple-200 bg-purple-100 px-4 py-3 text-sm text-purple-800">
+            <School className="h-4 w-4 shrink-0" />
+            <span className="line-clamp-1">
+              {routePlaceDurationLabel ??
+                `${routePlaceLabel}까지 ${routeDurationLabel ?? "경로 정보 없음"}`}
+            </span>
+          </div>
+        )}
       </section>
     </div>
   );

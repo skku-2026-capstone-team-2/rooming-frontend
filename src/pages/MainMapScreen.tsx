@@ -186,13 +186,20 @@ export default function MainMapScreen() {
   // 찜(MY) 매물은 favorites 쿼리를 단일 출처로 사용한다.
   // (토글 mutation 연동은 #30)
   const { data: favoriteData } = useFavorites();
-  const favoriteProperties = useMemo<PropertyCardView[]>(
-    () =>
-      (favoriteData?.results ?? []).map((result) =>
+  const favoriteProperties = useMemo<PropertyCardView[]>(() => {
+    // 서버 응답에 동일 propertyId가 중복으로 내려오는 경우가 있어
+    // 먼저 나온 항목만 남기고 한 번씩만 표시한다.
+    const seen = new Set<PropertyCardView["propertyId"]>();
+    return (favoriteData?.results ?? [])
+      .map((result) =>
         mapRecommendationToCardView(result, recommendationMapperOptions)
-      ),
-    [favoriteData, recommendationMapperOptions]
-  );
+      )
+      .filter((property) => {
+        if (seen.has(property.propertyId)) return false;
+        seen.add(property.propertyId);
+        return true;
+      });
+  }, [favoriteData, recommendationMapperOptions]);
   const favoritePropertiesRef = useRef<PropertyCardView[]>([]);
 
   // 마커 갱신 등 imperative 코드에서 최신 목록을 읽기 위한 resolver.
