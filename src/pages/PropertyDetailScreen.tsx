@@ -7,6 +7,7 @@ import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 
 import { ApiError } from "../api";
 import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
+import { mapInfrastructureToMarkerView } from "../api/mappers/recommendationMapper";
 import {
   useFavorites,
   useRecommendationSearch,
@@ -22,6 +23,23 @@ import {
   findRecommendationForProperty,
   parseRecommendationId,
 } from "../utils/recommendationSelection";
+import type { InfrastructureCategory } from "../types";
+
+/** 백엔드 인프라 category(12종) → 한글 라벨. (InfraViewScreen과 동일 표기) */
+const INFRA_CATEGORY_LABEL: Record<InfrastructureCategory, string> = {
+  CONVENIENT_STORE: "편의점",
+  MART: "마트",
+  PHARMACY: "약국",
+  HOSPITAL: "병원",
+  LAUNDRY: "세탁소",
+  CAFE: "카페",
+  SUBWAY: "지하철역",
+  BANK: "은행",
+  GYM: "헬스장",
+  KARAOKE: "노래방",
+  PC_ROOM: "PC방",
+  ETC: "기타",
+};
 
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
@@ -110,6 +128,16 @@ export default function PropertyDetailScreen() {
   );
   const recommendationForProperty =
     primaryRecommendationForProperty ?? savedRecommendationForProperty;
+
+  // 주요 인프라는 추천 응답(infrastructures)에서 가져온다. 인프라 보기 화면과
+  // 동일한 데이터 소스·mapper를 사용해 표시 정보를 일치시킨다.
+  const infraItems = useMemo(
+    () =>
+      (recommendationForProperty?.infrastructures ?? []).map(
+        mapInfrastructureToMarkerView
+      ),
+    [recommendationForProperty]
+  );
 
   const recommendationIdForMy =
     recommendationForProperty?.recommendationId ?? null;
@@ -281,18 +309,34 @@ export default function PropertyDetailScreen() {
               추천 컨텍스트 연동은 후속 이슈(#22 등)에서 추가한다.
             */}
 
-            {/* TODO(#23): 주요 인프라는 실제 infra API 연동 전까지 placeholder */}
+            {/* 주요 인프라: 추천 응답 기반 실제 주변 인프라 (인프라 보기 화면과 동일) */}
             <div className="rounded-2xl border border-accent-purple-border bg-card p-6 shadow-sm">
               <h3 className="mb-4 text-lg font-bold text-accent-purple">
                 주요 인프라
               </h3>
 
-              <div className="space-y-2">
-                <DistanceItem place="성균관대 정문" distance="도보 12분" />
-                <DistanceItem place="헬스장" distance="도보 3분" />
-                <DistanceItem place="편의점" distance="도보 2분" />
-                <DistanceItem place="카페" distance="도보 5분" />
-              </div>
+              {isRecommendationLookupPending ? (
+                <p className="rounded-xl border border-dashed border-accent-purple-lighter px-4 py-6 text-center text-sm text-text-tertiary">
+                  주변 인프라 정보를 불러오는 중이에요.
+                </p>
+              ) : infraItems.length === 0 ? (
+                <p className="rounded-xl border border-dashed border-accent-purple-lighter px-4 py-6 text-center text-sm text-text-tertiary">
+                  {recommendationForProperty
+                    ? "주변 인프라 정보가 없어요."
+                    : "추천 기록이 있는 매물만 주변 인프라를 볼 수 있어요."}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {infraItems.map((infra) => (
+                    <InfraItem
+                      key={infra.infrastructureId}
+                      name={infra.name}
+                      category={INFRA_CATEGORY_LABEL[infra.category]}
+                      walkingLabel={infra.walkingLabel}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -405,11 +449,28 @@ export default function PropertyDetailScreen() {
   );
 }
 
-function DistanceItem({ place, distance }: { place: string; distance: string }) {
+function InfraItem({
+  name,
+  category,
+  walkingLabel,
+}: {
+  name: string;
+  category: string;
+  walkingLabel: string | null;
+}) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-accent-purple-lighter bg-accent-purple-bg px-4 py-3">
-      <span className="text-sm text-text-secondary">{place}</span>
-      <span className="text-sm font-semibold text-accent-purple">{distance}</span>
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-accent-purple-lighter bg-accent-purple-bg px-4 py-3">
+      <div className="min-w-0">
+        <div className="truncate text-sm font-semibold text-text-secondary">
+          {name}
+        </div>
+        <div className="text-xs text-text-tertiary">{category}</div>
+      </div>
+      {walkingLabel && (
+        <span className="shrink-0 text-sm font-semibold text-accent-purple">
+          {walkingLabel}
+        </span>
+      )}
     </div>
   );
 }
