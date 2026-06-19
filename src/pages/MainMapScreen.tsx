@@ -23,16 +23,8 @@ import {
   loadSchoolMarker,
 } from "../utils/tmapMarkerUtils";
 import type { ListMode } from "../utils/propertyListItems";
-import { loadSearchRequest } from "../utils/recommendationSearch";
-import {
-  addSearchedProperties,
-  useSearchedProperties,
-} from "../utils/searchedProperties";
-import {
-  useFavorites,
-  useRecommendationSearch,
-} from "../hooks/queries/recommendationQueries";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
+import { useRecommendationManagement } from "../hooks/useRecommendationManagement";
 import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
 import type { PropertyCardView, TargetPlaceResponseItem } from "../types";
 
@@ -119,41 +111,27 @@ export default function MainMapScreen() {
 
   const setSearchParamsRef = useRef(setSearchParams);
   const targetPlaceMarkerRef = useRef(DEFAULT_TARGET_PLACE);
-  const searchRequest = useMemo(() => loadSearchRequest(), []);
-  const searchedProperties = useSearchedProperties();
 
-  // view 없음(null) = 검색 전 빈 상태, "recommended"/"favorites" = 해당 목록 노출.
-  // (검색 완료 여부를 sessionStorage 플래그 대신 URL로 표현 → 새로고침/딥링크 안전)
+  // 추천/MY(찜) 매물은 마이페이지와 동일한 관리 훅(서버 저장 추천/찜 목록 + 토글)을 공유한다.
+  const {
+    recommendations,
+    favorites,
+    mapperOptions: recommendationMapperOptions,
+  } = useRecommendationManagement();
+
+  // view 없음(null) = 추천 모드 기본. 추천/MY 토글 상태를 URL로 유지한다.
   const view = getValidView(searchParams.get("view"));
-  const hasSessionSearchResult =
-    searchRequest != null || searchedProperties.length > 0;
-  const hasSearchResult = view !== null || hasSessionSearchResult;
   const listMode: ListMode = view ?? "recommended";
   const listModeRef = useRef<ListMode>(listMode);
-  const hasSearchResultRef = useRef(hasSearchResult);
 
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
 
-  // 지도 "추천" 목록은 AI 검색 결과(mock recommendation API)에서 가져온다.
-  // 저장된 검색 요청을 키로 추천 결과 화면과 React Query 캐시를 공유한다.
-  const { data: recommendationData } = useRecommendationSearch(searchRequest);
   const {
     data: targetPlaceData,
     isPending: isTargetPlacesPending,
   } = useTargetPlaces();
   const shouldWaitForTargetPlaces = isTargetPlacesPending && !targetPlaceData;
-
-  const targetPlaceById = useMemo(
-    () =>
-      new Map(
-        (targetPlaceData?.targetPlaces ?? []).map((place) => [
-          place.targetPlaceId,
-          place,
-        ])
-      ),
-    [targetPlaceData]
-  );
 
   const mainTargetPlaceMarker = useMemo(
     () =>
@@ -163,36 +141,10 @@ export default function MainMapScreen() {
     [targetPlaceData]
   );
 
-  const recommendationMapperOptions = useMemo(
-    () => ({ targetPlaceById }),
-    [targetPlaceById]
-  );
-
-  const recommendedProperties = useMemo<PropertyCardView[]>(
-    () =>
-      (recommendationData?.results ?? []).map((result) =>
-        mapRecommendationToCardView(result, recommendationMapperOptions)
-      ),
-    [recommendationData, recommendationMapperOptions]
-  );
-  const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
-
-  // 이번 세션에서 검색된 추천 매물을 누적한다(propertyId 기준 중복 제거).
-  // 사용자가 여러 번 검색해도 그동안 본 매물들을 함께 볼 수 있다.
-  useEffect(() => {
-    if (recommendedProperties.length > 0) {
-      addSearchedProperties(recommendedProperties);
-    }
-  }, [recommendedProperties]);
-
-  // 찜(MY) 매물은 favorites 쿼리를 단일 출처로 사용한다.
-  // (토글 mutation 연동은 #30)
-  const { data: favoriteData } = useFavorites();
-  const favoriteProperties = useMemo<PropertyCardView[]>(() => {
-    // 서버 응답에 동일 propertyId가 중복으로 내려오는 경우가 있어
-    // 먼저 나온 항목만 남기고 한 번씩만 표시한다.
+  const recommendedProperties = useMemo<PropertyCardView[]>(() => {
+    // 동일 매물이 여러 조건에서 추천될 수 있어 propertyId 기준으로 한 번만 표시한다.
     const seen = new Set<PropertyCardView["propertyId"]>();
-    return (favoriteData?.results ?? [])
+    return recommendations
       .map((result) =>
         mapRecommendationToCardView(result, recommendationMapperOptions)
       )
@@ -201,8 +153,29 @@ export default function MainMapScreen() {
         seen.add(property.propertyId);
         return true;
       });
-  }, [favoriteData, recommendationMapperOptions]);
+  }, [recommendations, recommendationMapperOptions]);
+  const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
+
+  const favoriteProperties = useMemo<PropertyCardView[]>(() => {
+    // 서버 응답에 동일 propertyId가 중복으로 내려오는 경우가 있어
+    // 먼저 나온 항목만 남기고 한 번씩만 표시한다.
+    const seen = new Set<PropertyCardView["propertyId"]>();
+    return favorites
+      .map((result) =>
+        mapRecommendationToCardView(result, recommendationMapperOptions)
+      )
+      .filter((property) => {
+        if (seen.has(property.propertyId)) return false;
+        seen.add(property.propertyId);
+        return true;
+      });
+  }, [favorites, recommendationMapperOptions]);
   const favoritePropertiesRef = useRef<PropertyCardView[]>([]);
+
+  // 추천/MY 중 하나라도 데이터가 있으면 목록·마커를 노출한다.
+  const hasSearchResult =
+    recommendedProperties.length > 0 || favoriteProperties.length > 0;
+  const hasSearchResultRef = useRef(hasSearchResult);
 
   // 마커 갱신 등 imperative 코드에서 최신 목록을 읽기 위한 resolver.
   const resolveProperties = useCallback(
@@ -215,8 +188,8 @@ export default function MainMapScreen() {
 
   const currentProperties = useMemo(
     () =>
-      listMode === "favorites" ? favoriteProperties : searchedProperties,
-    [listMode, favoriteProperties, searchedProperties]
+      listMode === "favorites" ? favoriteProperties : recommendedProperties,
+    [listMode, favoriteProperties, recommendedProperties]
   );
 
   const visibleProperties = useMemo(() => {
@@ -277,10 +250,10 @@ export default function MainMapScreen() {
     hasSearchResultRef.current = hasSearchResult;
   }, [hasSearchResult]);
 
-  // imperative 마커 코드가 최신 목록을 읽도록 누적 결과를 ref에 동기화한다.
+  // imperative 마커 코드가 최신 목록을 읽도록 추천 결과를 ref에 동기화한다.
   useEffect(() => {
-    recommendedPropertiesRef.current = searchedProperties;
-  }, [searchedProperties]);
+    recommendedPropertiesRef.current = recommendedProperties;
+  }, [recommendedProperties]);
 
   useEffect(() => {
     favoritePropertiesRef.current = favoriteProperties;

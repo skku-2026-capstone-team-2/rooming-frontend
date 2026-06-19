@@ -18,15 +18,10 @@ import {
   mapRecommendationToCardView,
   type RecommendationCardMapperOptions,
 } from "../api/mappers/recommendationMapper";
-import {
-  useDeleteRecommendation,
-  useFavorites,
-  useRecommendations,
-  useToggleFavorite,
-} from "../hooks/queries/recommendationQueries";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { useSeekerProfile } from "../hooks/queries/userQueries";
 import { useOnboardingDraft } from "../hooks/useOnboardingDraft";
+import { useRecommendationManagement } from "../hooks/useRecommendationManagement";
 import type {
   PlaceCategory,
   RecommendationResult,
@@ -46,54 +41,20 @@ export default function MyPageScreen() {
   const navigate = useNavigate();
   const profileQuery = useSeekerProfile();
   const targetPlacesQuery = useTargetPlaces();
-  const recommendationsQuery = useRecommendations();
-  const favoritesQuery = useFavorites();
-  const toggleFavoriteMutation = useToggleFavorite();
-  const deleteRecommendationMutation = useDeleteRecommendation();
   const { preferences } = useOnboardingDraft();
 
-  const targetPlaceById = useMemo(
-    () =>
-      new Map(
-        (targetPlacesQuery.data?.targetPlaces ?? []).map((place) => [
-          place.targetPlaceId,
-          place,
-        ])
-      ),
-    [targetPlacesQuery.data]
-  );
-  const recommendationMapperOptions = useMemo<RecommendationCardMapperOptions>(
-    () => ({ targetPlaceById }),
-    [targetPlaceById]
-  );
-
-  const favoriteRecommendationIds = useMemo(
-    () =>
-      new Set(
-        (favoritesQuery.data?.results ?? []).map(
-          (recommendation) => recommendation.recommendationId
-        )
-      ),
-    [favoritesQuery.data]
-  );
-
-  const allRecommendations = recommendationsQuery.data?.results ?? [];
-  const favoriteRecommendations = favoritesQuery.data?.results ?? [];
-
-  const handleToggleFavorite = (recommendation: RecommendationResult) => {
-    const isFavorite =
-      favoriteRecommendationIds.has(recommendation.recommendationId) ||
-      recommendation.favorite;
-
-    toggleFavoriteMutation.mutate({
-      recommendationId: recommendation.recommendationId,
-      favorite: !isFavorite,
-    });
-  };
-
-  const handleDeleteRecommendation = (recommendationId: number) => {
-    deleteRecommendationMutation.mutate(recommendationId);
-  };
+  const {
+    recommendations: allRecommendations,
+    favorites: favoriteRecommendations,
+    favoriteRecommendationIds,
+    mapperOptions: recommendationMapperOptions,
+    isRecommendationsLoading,
+    isFavoritesLoading,
+    toggleFavorite: handleToggleFavorite,
+    deleteRecommendation: handleDeleteRecommendation,
+    pendingFavoriteId,
+    pendingDeleteId,
+  } = useRecommendationManagement();
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,16 +94,12 @@ export default function MyPageScreen() {
             title="MY 매물"
             description="MY에 저장한 추천 매물을 다시 확인할 수 있어요."
             recommendations={favoriteRecommendations}
-            isLoading={favoritesQuery.isPending}
+            isLoading={isFavoritesLoading}
             emptyText="MY에 저장한 매물이 없어요."
             mapperOptions={recommendationMapperOptions}
             favoriteRecommendationIds={favoriteRecommendationIds}
             isFavoriteSection
-            pendingFavoriteId={
-              toggleFavoriteMutation.isPending
-                ? toggleFavoriteMutation.variables?.recommendationId ?? null
-                : null
-            }
+            pendingFavoriteId={pendingFavoriteId}
             pendingDeleteId={null}
             onToggleFavorite={handleToggleFavorite}
             onDeleteRecommendation={null}
@@ -152,21 +109,13 @@ export default function MyPageScreen() {
             title="모든 추천 기록"
             description="AI 추천으로 저장된 매물 기록이에요."
             recommendations={allRecommendations}
-            isLoading={recommendationsQuery.isPending}
+            isLoading={isRecommendationsLoading}
             emptyText="아직 추천 기록이 없어요."
             mapperOptions={recommendationMapperOptions}
             favoriteRecommendationIds={favoriteRecommendationIds}
             isFavoriteSection={false}
-            pendingFavoriteId={
-              toggleFavoriteMutation.isPending
-                ? toggleFavoriteMutation.variables?.recommendationId ?? null
-                : null
-            }
-            pendingDeleteId={
-              deleteRecommendationMutation.isPending
-                ? deleteRecommendationMutation.variables ?? null
-                : null
-            }
+            pendingFavoriteId={pendingFavoriteId}
+            pendingDeleteId={pendingDeleteId}
             onToggleFavorite={handleToggleFavorite}
             onDeleteRecommendation={handleDeleteRecommendation}
           />
