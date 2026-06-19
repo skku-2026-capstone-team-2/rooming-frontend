@@ -1,5 +1,6 @@
 import {
   createElement,
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -8,16 +9,26 @@ import {
 } from "react";
 import type { ElementType, HTMLAttributes } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Box, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
+import {
+  ArrowLeft,
+  Box,
+  Image as ImageIcon,
+  RotateCw,
+  ZoomIn,
+} from "lucide-react";
 
-import { useProperty, useProperty3D } from "../hooks/queries/propertyQueries";
+import {
+  useProperty,
+  useProperty3D,
+  usePropertyImages,
+} from "../hooks/queries/propertyQueries";
 import {
   formatAreaLabel,
   formatFloorLabel,
   formatRoomTypeLabel,
 } from "../api/mappers/propertyMapper";
 
-type ViewMode = "normal" | "floor";
+type ViewMode = "normal" | "photo";
 type SplineViewerStatus =
   | "script-loading"
   | "scene-loading"
@@ -46,6 +57,15 @@ export default function ThreeDViewScreen() {
   // 공간 정보 패널은 서버 매물 상세에서 가져올 수 있는 값만 표시한다.
   // (천장 높이/공간 구성/가구 배치 등 서버에 없는 항목은 노출하지 않음)
   const { data: detail } = useProperty(propertyId, isValidId);
+
+  // "사진" 보기용 매물 사진. imageOrder 순으로 정렬해 URL 목록으로 변환한다.
+  const { data: imagesData } = usePropertyImages(propertyId, isValidId);
+  const photoUrls = useMemo(() => {
+    const images = imagesData?.images ?? [];
+    return [...images]
+      .sort((a, b) => a.imageOrder - b.imageOrder)
+      .map((image) => image.imageUrl);
+  }, [imagesData]);
   const spaceInfoItems = useMemo(() => {
     if (!detail) return [];
     const items: { label: string; value: string }[] = [];
@@ -66,6 +86,24 @@ export default function ThreeDViewScreen() {
   const hasModel = isValidId && !isError && (model?.available ?? false);
   const isNormalMode = viewMode === "normal";
 
+  // 회전/확대·축소 조작 안내 토스트. 일정 시간 후 자동으로 사라진다.
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  const showToast = useCallback((message: string) => {
+    setToastMessage(message);
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(
+      () => setToastMessage(null),
+      2500
+    );
+  }, []);
+  useEffect(
+    () => () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    },
+    []
+  );
+
   return (
     <div className="relative h-screen w-full bg-green-900">
       <div className="h-full w-full bg-gradient-to-br from-green-900 to-green-900">
@@ -81,11 +119,7 @@ export default function ThreeDViewScreen() {
             />
           )
         ) : (
-          <img
-            src="/images/dummy-floor-plan.png"
-            alt="평면도 뷰어"
-            className="h-full w-full bg-white object-contain"
-          />
+          <PropertyPhotoViewer photoUrls={photoUrls} />
         )}
       </div>
 
@@ -112,10 +146,18 @@ export default function ThreeDViewScreen() {
           </h4>
 
           <div className="space-y-2">
-            <ViewButton Icon={RotateCw} label="회전" />
-            <ViewButton Icon={ZoomIn} label="확대/축소" />
-            <ViewButton Icon={Ruler} label="측정 모드" />
-            <ViewButton Icon={Sun} label="조명 변경" />
+            <ViewButton
+              Icon={RotateCw}
+              label="회전"
+              onClick={() => showToast("마우스로 드래그해 회전할 수 있어요.")}
+            />
+            <ViewButton
+              Icon={ZoomIn}
+              label="확대/축소"
+              onClick={() =>
+                showToast("휠 또는 트랙패드로 확대·축소할 수 있어요.")
+              }
+            />
           </div>
         </div>
       )}
@@ -128,9 +170,9 @@ export default function ThreeDViewScreen() {
         />
 
         <ViewModeToggleButton
-          text="평면도"
-          active={viewMode === "floor"}
-          onClick={() => setViewMode("floor")}
+          text="사진 보기"
+          active={viewMode === "photo"}
+          onClick={() => setViewMode("photo")}
         />
       </div>
 
@@ -142,6 +184,12 @@ export default function ThreeDViewScreen() {
         <ArrowLeft className="h-4 w-4" />
         뒤로가기
       </button>
+
+      {toastMessage && (
+        <div className="pointer-events-none absolute left-1/2 top-6 z-30 -translate-x-1/2 rounded-full border border-green-700 bg-green-900/95 px-5 py-3 text-sm font-semibold text-primary-foreground shadow-xl backdrop-blur-sm">
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }
@@ -161,6 +209,65 @@ function SplineModelViewer({ modelUrl }: { modelUrl: string }) {
       allow="autoplay; fullscreen; xr-spatial-tracking"
       allowFullScreen
     />
+  );
+}
+
+function PropertyPhotoViewer({ photoUrls }: { photoUrls: string[] }) {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // 사진 목록이 바뀌면 선택 인덱스를 안전 범위로 보정한다.
+  const activeIndex = Math.min(selectedIndex, Math.max(photoUrls.length - 1, 0));
+
+  if (photoUrls.length === 0) {
+    return (
+      <div className="flex h-full w-full items-center justify-center px-6">
+        <div className="w-full max-w-sm rounded-3xl border border-green-800 bg-green-900/95 p-8 text-center shadow-xl backdrop-blur-sm">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-green-800 bg-green-900">
+            <ImageIcon className="h-7 w-7 text-green-300" />
+          </div>
+          <h2 className="text-lg font-bold text-primary-foreground">
+            등록된 사진이 없어요
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-text-muted">
+            이 매물은 아직 등록된 사진이 없어요.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full w-full flex-col bg-green-900">
+      <div className="flex flex-1 items-center justify-center overflow-hidden p-6">
+        <img
+          src={photoUrls[activeIndex]}
+          alt={`매물 사진 ${activeIndex + 1}`}
+          className="max-h-full max-w-full rounded-2xl object-contain shadow-xl"
+        />
+      </div>
+
+      {photoUrls.length > 1 && (
+        <div className="flex justify-center gap-2 overflow-x-auto px-6 pb-6">
+          {photoUrls.map((url, index) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => setSelectedIndex(index)}
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${index === activeIndex
+                ? "border-background"
+                : "border-green-800 opacity-70 hover:opacity-100"
+                }`}
+            >
+              <img
+                src={url}
+                alt={`매물 사진 썸네일 ${index + 1}`}
+                className="h-full w-full object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -356,13 +463,16 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 function ViewButton({
   Icon,
   label,
+  onClick,
 }: {
   Icon: ElementType;
   label: string;
+  onClick?: () => void;
 }) {
   return (
     <button
       type="button"
+      onClick={onClick}
       className="flex w-full items-center gap-2 rounded-xl border border-green-500/20 bg-green-900 px-4 py-2 text-sm font-medium text-green-300 transition hover:bg-green-800"
     >
       <Icon className="h-4 w-4" />
@@ -385,8 +495,8 @@ function ViewModeToggleButton({
       type="button"
       onClick={onClick}
       className={`rounded-full px-5 py-2 text-sm font-semibold transition-all ${active
-          ? "bg-background text-green-900 shadow-sm"
-          : "bg-transparent text-text-muted hover:bg-green-800 hover:text-primary-foreground"
+        ? "bg-background text-green-900 shadow-sm"
+        : "bg-transparent text-text-muted hover:bg-green-800 hover:text-primary-foreground"
         }`}
     >
       {text}
