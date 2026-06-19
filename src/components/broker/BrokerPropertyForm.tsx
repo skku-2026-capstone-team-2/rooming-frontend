@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { CheckCircle2, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, Plus, X } from "lucide-react";
 
 import { useCreateBrokerProperty } from "../../hooks/queries/brokerQueries";
 import { useUploadPropertyImages } from "../../hooks/queries/propertyQueries";
@@ -13,8 +13,9 @@ type BrokerPropertyFormProps = {
 /**
  * 중개사 매물 등록 폼.
  *
- * - `POST /api/v1/user/broker/me/properties` 로 매물을 생성하고,
- * - 생성 후 `POST /api/v1/properties/{id}/images` 로 사진을 업로드한다.
+ * 한 화면에서 매물 정보 + 사진을 모두 입력하고 "매물 등록" 한 번으로
+ * `POST /api/v1/user/broker/me/properties`(생성) → `POST /api/v1/properties/{id}/images`
+ * (사진 업로드)를 순차 처리한다.
  *
  * OpenAPI의 BrokerPropertyCreateRequest 필수 필드(title, tradeType, depositAmount,
  * areaM2, roadAddress, location)를 모두 입력받는다. 매물 상태(공개/대기 등)나 수정·삭제는
@@ -39,10 +40,27 @@ export default function BrokerPropertyForm({ onCreated }: BrokerPropertyFormProp
   const [splineUrl, setSplineUrl] = useState("");
   const [tags, setTags] = useState("");
 
-  const [createdId, setCreatedId] = useState<number | null>(null);
+  // 폼 안에서 미리 고른 사진들. 등록 시 한 번에 업로드한다.
+  const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 직전 등록 성공 안내(같은 화면 상단 배너).
+  const [doneId, setDoneId] = useState<number | null>(null);
+
   const isMonthly = tradeType === "MONTHLY_RENT";
+  const isSubmitting = createMutation.isPending || uploadImagesMutation.isPending;
+
+  const previews = useMemo(
+    () => files.map((file) => URL.createObjectURL(file)),
+    [files]
+  );
+
+  // 미리보기 object URL 누수 방지.
+  useEffect(() => {
+    return () => {
+      previews.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previews]);
 
   const canSubmit =
     title.trim() !== "" &&
@@ -68,10 +86,22 @@ export default function BrokerPropertyForm({ onCreated }: BrokerPropertyFormProp
     setDescription("");
     setSplineUrl("");
     setTags("");
+    setFiles([]);
+  };
+
+  const handleAddFiles = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(event.target.files ?? []);
+    if (picked.length > 0) setFiles((prev) => [...prev, ...picked]);
+    event.target.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+    setDoneId(null);
 
     const body: BrokerPropertyCreateRequest = {
       title: title.trim(),
@@ -96,242 +126,278 @@ export default function BrokerPropertyForm({ onCreated }: BrokerPropertyFormProp
 
     createMutation.mutate(body, {
       onSuccess: (created) => {
-        setCreatedId(created.propertyId);
-        onCreated?.(created.propertyId);
-        resetForm();
+        const finish = () => {
+          onCreated?.(created.propertyId);
+          resetForm();
+          setDoneId(created.propertyId);
+        };
+
+        // 사진이 있으면 같은 흐름에서 이어 업로드하고, 끝나면 폼을 비운다.
+        if (files.length > 0) {
+          uploadImagesMutation.mutate(
+            { propertyId: created.propertyId, files },
+            { onSuccess: finish }
+          );
+        } else {
+          finish();
+        }
       },
     });
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    if (files.length > 0 && createdId != null) {
-      uploadImagesMutation.mutate({ propertyId: createdId, files });
-    }
-    event.target.value = "";
-  };
-
-  // 등록 완료 화면(이미지 업로드 단계)
-  if (createdId != null) {
-    return (
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-2 text-primary">
-          <CheckCircle2 className="h-5 w-5" />
-          <h3 className="text-lg font-bold">매물이 등록되었어요 (#{createdId})</h3>
-        </div>
-
-        <p className="mb-4 text-sm text-text-tertiary">
-          매물 사진을 업로드해 주세요. (선택)
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
-          <Upload className="h-4 w-4 text-text-tertiary" />
-          <span className="text-sm text-text-secondary">
-            {uploadImagesMutation.isSuccess
-              ? "사진이 업로드되었어요."
-              : "이미지 파일을 선택하세요."}
-          </span>
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadImagesMutation.isPending}
-            className="ml-auto rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition-all hover:bg-background disabled:opacity-60"
-          >
-            {uploadImagesMutation.isPending ? "업로드 중..." : "사진 업로드"}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileChange}
-            className="hidden"
-          />
-        </div>
-
-        {uploadImagesMutation.isError && (
-          <p className="mt-3 text-sm text-destructive">
-            사진 업로드에 실패했어요. 잠시 후 다시 시도해 주세요.
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setCreatedId(null)}
-          className="mt-5 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800"
-        >
-          새 매물 추가 등록
-        </button>
-      </div>
-    );
-  }
+  const submitLabel = createMutation.isPending
+    ? "매물 등록 중..."
+    : uploadImagesMutation.isPending
+      ? "사진 업로드 중..."
+      : "매물 등록";
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-      <h3 className="mb-5 text-lg font-bold text-foreground">새 매물 등록</h3>
+    <div className="space-y-6">
+      {doneId != null && (
+        <div className="flex items-center gap-2 rounded-xl bg-primary/5 px-4 py-3 text-sm font-semibold text-primary">
+          <CheckCircle2 className="h-4 w-4" />
+          매물이 등록되었어요 (#{doneId}). 좌측 목록에서 확인할 수 있어요.
+        </div>
+      )}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="md:col-span-2">
-          <Field label="매물명 *">
+      {/* 기본 정보 */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <h3 className="mb-5 text-lg font-bold text-foreground">기본 정보</h3>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Field label="매물명 *">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="성대 정문 도보권 원룸"
+                className={inputTan}
+              />
+            </Field>
+          </div>
+
+          <Field label="거래 유형 *">
+            <select
+              value={tradeType}
+              onChange={(e) => setTradeType(e.target.value as TradeType)}
+              className={inputTan}
+            >
+              <option value="MONTHLY_RENT">월세</option>
+              <option value="DEPOSIT_BASIS">전세</option>
+            </select>
+          </Field>
+          <Field label="구조 (예: one_room)">
             <input
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="성대 정문 도보권 원룸"
-              className={inputClass}
+              value={propertyType}
+              onChange={(e) => setPropertyType(e.target.value)}
+              placeholder="one_room"
+              className={inputTan}
+            />
+          </Field>
+
+          <Field label="보증금 (만원) *">
+            <input
+              type="number"
+              value={depositAmount}
+              onChange={(e) => setDepositAmount(e.target.value)}
+              className={inputTan}
+            />
+          </Field>
+          <Field label={`월세 (만원)${isMonthly ? " *" : ""}`}>
+            <input
+              type="number"
+              value={monthlyRent}
+              onChange={(e) => setMonthlyRent(e.target.value)}
+              disabled={!isMonthly}
+              placeholder={isMonthly ? "" : "전세는 입력 불필요"}
+              className={inputTan}
+            />
+          </Field>
+
+          <Field label="관리비 (만원)">
+            <input
+              type="number"
+              value={maintenanceFee}
+              onChange={(e) => setMaintenanceFee(e.target.value)}
+              className={inputTan}
+            />
+          </Field>
+          <Field label="면적 (㎡) *">
+            <input
+              type="number"
+              value={areaM2}
+              onChange={(e) => setAreaM2(e.target.value)}
+              className={inputTan}
+            />
+          </Field>
+
+          <Field label="층 정보 (예: 3층)">
+            <input
+              type="text"
+              value={floorInfo}
+              onChange={(e) => setFloorInfo(e.target.value)}
+              className={inputTan}
+            />
+          </Field>
+          <Field label="태그 (쉼표로 구분)">
+            <input
+              type="text"
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="편의점, 역세권"
+              className={inputTan}
+            />
+          </Field>
+
+          <div className="md:col-span-2">
+            <Field label="설명">
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={3}
+                className={`${inputTan} resize-none`}
+              />
+            </Field>
+          </div>
+        </div>
+      </div>
+
+      {/* 위치 정보 */}
+      <div className="rounded-2xl border border-purple-300 bg-card p-6 shadow-sm">
+        <h3 className="mb-5 text-lg font-bold text-purple-800">위치 정보</h3>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Field label="도로명 주소 *">
+              <input
+                type="text"
+                value={roadAddress}
+                onChange={(e) => setRoadAddress(e.target.value)}
+                placeholder="서울 종로구 성균관로 25-2"
+                className={inputLavender}
+              />
+            </Field>
+          </div>
+
+          <Field label="위도 *">
+            <input
+              type="number"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              placeholder="37.5894"
+              className={inputLavender}
+            />
+          </Field>
+          <Field label="경도 *">
+            <input
+              type="number"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              placeholder="126.9978"
+              className={inputLavender}
             />
           </Field>
         </div>
+      </div>
 
-        <Field label="거래 유형 *">
-          <select
-            value={tradeType}
-            onChange={(e) => setTradeType(e.target.value as TradeType)}
-            className={inputClass}
-          >
-            <option value="MONTHLY_RENT">월세</option>
-            <option value="DEPOSIT_BASIS">전세</option>
-          </select>
-        </Field>
-        <Field label="구조 (예: one_room)">
-          <input
-            type="text"
-            value={propertyType}
-            onChange={(e) => setPropertyType(e.target.value)}
-            placeholder="one_room"
-            className={inputClass}
-          />
-        </Field>
+      {/* 이미지 / 3D 자산 */}
+      <div className="rounded-2xl border border-accent-purple-border bg-card p-6 shadow-sm">
+        <h3 className="mb-5 text-lg font-bold text-accent-purple">
+          이미지 / 3D 자산
+        </h3>
 
-        <Field label="보증금 (만원) *">
-          <input
-            type="number"
-            value={depositAmount}
-            onChange={(e) => setDepositAmount(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label={`월세 (만원)${isMonthly ? " *" : ""}`}>
-          <input
-            type="number"
-            value={monthlyRent}
-            onChange={(e) => setMonthlyRent(e.target.value)}
-            disabled={!isMonthly}
-            placeholder={isMonthly ? "" : "전세는 입력 불필요"}
-            className={inputClass}
-          />
-        </Field>
+        <div className="space-y-5">
+          {/* 매물 사진 (등록과 함께 업로드) */}
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-accent-purple-light">
+              매물 사진 (선택)
+            </label>
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {previews.map((url, index) => (
+                <div
+                  key={url}
+                  className="relative h-24 overflow-hidden rounded-xl border border-accent-purple-border"
+                >
+                  <img
+                    src={url}
+                    alt={`매물 사진 ${index + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(index)}
+                    className="absolute right-1 top-1 rounded-lg bg-foreground/60 p-1 text-primary-foreground transition hover:bg-foreground/80"
+                    aria-label="사진 삭제"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
 
-        <Field label="관리비 (만원)">
-          <input
-            type="number"
-            value={maintenanceFee}
-            onChange={(e) => setMaintenanceFee(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="면적 (㎡) *">
-          <input
-            type="number"
-            value={areaM2}
-            onChange={(e) => setAreaM2(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-
-        <Field label="층 정보 (예: 3층)">
-          <input
-            type="text"
-            value={floorInfo}
-            onChange={(e) => setFloorInfo(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="태그 (쉼표로 구분)">
-          <input
-            type="text"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="편의점, 역세권"
-            className={inputClass}
-          />
-        </Field>
-
-        <div className="md:col-span-2">
-          <Field label="도로명 주소 *">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex h-24 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-accent-purple-border bg-accent-purple-bg text-xs font-semibold text-accent-purple-light transition hover:border-accent-purple-light hover:bg-accent-purple-pale"
+              >
+                <Plus className="h-4 w-4" />
+                사진 추가
+              </button>
+            </div>
             <input
-              type="text"
-              value={roadAddress}
-              onChange={(e) => setRoadAddress(e.target.value)}
-              placeholder="서울 종로구 성균관로 25-2"
-              className={inputClass}
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleAddFiles}
+              className="hidden"
             />
-          </Field>
-        </div>
+          </div>
 
-        <Field label="위도 *">
-          <input
-            type="number"
-            value={latitude}
-            onChange={(e) => setLatitude(e.target.value)}
-            placeholder="37.5894"
-            className={inputClass}
-          />
-        </Field>
-        <Field label="경도 *">
-          <input
-            type="number"
-            value={longitude}
-            onChange={(e) => setLongitude(e.target.value)}
-            placeholder="126.9978"
-            className={inputClass}
-          />
-        </Field>
-
-        <div className="md:col-span-2">
-          <Field label="3D 모델 URL (Spline)">
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-accent-purple-light">
+              3D 모델 URL (Spline)
+            </label>
             <input
               type="text"
               value={splineUrl}
               onChange={(e) => setSplineUrl(e.target.value)}
               placeholder="https://prod.spline.design/.../scene.splinecode"
-              className={inputClass}
+              className={inputPurple}
             />
-          </Field>
-        </div>
-
-        <div className="md:col-span-2">
-          <Field label="설명">
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className={`${inputClass} resize-none`}
-            />
-          </Field>
+          </div>
         </div>
       </div>
 
-      {createMutation.isError && (
-        <p className="mt-4 text-sm text-destructive">
-          매물 등록에 실패했어요. 입력값을 확인하고 다시 시도해 주세요.
-        </p>
-      )}
+      {/* 등록 */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        {(createMutation.isError || uploadImagesMutation.isError) && (
+          <p className="mb-4 text-sm text-destructive">
+            {createMutation.isError
+              ? "매물 등록에 실패했어요. 입력값을 확인하고 다시 시도해 주세요."
+              : "매물은 등록됐지만 사진 업로드에 실패했어요. 잠시 후 다시 시도해 주세요."}
+          </p>
+        )}
 
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={!canSubmit || createMutation.isPending}
-        className="mt-5 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 disabled:opacity-60"
-      >
-        {createMutation.isPending ? "등록 중..." : "매물 등록"}
-      </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={!canSubmit || isSubmitting}
+          className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 disabled:opacity-60"
+        >
+          {submitLabel}
+        </button>
+      </div>
     </div>
   );
 }
 
-const inputClass =
-  "w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-text-secondary placeholder:text-text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring/10";
+const inputBase =
+  "w-full rounded-xl border px-4 py-3 text-sm text-text-secondary placeholder:text-text-muted focus:outline-none focus:ring-2 transition-all";
+const inputTan = `${inputBase} bg-card border-border focus:border-accent focus:ring-ring/10`;
+const inputLavender = `${inputBase} bg-card border-purple-300 focus:border-secondary focus:ring-secondary/10`;
+const inputPurple = `${inputBase} bg-card border-accent-purple-border focus:border-accent-purple-light focus:ring-accent-purple-light/10`;
 
 function Field({
   label,

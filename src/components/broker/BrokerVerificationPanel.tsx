@@ -8,6 +8,7 @@ import {
   useUpdateBrokerAdditionalInfo,
   useUploadBrokerVerificationDocument,
 } from "../../hooks/queries/brokerQueries";
+import UnverifiedBrokerForm from "./UnverifiedBrokerForm";
 
 /**
  * 중개사 인증 패널.
@@ -59,12 +60,10 @@ export default function BrokerVerificationPanel() {
     );
   }
 
+  // 인증되지 않은 중개사는 프로필 조회가 실패하므로, 오류 대신
+  // 안내 + 정보 제출 폼(로컬 전용)을 보여준다.
   if (profileQuery.isError || !profile) {
-    return (
-      <div className="rounded-2xl border border-destructive/30 bg-card p-6 text-sm text-destructive shadow-sm">
-        중개사 정보를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-      </div>
-    );
+    return <UnverifiedBrokerForm />;
   }
 
   const handleSubmitInfo = () => {
