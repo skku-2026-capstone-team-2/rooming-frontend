@@ -74,7 +74,7 @@ export default function PropertyListPanel({
         {visibleProperties.length > 0 ? (
           visibleProperties.map((property) => (
             <PropertyCard
-              key={property.propertyId}
+              key={`${listMode}-${property.recommendationId ?? property.propertyId}`}
               property={property}
               isFavoriteMode={isFavoritesMode}
             />
