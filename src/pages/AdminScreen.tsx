@@ -23,7 +23,11 @@ export default function AdminScreen() {
   const [panel, setPanel] = useState<RightPanel>("create");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  const canRegister = profileQuery.data?.isVerified ?? false;
+  const profile = profileQuery.data;
+  const canRegister = profile?.isVerified ?? false;
+  // 인증 정보는 제출(profileComplete)했지만 아직 관리자 승인(isVerified) 전인 상태.
+  const isAwaitingApproval =
+    !!profile && !profile.isVerified && profile.profileComplete;
   const properties = propertiesQuery.data ?? [];
 
   const handleSelect = (propertyId: number) => {
@@ -122,6 +126,16 @@ export default function AdminScreen() {
                 <BrokerPropertyForm
                   onCreated={() => setPanel("create")}
                 />
+              ) : isAwaitingApproval ? (
+                <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-8 text-center shadow-sm">
+                  <h3 className="text-lg font-bold text-foreground">
+                    심사 대기 중이에요
+                  </h3>
+                  <p className="mt-2 text-sm text-text-secondary">
+                    제출하신 인증 정보를 관리자가 검토하고 있어요. 심사가 완료되면
+                    매물을 등록할 수 있어요.
+                  </p>
+                </div>
               ) : (
                 <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
                   <h3 className="text-lg font-bold text-foreground">
