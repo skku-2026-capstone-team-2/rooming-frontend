@@ -7,10 +7,25 @@ type RoutePoint = {
 };
 
 type DrawPedestrianRouteParams = {
-  map: any;
+  map: TmapMap;
   from: RoutePoint;
   to: RoutePoint;
   strokeColor?: string;
+};
+
+type PedestrianRouteFeature = {
+  geometry?: {
+    type?: string;
+    coordinates?: [number, number][];
+  };
+  properties?: {
+    totalTime?: number;
+    totalDistance?: number;
+  };
+};
+
+type PedestrianRouteResponse = {
+  features?: PedestrianRouteFeature[];
 };
 
 export async function drawPedestrianRoute({
@@ -19,7 +34,8 @@ export async function drawPedestrianRoute({
   to,
   strokeColor = "#6B67BB",
 }: DrawPedestrianRouteParams) {
-  if (!window.Tmapv2) return;
+  const tmap = window.Tmapv2;
+  if (!tmap) return;
 
   const appKey = import.meta.env.VITE_TMAP_APP_KEY;
 
@@ -56,15 +72,15 @@ export async function drawPedestrianRoute({
       throw new Error(`보행자 경로 API 실패: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as PedestrianRouteResponse;
 
-    const path: any[] = [];
+    const path: TmapLatLng[] = [];
 
-    data.features?.forEach((feature: any) => {
+    data.features?.forEach((feature) => {
       if (feature.geometry?.type !== "LineString") return;
 
-      feature.geometry.coordinates.forEach(([lng, lat]: [number, number]) => {
-        path.push(new window.Tmapv2.LatLng(lat, lng));
+      feature.geometry.coordinates?.forEach(([lng, lat]) => {
+        path.push(new tmap.LatLng(lat, lng));
       });
     });
 
@@ -76,7 +92,7 @@ export async function drawPedestrianRoute({
     const routeInfo = getPedestrianRouteInfo(data);
     const label = routeInfo.timeText;
 
-    const pedestrianRouteLine = new window.Tmapv2.Polyline({
+    const pedestrianRouteLine = new tmap.Polyline({
       path,
       strokeColor,
       strokeWeight: 5,
@@ -86,17 +102,17 @@ export async function drawPedestrianRoute({
 
     const middlePosition = path[Math.floor(path.length / 2)];
 
-    let labelMarker: any = null;
+    let labelMarker: TmapMarker | null = null;
 
     const showLabel = () => {
       if (labelMarker) return;
 
-      labelMarker = new window.Tmapv2.Marker({
+      labelMarker = new tmap.Marker({
         position: middlePosition,
         map,
         iconHTML: createDistanceLabelHTML(label),
-        iconSize: new window.Tmapv2.Size(72, 28),
-        iconAnchor: new window.Tmapv2.Point(36, 14),
+        iconSize: new tmap.Size(72, 28),
+        iconAnchor: new tmap.Point(36, 14),
       });
     };
 
@@ -114,9 +130,9 @@ export async function drawPedestrianRoute({
   }
 }
 
-function getPedestrianRouteInfo(data: any) {
+function getPedestrianRouteInfo(data: PedestrianRouteResponse) {
   const startFeature = data.features?.find(
-    (feature: any) => feature.geometry?.type === "Point"
+    (feature) => feature.geometry?.type === "Point"
   );
 
   const totalTime = startFeature?.properties?.totalTime;

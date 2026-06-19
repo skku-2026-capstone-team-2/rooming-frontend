@@ -11,7 +11,7 @@ import type { RecommendationRoutePath, RouteSubPathType } from "../types";
 import { createDistanceLabelHTML } from "./createDistanceLabelHTML";
 
 type DrawRecommendationRouteParams = {
-  map: any;
+  map: TmapMap;
   path: RecommendationRoutePath;
   /** 구간 유형별 폴리라인 색. 미지정 유형은 기본색. */
   colorByType?: Partial<Record<RouteSubPathType, string>>;
@@ -35,7 +35,8 @@ export function drawRecommendationRoute({
   colorByType,
   defaultColor = "#6B67BB",
 }: DrawRecommendationRouteParams): number {
-  if (!map || !window.Tmapv2) return 0;
+  const tmap = window.Tmapv2;
+  if (!map || !tmap) return 0;
 
   let drawnPointCount = 0;
 
@@ -44,11 +45,11 @@ export function drawRecommendationRoute({
     if (points.length < 2) return;
 
     const latLngs = points.map(
-      (point) => new window.Tmapv2.LatLng(point.latitude, point.longitude)
+      (point) => new tmap.LatLng(point.latitude, point.longitude)
     );
     const strokeColor = colorByType?.[subPath.type] ?? defaultColor;
 
-    const polyline = new window.Tmapv2.Polyline({
+    const polyline = new tmap.Polyline({
       path: latLngs,
       strokeColor,
       strokeWeight: 5,
@@ -63,16 +64,16 @@ export function drawRecommendationRoute({
     const label = `${SUBPATH_TYPE_LABEL[subPath.type]} ${subPath.time}분`;
     const middlePosition = latLngs[Math.floor(latLngs.length / 2)];
 
-    let labelMarker: any = null;
+    let labelMarker: TmapMarker | null = null;
 
     polyline.addListener("mouseenter", () => {
       if (labelMarker) return;
-      labelMarker = new window.Tmapv2.Marker({
+      labelMarker = new tmap.Marker({
         position: middlePosition,
         map,
         iconHTML: createDistanceLabelHTML(label),
-        iconSize: new window.Tmapv2.Size(72, 28),
-        iconAnchor: new window.Tmapv2.Point(36, 14),
+        iconSize: new tmap.Size(72, 28),
+        iconAnchor: new tmap.Point(36, 14),
       });
     });
 

@@ -36,12 +36,6 @@ import type { InfrastructureCategory } from "../types";
 import CenteredMessage from "../components/CenteredMessage";
 import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 
-declare global {
-  interface Window {
-    Tmapv2: any;
-  }
-}
-
 const SCHOOL_PLACE = {
   label: "성균관대 정문",
   lat: 37.5849,
@@ -186,7 +180,7 @@ export default function InfraViewScreen() {
 
     const loadTmapScript = () => {
       return new Promise<void>((resolve, reject) => {
-        if (window.Tmapv2?.Map) {
+        if (window.Tmapv2) {
           resolve();
           return;
         }
@@ -223,7 +217,8 @@ export default function InfraViewScreen() {
         await loadTmapScript();
 
         const mapContainer = document.getElementById("infra_map_div");
-        if (!mapContainer || !window.Tmapv2) return;
+        const tmap = window.Tmapv2;
+        if (!mapContainer || !tmap) return;
 
         const themeStyles = getComputedStyle(document.documentElement);
         const getThemeColor = (token: string) =>
@@ -235,16 +230,16 @@ export default function InfraViewScreen() {
 
         mapContainer.innerHTML = "";
 
-        const map = new window.Tmapv2.Map("infra_map_div", {
-          center: new window.Tmapv2.LatLng(propertyLat, propertyLng),
+        const map = new tmap.Map("infra_map_div", {
+          center: new tmap.LatLng(propertyLat, propertyLng),
           width: "100%",
           height: "100%",
           zoom: 17,
         });
 
         // 목적지 마커
-        new window.Tmapv2.Marker({
-          position: new window.Tmapv2.LatLng(
+        new tmap.Marker({
+          position: new tmap.LatLng(
             routePlacePosition.lat,
             routePlacePosition.lng
           ),
@@ -253,8 +248,8 @@ export default function InfraViewScreen() {
         });
 
         // 선택 매물 마커
-        new window.Tmapv2.Marker({
-          position: new window.Tmapv2.LatLng(propertyLat, propertyLng),
+        new tmap.Marker({
+          position: new tmap.LatLng(propertyLat, propertyLng),
           map,
           title: card?.title,
           iconHTML: createPropertyMarkerHTML(card?.priceLabel ?? ""),
@@ -291,8 +286,8 @@ export default function InfraViewScreen() {
 
           const markerType = MARKER_TYPE_BY_CATEGORY[infra.category];
 
-          new window.Tmapv2.Marker({
-            position: new window.Tmapv2.LatLng(infra.lat, infra.lng),
+          new tmap.Marker({
+            position: new tmap.LatLng(infra.lat, infra.lng),
             map,
             iconHTML: createInfraMarkerHTML({
               label: infra.name,

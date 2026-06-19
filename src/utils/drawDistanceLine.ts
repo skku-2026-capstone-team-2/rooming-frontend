@@ -4,7 +4,7 @@ type LatLngPoint = {
 };
 
 type DrawDistanceLineParams = {
-  map: any;
+  map: TmapMap;
   from: LatLngPoint;
   to: LatLngPoint;
   label?: string;
@@ -17,12 +17,13 @@ export function drawDistanceLine({
   to,
   strokeColor,
 }: DrawDistanceLineParams) {
-  if (!window.Tmapv2) return;
+  const tmap = window.Tmapv2;
+  if (!tmap) return;
 
-  const fromPosition = new window.Tmapv2.LatLng(from.lat, from.lng);
-  const toPosition = new window.Tmapv2.LatLng(to.lat, to.lng);
+  const fromPosition = new tmap.LatLng(from.lat, from.lng);
+  const toPosition = new tmap.LatLng(to.lat, to.lng);
 
-  new window.Tmapv2.Polyline({
+  new tmap.Polyline({
     path: [fromPosition, toPosition],
     strokeColor,
     strokeWeight: 4,

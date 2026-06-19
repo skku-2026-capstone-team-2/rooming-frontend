@@ -60,12 +60,12 @@ export default function MainMapScreen() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<TmapMap | null>(null);
   const isMapInitializedRef = useRef(false);
 
-  const infraMarkersRef = useRef<any[]>([]);
-  const schoolMarkerRef = useRef<any | null>(null);
-  const propertyMarkersRef = useRef<any[]>([]);
+  const infraMarkersRef = useRef<TmapMarker[]>([]);
+  const schoolMarkerRef = useRef<TmapMarker | null>(null);
+  const propertyMarkersRef = useRef<TmapMarker[]>([]);
 
   const setSearchParamsRef = useRef(setSearchParams);
   const targetPlaceMarkerRef = useRef(DEFAULT_TARGET_PLACE);
@@ -206,7 +206,7 @@ export default function MainMapScreen() {
 
   const renderPropertyMarkers = useCallback(
     (
-      properties = visibleProperties,
+      properties: PropertyCardView[],
       enabled = showPropertyMarkersRef.current
     ) => {
       if (!mapRef.current) return;
@@ -226,7 +226,7 @@ export default function MainMapScreen() {
         },
       });
     },
-    [visibleProperties]
+    []
   );
 
   const renderTargetPlaceMarker = useCallback(
@@ -362,7 +362,8 @@ export default function MainMapScreen() {
 
     const initMap = () => {
       if (cancelled) return;
-      if (!window.Tmapv2 || !window.Tmapv2.Map) return;
+      const tmap = window.Tmapv2;
+      if (!tmap) return;
       if (isMapInitializedRef.current || mapRef.current) return;
 
       const mapContainer = document.getElementById("map_div");
@@ -371,8 +372,8 @@ export default function MainMapScreen() {
       mapContainer.innerHTML = "";
       isMapInitializedRef.current = true;
 
-      const map = new window.Tmapv2.Map("map_div", {
-        center: new window.Tmapv2.LatLng(MAP_CENTER.lat, MAP_CENTER.lng),
+      const map = new tmap.Map("map_div", {
+        center: new tmap.LatLng(MAP_CENTER.lat, MAP_CENTER.lng),
         width: "100%",
         height: "100%",
         zoom: 17,
@@ -406,7 +407,7 @@ export default function MainMapScreen() {
     const waitForTmap = () => {
       if (cancelled) return;
 
-      if (window.Tmapv2 && window.Tmapv2.Map) {
+      if (window.Tmapv2) {
         initMap();
       } else {
         timeoutId = window.setTimeout(waitForTmap, 100);
@@ -424,7 +425,7 @@ export default function MainMapScreen() {
 
       resetMapContainer();
     };
-  }, []);
+  }, [renderPropertyMarkers, resetMapContainer, resolveProperties]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">

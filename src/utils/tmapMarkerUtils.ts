@@ -10,7 +10,7 @@ export type MapCenter = {
 
 type SearchParamsSetter = (params: Record<string, string>) => void;
 
-export function getLatFromTmapCenter(center: any): number | null {
+export function getLatFromTmapCenter(center: TmapLatLng | null): number | null {
   if (!center) return null;
 
   if (typeof center.lat === "function") return Number(center.lat());
@@ -21,7 +21,7 @@ export function getLatFromTmapCenter(center: any): number | null {
   return null;
 }
 
-export function getLngFromTmapCenter(center: any): number | null {
+export function getLngFromTmapCenter(center: TmapLatLng | null): number | null {
   if (!center) return null;
 
   if (typeof center.lng === "function") return Number(center.lng());
@@ -33,10 +33,10 @@ export function getLngFromTmapCenter(center: any): number | null {
 }
 
 export function getCurrentMapCenter(
-  map: any,
+  map: TmapMap | null,
   fallbackCenter: MapCenter
 ): MapCenter {
-  if (!map || typeof map.getCenter !== "function") {
+  if (!map || !map.getCenter) {
     return fallbackCenter;
   }
 
@@ -58,7 +58,7 @@ export function getCurrentMapCenter(
 }
 
 export function clearMarkers(
-  markersRef: MutableRefObject<any[]>,
+  markersRef: MutableRefObject<TmapMarker[]>,
   label = "마커"
 ) {
   markersRef.current.forEach((marker) => {
@@ -73,7 +73,7 @@ export function clearMarkers(
 }
 
 export function clearSingleMarker(
-  markerRef: MutableRefObject<any | null>,
+  markerRef: MutableRefObject<TmapMarker | null>,
   label = "마커"
 ) {
   if (!markerRef.current) return;
@@ -93,16 +93,17 @@ export function loadSchoolMarker({
   position,
   label,
 }: {
-  map: any;
-  markerRef: MutableRefObject<any | null>;
+  map: TmapMap;
+  markerRef: MutableRefObject<TmapMarker | null>;
   position: MapCenter;
   label: string;
 }) {
-  if (!window.Tmapv2 || !map) return;
+  const tmap = window.Tmapv2;
+  if (!tmap || !map) return;
   if (markerRef.current) return;
 
-  markerRef.current = new window.Tmapv2.Marker({
-    position: new window.Tmapv2.LatLng(position.lat, position.lng),
+  markerRef.current = new tmap.Marker({
+    position: new tmap.LatLng(position.lat, position.lng),
     map,
     iconHTML: createSchoolMarkerHTML(label),
     zIndex: 40,
@@ -116,13 +117,14 @@ export function loadPropertyMarkers({
   onClickProperty,
   enabled = true,
 }: {
-  map: any;
+  map: TmapMap;
   properties: PropertyCardView[];
-  markersRef: MutableRefObject<any[]>;
+  markersRef: MutableRefObject<TmapMarker[]>;
   onClickProperty: SearchParamsSetter;
   enabled?: boolean;
 }) {
-  if (!window.Tmapv2 || !map) return;
+  const tmap = window.Tmapv2;
+  if (!tmap || !map) return;
 
   // 기존 매물 마커는 항상 먼저 제거
   clearMarkers(markersRef, "매물 마커");
@@ -134,8 +136,8 @@ export function loadPropertyMarkers({
     // 좌표가 없는 매물은 지도에 표시할 수 없으므로 건너뛴다.
     if (property.lat == null || property.lng == null) return;
 
-    const marker = new window.Tmapv2.Marker({
-      position: new window.Tmapv2.LatLng(property.lat, property.lng),
+    const marker = new tmap.Marker({
+      position: new tmap.LatLng(property.lat, property.lng),
       map,
       title: property.title,
       iconHTML: createPropertyMarkerHTML(
@@ -145,7 +147,7 @@ export function loadPropertyMarkers({
       zIndex: 30,
     });
 
-    marker.addListener("click", () => {
+    marker.addListener?.("click", () => {
       onClickProperty({
         propertyId: String(property.propertyId),
       });

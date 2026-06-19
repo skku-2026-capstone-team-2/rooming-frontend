@@ -37,6 +37,25 @@ type PlaceSearchResult = {
   };
 };
 
+type TmapPoiSearchItem = {
+  name?: string;
+  noorLat?: string | number;
+  noorLon?: string | number;
+  newAddressList?: {
+    newAddress?: Array<{
+      fullAddressRoad?: string;
+    }>;
+  };
+};
+
+type TmapPoiSearchResponse = {
+  searchPoiInfo?: {
+    pois?: {
+      poi?: TmapPoiSearchItem[];
+    };
+  };
+};
+
 const MAX_PLACE_COUNT = 3;
 
 const placeTypeOptions: {
@@ -109,8 +128,8 @@ async function searchPlacesByKeyword(
     throw new Error("장소 검색에 실패했습니다.");
   }
 
-  const data = await response.json();
-  const poiList: any[] = data?.searchPoiInfo?.pois?.poi ?? [];
+  const data = (await response.json()) as TmapPoiSearchResponse;
+  const poiList = data?.searchPoiInfo?.pois?.poi ?? [];
 
   return poiList
     .map((poi) => {
@@ -118,14 +137,12 @@ async function searchPlacesByKeyword(
       const longitude = Number(poi.noorLon);
       if (Number.isNaN(latitude) || Number.isNaN(longitude)) return null;
       return {
-        placeName: poi.name as string,
-        roadAddress:
-          (poi.newAddressList?.newAddress?.[0]?.fullAddressRoad as string) ??
-          "",
+        placeName: poi.name ?? "이름 미상",
+        roadAddress: poi.newAddressList?.newAddress?.[0]?.fullAddressRoad ?? "",
         location: { latitude, longitude },
       };
     })
-    .filter(Boolean) as PlaceSearchResult[];
+    .filter((place): place is PlaceSearchResult => place !== null);
 }
 
 export default function OnboardingScreen() {

@@ -25,6 +25,26 @@ type SearchTmapPoiParams = {
   radius: number;
 };
 
+type TmapPoiRaw = {
+  id?: string | number;
+  name?: string;
+  noorLat?: string | number;
+  noorLon?: string | number;
+  newAddressList?: {
+    newAddress?: Array<{
+      fullAddressRoad?: string;
+    }>;
+  };
+};
+
+type TmapPoiResponse = {
+  searchPoiInfo?: {
+    pois?: {
+      poi?: TmapPoiRaw[];
+    };
+  };
+};
+
 function getDistanceInMeters(
   lat1: number,
   lng1: number,
@@ -50,7 +70,7 @@ function getDistanceInMeters(
 }
 
 function mapPoiToPlace(
-  poi: any,
+  poi: TmapPoiRaw,
   type: PoiType,
   centerLat: number,
   centerLng: number,
@@ -70,9 +90,9 @@ function mapPoiToPlace(
   }
 
   return {
-    id: `${type}-${poi.id}`,
+    id: `${type}-${poi.id ?? `${lat}-${lng}`}`,
     type,
-    label: poi.name,
+    label: poi.name ?? "이름 미상",
     lat,
     lng,
   };
@@ -116,12 +136,12 @@ export async function searchTmapPoi({
     throw new Error("Tmap POI 검색에 실패했습니다.");
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as TmapPoiResponse;
   const poiList = data?.searchPoiInfo?.pois?.poi ?? [];
 
   return poiList
-    .map((poi: any) => mapPoiToPlace(poi, type, centerLat, centerLng, radius))
-    .filter(Boolean) as PoiPlace[];
+    .map((poi) => mapPoiToPlace(poi, type, centerLat, centerLng, radius))
+    .filter((place): place is PoiPlace => place !== null);
 }
 
 export async function searchTmapPoisByTypes({
@@ -192,12 +212,12 @@ export async function searchTmapPoiByKeyword({
     throw new Error("Tmap POI 키워드 검색에 실패했습니다.");
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as TmapPoiResponse;
   const poiList = data?.searchPoiInfo?.pois?.poi ?? [];
 
   return poiList
-    .map((poi: any) =>
+    .map((poi) =>
       mapPoiToPlace(poi, "default", centerLat, centerLng, radius)
     )
-    .filter(Boolean) as PoiPlace[];
+    .filter((place): place is PoiPlace => place !== null);
 }

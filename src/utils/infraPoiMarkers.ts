@@ -1,4 +1,5 @@
 import { createInfraMarkerHTML } from "../utils/createInfraMarkerHTML";
+import type { MutableRefObject } from "react";
 import {
   searchTmapPoiByKeyword,
   searchTmapPoisByTypes,
@@ -18,8 +19,8 @@ type MapCenter = {
 };
 
 type LoadPoiMarkersParams = {
-  map: any;
-  markersRef: React.MutableRefObject<any[]>;
+  map: TmapMap;
+  markersRef: MutableRefObject<TmapMarker[]>;
   condition: InfraSearchCondition;
   center: MapCenter;
 };
@@ -28,7 +29,7 @@ const isPoiCategoryType = (value: string): value is PoiCategoryType => {
   return ["cafe", "gym", "store", "bus"].includes(value);
 };
 
-export const clearInfraMarkers = (markersRef: React.MutableRefObject<any[]>) => {
+export const clearInfraMarkers = (markersRef: MutableRefObject<TmapMarker[]>) => {
   markersRef.current.forEach((marker) => {
     marker.setMap(null);
   });
@@ -41,17 +42,18 @@ export const renderInfraMarkers = ({
   markersRef,
   places,
 }: {
-  map: any;
-  markersRef: React.MutableRefObject<any[]>;
+  map: TmapMap;
+  markersRef: MutableRefObject<TmapMarker[]>;
   places: PoiPlace[];
 }) => {
-  if (!map || !window.Tmapv2) return;
+  const tmap = window.Tmapv2;
+  if (!map || !tmap) return;
 
   clearInfraMarkers(markersRef);
 
   places.forEach((place) => {
-    const marker = new window.Tmapv2.Marker({
-      position: new window.Tmapv2.LatLng(place.lat, place.lng),
+    const marker = new tmap.Marker({
+      position: new tmap.LatLng(place.lat, place.lng),
       map,
       iconHTML: createInfraMarkerHTML({
         label: place.label,
@@ -65,8 +67,8 @@ export const renderInfraMarkers = ({
 };
 
 function infraMarkersRefSafePush(
-  markersRef: React.MutableRefObject<any[]>,
-  marker: any
+  markersRef: MutableRefObject<TmapMarker[]>,
+  marker: TmapMarker
 ) {
   markersRef.current.push(marker);
 }

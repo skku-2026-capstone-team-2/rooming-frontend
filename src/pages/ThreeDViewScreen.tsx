@@ -153,7 +153,7 @@ function SplineModelViewer({ modelUrl }: { modelUrl: string }) {
   const normalizedUrl = modelUrl.trim();
 
   if (isSplineSceneUrl(normalizedUrl)) {
-    return <SplineSceneViewer url={normalizedUrl} />;
+    return <SplineSceneViewer key={normalizedUrl} url={normalizedUrl} />;
   }
 
   return (
@@ -176,10 +176,6 @@ function SplineSceneViewer({ url }: { url: string }) {
 
   useEffect(() => {
     let isMounted = true;
-
-    setViewerStatus(
-      isSplineViewerDefined() ? "scene-loading" : "script-loading"
-    );
 
     loadSplineViewerScript()
       .then(() => {
@@ -215,10 +211,7 @@ function SplineSceneViewer({ url }: { url: string }) {
   }, [url]);
 
   useEffect(() => {
-    if (viewerStatus !== "scene-loading") {
-      setIsSlowLoading(false);
-      return;
-    }
+    if (viewerStatus !== "scene-loading") return;
 
     const timeoutId = window.setTimeout(
       () => setIsSlowLoading(true),

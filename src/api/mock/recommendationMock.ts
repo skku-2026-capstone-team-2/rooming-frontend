@@ -168,6 +168,7 @@ const mockResults: RecommendationResult[] = [
 
 export const recommendationMock = {
   postRecommendation(_req: RecommendationRequest): Promise<RecommendationData> {
+    void _req;
     return mockData({ message: "추천 결과입니다.", results: mockResults });
   },
 
