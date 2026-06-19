@@ -125,11 +125,21 @@ type PropertyCardProps = {
 
 function PropertyCard({ property, isFavoriteMode }: PropertyCardProps) {
   const navigate = useNavigate();
+  const detailParams = new URLSearchParams();
+
+  if (property.recommendationId != null) {
+    detailParams.set("recommendationId", String(property.recommendationId));
+  }
+
+  const detailQuery = detailParams.toString();
+  const detailPath = `/property/${property.propertyId}${
+    detailQuery ? `?${detailQuery}` : ""
+  }`;
 
   return (
     <button
       type="button"
-      onClick={() => navigate(`/property/${property.propertyId}`)}
+      onClick={() => navigate(detailPath)}
       className="w-full rounded-xl border border-beige-300 bg-card p-3 text-left shadow-sm transition hover:border-purple-500 hover:bg-purple-50"
     >
       <div className="flex items-start justify-between gap-2">

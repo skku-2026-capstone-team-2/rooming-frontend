@@ -14,8 +14,14 @@ import {
   useRecommendationRoute,
   useRecommendationSearch,
   useFavorites,
+  useRecommendations,
 } from "../hooks/queries/recommendationQueries";
 import { loadSearchRequest } from "../utils/recommendationSearch";
+import {
+  findRecommendationForProperty,
+  parsePropertyId,
+  parseRecommendationId,
+} from "../utils/recommendationSelection";
 import {
   formatRouteDurationLabel,
   formatRoutePlaceDurationLabel,
@@ -91,15 +97,64 @@ export default function InfraViewScreen() {
   // 인프라/경로 데이터의 출처는 추천 응답이다. 지도 화면과 동일한 검색 요청을
   // 키로 React Query 캐시를 공유한다. (별도 전역 상태 없음)
   const request = useMemo(() => loadSearchRequest(), []);
-  const { data, isPending, isError } = useRecommendationSearch(request);
-  const { data: favoriteData } = useFavorites();
-  const { data: targetPlaceData } = useTargetPlaces(request != null);
-  const results = useMemo(
-    () => [
-      ...(data?.results ?? []),
-      ...(favoriteData?.results ?? []),
-    ],
+  const recommendationIdParam = parseRecommendationId(
+    searchParams.get("recommendationId")
+  );
+  const propertyIdParam = parsePropertyId(searchParams.get("propertyId"));
+  const hasInfraLookupContext =
+    request != null || recommendationIdParam != null || propertyIdParam != null;
+
+  const {
+    data,
+    isPending: isSearchPending,
+    isError: isSearchError,
+  } = useRecommendationSearch(request);
+  const {
+    data: favoriteData,
+    isPending: isFavoritesPending,
+    isError: isFavoritesError,
+  } = useFavorites(hasInfraLookupContext);
+  const primaryRecommendationGroups = useMemo(
+    () => [favoriteData?.results ?? [], data?.results ?? []],
     [data, favoriteData]
+  );
+  const primarySelectedResult = (() => {
+    if (propertyIdParam != null) {
+      return findRecommendationForProperty({
+        propertyId: propertyIdParam,
+        recommendationId: recommendationIdParam,
+        groups: primaryRecommendationGroups,
+      });
+    }
+
+    const recommendations = primaryRecommendationGroups.flat();
+
+    if (recommendationIdParam != null) {
+      return (
+        recommendations.find(
+          (recommendation) =>
+            recommendation.recommendationId === recommendationIdParam
+        ) ?? null
+      );
+    }
+
+    return recommendations[0] ?? null;
+  })();
+  const isPrimaryLookupPending =
+    (request != null && isSearchPending) || isFavoritesPending;
+  const shouldFetchSavedRecommendations =
+    !primarySelectedResult &&
+    !isPrimaryLookupPending &&
+    (propertyIdParam != null || recommendationIdParam != null);
+  const {
+    data: savedRecommendationData,
+    isPending: isSavedRecommendationsPending,
+    isError: isSavedRecommendationsError,
+  } = useRecommendations(shouldFetchSavedRecommendations);
+  const { data: targetPlaceData } = useTargetPlaces(hasInfraLookupContext);
+  const savedRecommendationGroups = useMemo(
+    () => [savedRecommendationData?.results ?? []],
+    [savedRecommendationData]
   );
   const targetPlaceById = useMemo(
     () =>
@@ -116,17 +171,39 @@ export default function InfraViewScreen() {
     [targetPlaceById]
   );
 
-  const recommendationIdParam = Number(searchParams.get("recommendationId"));
-  const propertyIdParam = searchParams.get("propertyId");
+  const savedSelectedResult = (() => {
+    if (propertyIdParam != null) {
+      return findRecommendationForProperty({
+        propertyId: propertyIdParam,
+        recommendationId: recommendationIdParam,
+        groups: savedRecommendationGroups,
+      });
+    }
 
-  const selectedResult = useMemo(() => {
-    if (results.length === 0) return null;
-    return (
-      results.find((r) => String(r.propertyId) === propertyIdParam) ??
-      results.find((r) => r.recommendationId === recommendationIdParam) ??
-      results[0]
-    );
-  }, [results, recommendationIdParam, propertyIdParam]);
+    const recommendations = savedRecommendationGroups.flat();
+
+    if (recommendationIdParam != null) {
+      return (
+        recommendations.find(
+          (recommendation) =>
+            recommendation.recommendationId === recommendationIdParam
+        ) ?? null
+      );
+    }
+
+    return recommendations[0] ?? null;
+  })();
+  const selectedResult = primarySelectedResult ?? savedSelectedResult;
+
+  const isLookupPending =
+    !selectedResult &&
+    (isPrimaryLookupPending ||
+      (shouldFetchSavedRecommendations && isSavedRecommendationsPending));
+  const isLookupError =
+    !selectedResult &&
+    (isSearchError ||
+      isFavoritesError ||
+      (shouldFetchSavedRecommendations && isSavedRecommendationsError));
 
   // 지도에 경로 선을 그릴 때만 route geometry endpoint를 호출한다(상세 지도이므로 DETAIL).
   const { data: routeData } = useRecommendationRoute(
@@ -340,12 +417,11 @@ export default function InfraViewScreen() {
     infraMarkers,
     card,
     routePlaceLabel,
-    routePlacePosition?.lat,
-    routePlacePosition?.lng,
+    routePlacePosition,
   ]);
 
   // 검색 전 / 로딩 / 실패 / 결과 없음 상태 fallback.
-  if (!request) {
+  if (!hasInfraLookupContext) {
     return (
       <CenteredMessage
         title="추천 결과가 없어요"
@@ -355,7 +431,7 @@ export default function InfraViewScreen() {
     );
   }
 
-  if (isPending) {
+  if (isLookupPending) {
     return (
       <CenteredMessage
         title="인프라 정보를 불러오고 있어요"
@@ -364,7 +440,7 @@ export default function InfraViewScreen() {
     );
   }
 
-  if (isError) {
+  if (isLookupError) {
     return (
       <CenteredMessage
         title="인프라 정보를 불러오지 못했어요"

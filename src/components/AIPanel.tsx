@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
-  CheckCircle2,
   Home,
   Lightbulb,
   Sparkles,
@@ -29,7 +28,7 @@ const EXAMPLE_QUERY =
 export default function AIPanel() {
   const navigate = useNavigate();
 
-  const [query, setQuery] = useState(() => loadSearchRequest()?.query ?? "");
+  const [query, setQuery] = useState("");
   // 검색 기록 노출 여부는 "검색 요청이 저장되어 있는가"로 판단한다.
   const hasAIResult = useSearchRequest() != null;
 
@@ -43,6 +42,7 @@ export default function AIPanel() {
       topN: DEFAULT_TOP_N,
     });
 
+    setQuery("");
     navigate("/ai-result");
   };
 
@@ -161,9 +161,7 @@ function AIResultContent() {
   );
   const topResult = results[0] ?? null;
   const topCard = cards[0] ?? null;
-  const topReasons = topResult?.explanation
-    ? topResult.explanation.split(/\s*[,·]\s*/).filter(Boolean)
-    : [];
+  const topExplanation = topResult?.explanation?.trim() ?? "";
   const topRouteLabel = formatRouteDurationLabel(
     topResult?.firstTargetPlaceRoute ?? null
   );
@@ -295,18 +293,10 @@ function AIResultContent() {
               )}
             </div>
 
-            {topReasons.length > 0 && (
-              <ul className="space-y-1.5">
-                {topReasons.map((reason) => (
-                  <li
-                    key={reason}
-                    className="flex items-start gap-2 text-xs leading-5 text-text-secondary"
-                  >
-                    <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-secondary" />
-                    <span className="break-keep">{reason}</span>
-                  </li>
-                ))}
-              </ul>
+            {topExplanation && (
+              <p className="whitespace-pre-line break-keep text-xs leading-5 text-text-secondary">
+                {topExplanation}
+              </p>
             )}
           </div>
         </section>

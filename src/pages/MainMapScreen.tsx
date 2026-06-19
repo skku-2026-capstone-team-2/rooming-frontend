@@ -118,11 +118,15 @@ export default function MainMapScreen() {
 
   const setSearchParamsRef = useRef(setSearchParams);
   const targetPlaceMarkerRef = useRef(DEFAULT_TARGET_PLACE);
+  const searchRequest = useMemo(() => loadSearchRequest(), []);
+  const searchedProperties = useSearchedProperties();
 
   // view 없음(null) = 검색 전 빈 상태, "recommended"/"favorites" = 해당 목록 노출.
   // (검색 완료 여부를 sessionStorage 플래그 대신 URL로 표현 → 새로고침/딥링크 안전)
   const view = getValidView(searchParams.get("view"));
-  const hasSearchResult = view !== null;
+  const hasSessionSearchResult =
+    searchRequest != null || searchedProperties.length > 0;
+  const hasSearchResult = view !== null || hasSessionSearchResult;
   const listMode: ListMode = view ?? "recommended";
   const listModeRef = useRef<ListMode>(listMode);
   const hasSearchResultRef = useRef(hasSearchResult);
@@ -132,7 +136,6 @@ export default function MainMapScreen() {
 
   // 지도 "추천" 목록은 AI 검색 결과(mock recommendation API)에서 가져온다.
   // 저장된 검색 요청을 키로 추천 결과 화면과 React Query 캐시를 공유한다.
-  const searchRequest = useMemo(() => loadSearchRequest(), []);
   const { data: recommendationData } = useRecommendationSearch(searchRequest);
   const {
     data: targetPlaceData,
@@ -175,7 +178,6 @@ export default function MainMapScreen() {
 
   // 이번 세션에서 검색된 추천 매물을 누적한다(propertyId 기준 중복 제거).
   // 사용자가 여러 번 검색해도 그동안 본 매물들을 함께 볼 수 있다.
-  const searchedProperties = useSearchedProperties();
   useEffect(() => {
     if (recommendedProperties.length > 0) {
       addSearchedProperties(recommendedProperties);

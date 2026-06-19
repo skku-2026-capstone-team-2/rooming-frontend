@@ -31,7 +31,7 @@ export function clampTopN(value: number): number {
 let cachedRaw: string | null = null;
 let cachedRequest: RecommendationRequest | null = null;
 
-function readRequest(): RecommendationRequest | null {
+function readStoredRequest(): RecommendationRequest | null {
   let raw: string | null = null;
   try {
     raw = sessionStorage.getItem(STORAGE_KEY);
@@ -48,8 +48,9 @@ function readRequest(): RecommendationRequest | null {
 
   try {
     const parsed = JSON.parse(raw) as Partial<RecommendationRequest>;
+    const query = typeof parsed.query === "string" ? parsed.query.trim() : "";
     cachedRequest = {
-      query: typeof parsed.query === "string" ? parsed.query : "",
+      query,
       preferences: Array.isArray(parsed.preferences)
         ? parsed.preferences.filter((v) => typeof v === "string")
         : [],
@@ -60,6 +61,11 @@ function readRequest(): RecommendationRequest | null {
   } catch {
     return null;
   }
+}
+
+function readRequest(): RecommendationRequest | null {
+  const request = readStoredRequest();
+  return request?.query ? request : null;
 }
 
 const listeners = new Set<() => void>();
@@ -87,13 +93,13 @@ export function loadSearchRequest(): RecommendationRequest | null {
 
 /** 저장된 선호 조건(preferences) 배열을 읽는다. */
 export function loadSearchPreferences(): string[] {
-  return readRequest()?.preferences ?? [];
+  return readStoredRequest()?.preferences ?? [];
 }
 
 /** AI 검색 요청을 저장하고 구독자에게 알린다. */
 export function saveSearchRequest(request: RecommendationRequest): void {
   const normalized: RecommendationRequest = {
-    query: request.query,
+    query: request.query.trim(),
     preferences: request.preferences ?? [],
     topN: clampTopN(request.topN ?? DEFAULT_TOP_N),
   };

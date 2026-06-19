@@ -34,12 +34,17 @@ export const recommendationKeys = {
  * request가 없으면(검색 전) 실행하지 않는다.
  */
 export function useRecommendationSearch(request: RecommendationRequest | null) {
+  const normalizedRequest =
+    request && request.query.trim()
+      ? { ...request, query: request.query.trim() }
+      : null;
+
   return useQuery({
-    queryKey: request
-      ? recommendationKeys.search(request)
+    queryKey: normalizedRequest
+      ? recommendationKeys.search(normalizedRequest)
       : ["recommendations", "search", "none"],
-    queryFn: () => recommendationApi.postRecommendation(request!),
-    enabled: !!request,
+    queryFn: () => recommendationApi.postRecommendation(normalizedRequest!),
+    enabled: normalizedRequest != null,
     // 동일 검색 요청 결과는 세션 동안 고정 (재진입 시 재요청 방지).
     staleTime: Infinity,
   });

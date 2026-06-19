@@ -20,44 +20,10 @@ import {
   usePropertyImages,
 } from "../hooks/queries/propertyQueries";
 import { useSearchRequest } from "../utils/recommendationSearch";
-import type { RecommendationResult } from "../types";
-
-function parseRecommendationId(value: string | null): number | null {
-  const id = Number(value);
-  return Number.isFinite(id) && id > 0 ? id : null;
-}
-
-function findRecommendationForProperty({
-  propertyId,
-  recommendationId,
-  groups,
-}: {
-  propertyId: number;
-  recommendationId: number | null;
-  groups: RecommendationResult[][];
-}): RecommendationResult | null {
-  const recommendations = groups.flat();
-
-  if (recommendationId != null) {
-    const matchedById = recommendations.find(
-      (recommendation) =>
-        recommendation.recommendationId === recommendationId &&
-        recommendation.propertyId === propertyId
-    );
-    if (matchedById) return matchedById;
-  }
-
-  return (
-    recommendations.find(
-      (recommendation) =>
-        recommendation.propertyId === propertyId && recommendation.favorite
-    ) ??
-    recommendations.find(
-      (recommendation) => recommendation.propertyId === propertyId
-    ) ??
-    null
-  );
-}
+import {
+  findRecommendationForProperty,
+  parseRecommendationId,
+} from "../utils/recommendationSelection";
 
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
@@ -74,14 +40,13 @@ export default function PropertyDetailScreen() {
   // id가 유효할 때만 쿼리를 실행한다. (mock 토글·mapper는 훅 내부에서 재사용)
   const detailQuery = useProperty(propertyId, isValidId);
   const imagesQuery = usePropertyImages(propertyId, isValidId);
-  const { data: savedRecommendationData, isPending: isSavedRecommendationsPending } =
-    useRecommendations(isValidId);
   const { data: favoriteData, isPending: isFavoritesPending } =
     useFavorites(isValidId);
+  const hasSearchRecommendationLookup = isValidId && searchRequest != null;
   const {
     data: searchRecommendationData,
     isPending: isSearchRecommendationsPending,
-  } = useRecommendationSearch(isValidId ? searchRequest : null);
+  } = useRecommendationSearch(hasSearchRecommendationLookup ? searchRequest : null);
   const toggleFavoriteMutation = useToggleFavorite();
 
   const [optimisticFavorites, setOptimisticFavorites] = useState<
@@ -108,7 +73,7 @@ export default function PropertyDetailScreen() {
     [detailQuery.data, imagesQuery.data]
   );
 
-  const recommendationForProperty = useMemo(
+  const primaryRecommendationForProperty = useMemo(
     () =>
       isValidId
         ? findRecommendationForProperty({
@@ -117,7 +82,6 @@ export default function PropertyDetailScreen() {
             groups: [
               favoriteData?.results ?? [],
               searchRecommendationData?.results ?? [],
-              savedRecommendationData?.results ?? [],
             ],
           })
         : null,
@@ -126,18 +90,40 @@ export default function PropertyDetailScreen() {
       isValidId,
       propertyId,
       recommendationId,
-      savedRecommendationData,
       searchRecommendationData,
     ]
   );
+  const isPrimaryRecommendationLookupPending =
+    isFavoritesPending ||
+    (hasSearchRecommendationLookup && isSearchRecommendationsPending);
+  const shouldFetchSavedRecommendations =
+    isValidId &&
+    !primaryRecommendationForProperty &&
+    !isPrimaryRecommendationLookupPending;
+  const {
+    data: savedRecommendationData,
+    isPending: isSavedRecommendationsPending,
+  } = useRecommendations(shouldFetchSavedRecommendations);
+  const savedRecommendationForProperty = useMemo(
+    () =>
+      isValidId
+        ? findRecommendationForProperty({
+            propertyId,
+            recommendationId,
+            groups: [savedRecommendationData?.results ?? []],
+          })
+        : null,
+    [isValidId, propertyId, recommendationId, savedRecommendationData]
+  );
+  const recommendationForProperty =
+    primaryRecommendationForProperty ?? savedRecommendationForProperty;
 
   const recommendationIdForMy =
     recommendationForProperty?.recommendationId ?? null;
   const isRecommendationLookupPending =
     !recommendationForProperty &&
-    (isSavedRecommendationsPending ||
-      isFavoritesPending ||
-      (searchRequest != null && isSearchRecommendationsPending));
+    (isPrimaryRecommendationLookupPending ||
+      (shouldFetchSavedRecommendations && isSavedRecommendationsPending));
   const isFavoritePending =
     toggleFavoriteMutation.isPending &&
     toggleFavoriteMutation.variables?.recommendationId === recommendationIdForMy;
@@ -233,6 +219,17 @@ export default function PropertyDetailScreen() {
   const mainImage = property.imageUrls[0] ?? null;
   const description = property.description ?? "생활 인프라가 가까운 추천 매물";
 
+  const infraParams = new URLSearchParams({
+    propertyId: String(property.propertyId),
+  });
+
+  if (recommendationForProperty?.recommendationId != null) {
+    infraParams.set(
+      "recommendationId",
+      String(recommendationForProperty.recommendationId)
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-6xl px-6 py-8">
@@ -313,9 +310,7 @@ export default function PropertyDetailScreen() {
               <div className="flex w-full gap-3">
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate(`/infra-view?propertyId=${property.propertyId}`)
-                  }
+                  onClick={() => navigate(`/infra-view?${infraParams.toString()}`)}
                   className="flex-1 rounded-xl bg-secondary px-5 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-purple-700 hover:shadow-lg"
                 >
                   인프라 보기
