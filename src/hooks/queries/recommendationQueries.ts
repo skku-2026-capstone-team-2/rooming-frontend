@@ -124,3 +124,19 @@ export function useToggleFavorite() {
     },
   });
 }
+
+export function useDeleteRecommendation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (recommendationId: number) =>
+      recommendationApi.deleteRecommendation(recommendationId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recommendationKeys.list });
+      queryClient.invalidateQueries({ queryKey: recommendationKeys.favorites });
+      queryClient.invalidateQueries({
+        queryKey: ["recommendations", "search"],
+      });
+    },
+  });
+}
