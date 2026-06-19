@@ -1,26 +1,29 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
-  Sparkles,
-  Heart,
   CheckCircle2,
   Footprints,
-  MapPin,
+  Heart,
   Map as MapIcon,
+  MapPin,
+  Sparkles,
 } from "lucide-react";
 
-import { useSearchRequest } from "../utils/recommendationSearch";
-import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
-import { usePropertyList } from "../hooks/queries/propertyQueries";
-import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
+import CenteredMessage from "../components/CenteredMessage";
+import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 import {
   formatRouteDurationLabel,
   formatRoutePlaceDurationLabel,
   formatWalkingLabel,
   mapRecommendationToCardView,
 } from "../api/mappers/recommendationMapper";
-import CenteredMessage from "../components/CenteredMessage";
-import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
+import { usePropertyList } from "../hooks/queries/propertyQueries";
+import {
+  useRecommendationSearch,
+  useToggleFavorite,
+} from "../hooks/queries/recommendationQueries";
+import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
+import { useSearchRequest } from "../utils/recommendationSearch";
 
 export default function AIResultScreen() {
   const navigate = useNavigate();
@@ -29,10 +32,20 @@ export default function AIResultScreen() {
   const { data, isPending, isError } = useRecommendationSearch(request);
   const { data: propertyList } = usePropertyList(request != null);
   const { data: targetPlaceData } = useTargetPlaces(request != null);
+  const toggleFavoriteMutation = useToggleFavorite();
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [optimisticFavorites, setOptimisticFavorites] = useState<
+    Record<number, boolean>
+  >({});
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   const results = useMemo(() => data?.results ?? [], [data]);
   const propertyById = useMemo(
-    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
+    () =>
+      new Map(
+        (propertyList ?? []).map((property) => [property.propertyId, property])
+      ),
     [propertyList]
   );
   const targetPlaceById = useMemo(
@@ -50,48 +63,76 @@ export default function AIResultScreen() {
     [propertyById, targetPlaceById]
   );
 
-  // 로컬 MY 선택: API favorite 값을 기본으로 두고, 토글 시 로컬에서 뒤집어 표시한다.
-  // (useToggleFavorite mutation 연동 및 에러 롤백은 #30)
-  const [toggledFavorites, setToggledFavorites] = useState<Set<number>>(
-    new Set()
-  );
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-
   const selectedResult =
-    results.find((r) => r.recommendationId === selectedId) ??
+    results.find((result) => result.recommendationId === selectedId) ??
     results[0] ??
     null;
   const selectedCard = selectedResult
     ? mapRecommendationToCardView(selectedResult, recommendationMapperOptions)
     : null;
 
-  const isFavorite = (recommendationId: number, apiFavorite: boolean) =>
-    toggledFavorites.has(recommendationId) ? !apiFavorite : apiFavorite;
+  const getFavoriteStatus = (recommendationId: number, apiFavorite: boolean) =>
+    optimisticFavorites[recommendationId] ?? apiFavorite;
+
+  const pendingFavoriteRecommendationId =
+    toggleFavoriteMutation.isPending
+      ? toggleFavoriteMutation.variables?.recommendationId ?? null
+      : null;
 
   const handleToggleMy = () => {
     if (!selectedResult) return;
-    setToggledFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(selectedResult.recommendationId)) {
-        next.delete(selectedResult.recommendationId);
-      } else {
-        next.add(selectedResult.recommendationId);
+
+    const recommendationId = selectedResult.recommendationId;
+    const previousFavorite = getFavoriteStatus(
+      recommendationId,
+      selectedResult.favorite
+    );
+    const nextFavorite = !previousFavorite;
+
+    setFavoriteError(null);
+    setOptimisticFavorites((prev) => ({
+      ...prev,
+      [recommendationId]: nextFavorite,
+    }));
+
+    toggleFavoriteMutation.mutate(
+      {
+        recommendationId,
+        favorite: nextFavorite,
+      },
+      {
+        onError: () => {
+          setOptimisticFavorites((prev) => {
+            const next = { ...prev };
+            if (previousFavorite === selectedResult.favorite) {
+              delete next[recommendationId];
+            } else {
+              next[recommendationId] = previousFavorite;
+            }
+            return next;
+          });
+          setFavoriteError(
+            "MY 상태를 업데이트하지 못했어요. 잠시 후 다시 시도해 주세요."
+          );
+        },
       }
-      return next;
-    });
+    );
+  };
+
+  const handleSelectRecommendation = (recommendationId: number) => {
+    setSelectedId(recommendationId);
+    setFavoriteError(null);
   };
 
   const handleExitResult = () => {
-    // 결과 화면을 거친 뒤 지도에 추천 결과를 노출한다(노출 의도를 URL로 전달).
     navigate("/map?view=recommended");
   };
 
-  // 검색 입력이 없으면 검색을 유도한다.
   if (!request) {
     return (
       <CenteredMessage
         title="검색 조건이 없어요"
-        description="지도 화면의 AI 검색에서 원하는 조건을 입력해 주세요."
+        description="지도 화면의 AI 검색에서 먼저 원하는 조건을 입력해 주세요."
         onBack={() => navigate("/map")}
       />
     );
@@ -101,7 +142,7 @@ export default function AIResultScreen() {
     return (
       <CenteredMessage
         title="AI가 추천 매물을 찾고 있어요"
-        description="조건을 분석해 매칭률이 높은 매물을 추천하는 중이에요."
+        description="조건을 분석해서 잘 맞는 매물을 정리하는 중이에요."
       />
     );
   }
@@ -133,10 +174,15 @@ export default function AIResultScreen() {
     selectedResult.firstTargetPlaceRoute,
     selectedCard.routePlaceName
   );
+  const selectedIsFavorite = getFavoriteStatus(
+    selectedResult.recommendationId,
+    selectedResult.favorite
+  );
+  const isFavoritePending =
+    pendingFavoriteRecommendationId === selectedResult.recommendationId;
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
-      {/* 상단 헤더 */}
       <header className="shrink-0 bg-background">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 pb-3 pt-6">
           <div>
@@ -146,7 +192,7 @@ export default function AIResultScreen() {
             </h1>
 
             <p className="mt-1 text-sm text-text-tertiary">
-              조건에 맞는 {results.length}개의 매물을 추천했어요
+              조건에 맞는 {results.length}개의 매물을 추천했어요.
             </p>
           </div>
 
@@ -161,13 +207,10 @@ export default function AIResultScreen() {
         </div>
       </header>
 
-      {/* 본문 */}
       <main className="mx-auto grid min-h-0 w-full max-w-7xl flex-1 gap-6 px-6 pb-6 pt-3 lg:grid-cols-[1fr_360px]">
-        {/* 왼쪽 상세보기 카드 */}
         <section className="flex min-h-0 min-w-0 flex-col rounded-3xl border border-border bg-card shadow-sm">
           <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
             <div className="grid gap-6 xl:grid-cols-[0.9fr_1fr]">
-              {/* 이미지(placeholder) + 제목 오버레이 영역 */}
               <div>
                 <div className="relative flex h-[360px] items-center justify-center overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-border/50 to-purple-300/50">
                   {selectedCard.imageUrl ? (
@@ -212,7 +255,6 @@ export default function AIResultScreen() {
                 </div>
               </div>
 
-              {/* 설명 영역 */}
               <div className="flex flex-col gap-4">
                 <div className="rounded-3xl border border-border bg-background p-6">
                   <div className="mb-3 flex items-center gap-2">
@@ -256,14 +298,13 @@ export default function AIResultScreen() {
           </div>
         </section>
 
-        {/* 오른쪽 영역: 추천 매물 리스트 + MY 선택 카드 */}
         <aside className="flex min-h-0 flex-col gap-4">
           <section className="flex min-h-0 flex-1 flex-col rounded-3xl border border-border bg-card shadow-sm">
             <div className="shrink-0 px-5 pb-3 pt-5">
               <h2 className="text-lg font-bold text-foreground">추천 매물</h2>
 
               <p className="mt-1 text-sm text-text-tertiary">
-                매물을 선택하면 왼쪽에서 자세히 볼 수 있어요
+                매물을 선택하면 왼쪽에서 자세히 볼 수 있어요.
               </p>
             </div>
 
@@ -273,9 +314,8 @@ export default function AIResultScreen() {
               <div className="space-y-3">
                 {results.map((result, index) => {
                   const isSelected =
-                    result.recommendationId ===
-                    selectedResult.recommendationId;
-                  const isMy = isFavorite(
+                    result.recommendationId === selectedResult.recommendationId;
+                  const isMy = getFavoriteStatus(
                     result.recommendationId,
                     result.favorite
                   );
@@ -288,11 +328,14 @@ export default function AIResultScreen() {
                     <button
                       key={result.recommendationId}
                       type="button"
-                      onClick={() => setSelectedId(result.recommendationId)}
-                      className={`w-full rounded-2xl border p-4 text-left transition ${isSelected
+                      onClick={() =>
+                        handleSelectRecommendation(result.recommendationId)
+                      }
+                      className={`w-full rounded-2xl border p-4 text-left transition ${
+                        isSelected
                           ? "border-primary bg-muted"
                           : "border-border bg-card hover:border-accent"
-                        }`}
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -342,7 +385,6 @@ export default function AIResultScreen() {
             </div>
           </section>
 
-          {/* MY 설명 버튼 카드 */}
           <section className="shrink-0 rounded-3xl border border-border bg-card p-5 shadow-sm">
             <div className="mb-4">
               <p className="text-sm font-semibold text-foreground">
@@ -350,47 +392,38 @@ export default function AIResultScreen() {
               </p>
 
               <p className="mt-1 text-sm leading-5 text-text-tertiary">
-                선택한 매물은 저장되어 다시 확인할 수 있어요.
+                선택한 매물은 저장된 추천 목록에서 다시 확인할 수 있어요.
               </p>
             </div>
 
             <button
               type="button"
               onClick={handleToggleMy}
+              disabled={isFavoritePending}
               style={{
                 borderColor: "var(--token-color-my)",
-                backgroundColor: isFavorite(
-                  selectedResult.recommendationId,
-                  selectedResult.favorite
-                )
+                backgroundColor: selectedIsFavorite
                   ? "var(--token-color-my)"
                   : "var(--token-color-white)",
-                color: isFavorite(
-                  selectedResult.recommendationId,
-                  selectedResult.favorite
-                )
+                color: selectedIsFavorite
                   ? "var(--token-color-text-white)"
                   : "var(--token-color-my)",
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border px-6 py-3 text-base font-bold shadow-sm transition"
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border px-6 py-3 text-base font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-70"
             >
               <Heart
-                className={`h-5 w-5 ${isFavorite(
-                  selectedResult.recommendationId,
-                  selectedResult.favorite
-                )
-                  ? "fill-current"
-                  : ""
-                  }`}
+                className={`h-5 w-5 ${selectedIsFavorite ? "fill-current" : ""}`}
               />
-
-              {isFavorite(
-                selectedResult.recommendationId,
-                selectedResult.favorite
-              )
-                ? "MY 선택됨"
-                : "MY로 선택"}
+              {isFavoritePending
+                ? "저장 중..."
+                : selectedIsFavorite
+                  ? "MY 선택됨"
+                  : "MY로 선택"}
             </button>
+
+            {favoriteError && (
+              <p className="mt-3 text-sm text-destructive">{favoriteError}</p>
+            )}
           </section>
         </aside>
       </main>
@@ -411,4 +444,3 @@ function SimpleInfoBadge({ icon, text }: SimpleInfoBadgeProps) {
     </span>
   );
 }
-
