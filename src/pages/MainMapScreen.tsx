@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
+import { UserRound } from "lucide-react";
 
 import PropertyListPanel from "../components/PropertyListPanel";
 import InfraSearchWidget from "../components/InfraSearchWidget";
@@ -578,6 +579,15 @@ export default function MainMapScreen() {
     <div className="flex h-screen w-full overflow-hidden bg-background">
       <main className="relative h-full flex-1 overflow-hidden">
         <div id="map_div" className="h-full w-full" />
+
+        <button
+          type="button"
+          onClick={() => navigate("/my")}
+          className="absolute right-5 top-5 z-20 flex items-center gap-2 rounded-2xl border border-border bg-card/95 px-4 py-3 text-sm font-semibold text-foreground shadow-md backdrop-blur-sm transition hover:bg-background"
+        >
+          <UserRound className="h-4 w-4" />
+          마이페이지
+        </button>
 
         <PropertyListPanel
           listMode={listMode}

@@ -9,6 +9,7 @@ import InfraViewScreen from "./pages/InfraViewScreen";
 import ThreeDViewScreen from "./pages/ThreeDViewScreen";
 import AdminScreen from "./pages/AdminScreen";
 import AIResultScreen from "./pages/AIResultScreen";
+import MyPageScreen from "./pages/MyPageScreen";
 import DesignSystemDemo from "./figma/DesignSystem";
 
 export const router = createBrowserRouter([
@@ -27,6 +28,10 @@ export const router = createBrowserRouter([
   {
     path: "/map",
     Component: MainMapScreen,
+  },
+  {
+    path: "/my",
+    Component: MyPageScreen,
   },
   {
     path: "/ai-result",
