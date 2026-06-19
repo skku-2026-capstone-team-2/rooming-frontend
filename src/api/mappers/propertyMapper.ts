@@ -22,6 +22,7 @@ import type {
 
 const ROOM_TYPE_LABELS: Record<string, string> = {
   one_room: "원룸",
+  one_room_split: "분리형 원룸",
   two_room: "투룸",
   three_room: "쓰리룸",
   officetel: "오피스텔",

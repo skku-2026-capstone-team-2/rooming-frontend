@@ -1,9 +1,21 @@
-import { createElement, useEffect, useRef, useState } from "react";
+import {
+  createElement,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ElementType, HTMLAttributes } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { ArrowLeft, Box, RotateCw, Ruler, Sun, ZoomIn } from "lucide-react";
 
-import { useProperty3D } from "../hooks/queries/propertyQueries";
+import { useProperty, useProperty3D } from "../hooks/queries/propertyQueries";
+import {
+  formatAreaLabel,
+  formatFloorLabel,
+  formatRoomTypeLabel,
+} from "../api/mappers/propertyMapper";
 
 type ViewMode = "normal" | "floor";
 type SplineViewerStatus =
@@ -16,7 +28,6 @@ const SPLINE_VIEWER_SCRIPT_SRC =
   "https://unpkg.com/@splinetool/viewer/build/spline-viewer.js";
 const SPLINE_VIEWER_SCRIPT_SELECTOR = `script[src="${SPLINE_VIEWER_SCRIPT_SRC}"]`;
 const SPLINE_SCENE_FILE = "scene.splinecode";
-const LONG_SPLINE_LOAD_DELAY_MS = 10000;
 
 export default function ThreeDViewScreen() {
   const navigate = useNavigate();
@@ -31,6 +42,24 @@ export default function ThreeDViewScreen() {
     propertyId,
     isValidId
   );
+
+  // 공간 정보 패널은 서버 매물 상세에서 가져올 수 있는 값만 표시한다.
+  // (천장 높이/공간 구성/가구 배치 등 서버에 없는 항목은 노출하지 않음)
+  const { data: detail } = useProperty(propertyId, isValidId);
+  const spaceInfoItems = useMemo(() => {
+    if (!detail) return [];
+    const items: { label: string; value: string }[] = [];
+    if (detail.areaM2 != null) {
+      items.push({ label: "면적", value: formatAreaLabel(detail.areaM2) });
+    }
+    if (detail.roomType) {
+      items.push({ label: "구조", value: formatRoomTypeLabel(detail.roomType) });
+    }
+    if (detail.floorInfo) {
+      items.push({ label: "층", value: formatFloorLabel(detail.floorInfo) });
+    }
+    return items;
+  }, [detail]);
 
   const isLoading = isValidId && isPending;
   // 3D 모델 노출 가능 여부. id가 없거나 에러/없음이면 빈 상태로 본다.
@@ -60,49 +89,17 @@ export default function ThreeDViewScreen() {
         )}
       </div>
 
-      {isNormalMode && hasModel && (
-        <div className="absolute bottom-6 left-6 z-10 w-[240px] space-y-4">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-3">
-              <div className="rounded-2xl border border-green-800 bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
-                <h3 className="mb-3 text-base font-bold text-primary-foreground">
-                  공간 정보
-                </h3>
+      {isNormalMode && hasModel && spaceInfoItems.length > 0 && (
+        <div className="absolute bottom-6 left-6 z-10 w-[240px]">
+          <div className="rounded-2xl border border-green-800 bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
+            <h3 className="mb-3 text-base font-bold text-primary-foreground">
+              공간 정보
+            </h3>
 
-                <div className="space-y-2 text-xs">
-                  <InfoItem label="면적" value="23.1㎡" />
-                  <InfoItem label="구조" value="원룸" />
-                  <InfoItem label="천장 높이" value="2.4m" />
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-3">
-              <div className="rounded-2xl border border-purple-900 bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
-                <h3 className="mb-3 text-base font-bold text-purple-400">
-                  공간 구성
-                </h3>
-
-                <div className="space-y-2 text-xs text-purple-500">
-                  <div>방 1개</div>
-                  <div>욕실 1개</div>
-                  <div>주방 일체형</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-3">
-              <div className="rounded-2xl border border-primary bg-green-900/95 p-6 shadow-xl backdrop-blur-sm">
-                <h3 className="mb-3 text-base font-bold text-green-300">
-                  가구 배치
-                </h3>
-
-                <div className="space-y-2 text-xs text-accent">
-                  <div>침대</div>
-                  <div>책상 & 의자</div>
-                  <div>옷장</div>
-                </div>
-              </div>
+            <div className="space-y-2 text-xs">
+              {spaceInfoItems.map((item) => (
+                <InfoItem key={item.label} label={item.label} value={item.value} />
+              ))}
             </div>
           </div>
         </div>
@@ -168,11 +165,10 @@ function SplineModelViewer({ modelUrl }: { modelUrl: string }) {
 }
 
 function SplineSceneViewer({ url }: { url: string }) {
-  const viewerRef = useRef<HTMLElement>(null);
+  const viewerRef = useRef<HTMLElement | null>(null);
   const [viewerStatus, setViewerStatus] = useState<SplineViewerStatus>(() =>
     isSplineViewerDefined() ? "scene-loading" : "script-loading"
   );
-  const [isSlowLoading, setIsSlowLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -194,7 +190,11 @@ function SplineSceneViewer({ url }: { url: string }) {
     };
   }, [url]);
 
-  useEffect(() => {
+  // load/error 리스너는 useLayoutEffect(커밋 단계, paint 이전)로 붙인다.
+  // useEffect(paint 이후)로 붙이면, 스크립트·씬이 이미 캐시된 재방문 시
+  // spline-viewer가 리스너 등록 전에 'load'를 발생시켜 이벤트를 놓치고
+  // scene-loading 상태에 영구히 머물러 "로딩이 오래 걸린다" 메시지가 남는 문제가 있다.
+  useLayoutEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
 
@@ -209,17 +209,6 @@ function SplineSceneViewer({ url }: { url: string }) {
       viewer.removeEventListener("error", handleError);
     };
   }, [url]);
-
-  useEffect(() => {
-    if (viewerStatus !== "scene-loading") return;
-
-    const timeoutId = window.setTimeout(
-      () => setIsSlowLoading(true),
-      LONG_SPLINE_LOAD_DELAY_MS
-    );
-
-    return () => window.clearTimeout(timeoutId);
-  }, [url, viewerStatus]);
 
   const splineViewerProps: HTMLAttributes<HTMLElement> & {
     ref: typeof viewerRef;
@@ -240,16 +229,6 @@ function SplineSceneViewer({ url }: { url: string }) {
       {viewerStatus === "script-loading" && (
         <div className="absolute inset-0 bg-green-900">
           <ViewerMessage text="3D 뷰어를 준비하는 중이에요..." />
-        </div>
-      )}
-
-      {viewerStatus === "scene-loading" && (
-        <div className="pointer-events-none absolute inset-x-0 top-24 z-10 flex justify-center px-6">
-          <div className="rounded-full border border-green-500/30 bg-green-900/90 px-5 py-3 text-sm font-semibold text-green-200 shadow-xl backdrop-blur-sm">
-            {isSlowLoading
-              ? "3D 모델 용량이 커서 로딩에 시간이 걸리고 있어요..."
-              : "3D 모델을 불러오는 중이에요..."}
-          </div>
         </div>
       )}
 
