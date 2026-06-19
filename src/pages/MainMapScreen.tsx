@@ -28,14 +28,22 @@ import {
 import { usePropertyList } from "../hooks/queries/propertyQueries";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
-import type { PropertyCardView } from "../types";
+import type { PropertyCardView, TargetPlaceResponseItem } from "../types";
 
 const MAP_CENTER = {
   lat: 37.5882,
   lng: 126.9936,
 };
 
-const DEFAULT_TARGET_PLACE = {
+type TargetPlaceMarker = {
+  label: string;
+  position: {
+    lat: number;
+    lng: number;
+  };
+};
+
+const DEFAULT_TARGET_PLACE: TargetPlaceMarker = {
   label: "성균관대 정문",
   position: {
     lat: 37.5849,
@@ -43,11 +51,47 @@ const DEFAULT_TARGET_PLACE = {
   },
 };
 
+const MAIN_TARGET_PLACE_CATEGORY = "SCHOOL";
+
 const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
   categories: [],
   radius: 500,
   customKeyword: "",
 };
+
+function isValidCoordinate(value: number | null | undefined): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function getMainTargetPlace(
+  targetPlaces: TargetPlaceResponseItem[]
+): TargetPlaceResponseItem | null {
+  return (
+    targetPlaces.find((place) => place.category === MAIN_TARGET_PLACE_CATEGORY) ??
+    targetPlaces[0] ??
+    null
+  );
+}
+
+function toTargetPlaceMarker(
+  targetPlace: TargetPlaceResponseItem | null
+): TargetPlaceMarker | null {
+  if (
+    !targetPlace ||
+    !isValidCoordinate(targetPlace.location?.latitude) ||
+    !isValidCoordinate(targetPlace.location?.longitude)
+  ) {
+    return null;
+  }
+
+  return {
+    label: targetPlace.placeName,
+    position: {
+      lat: targetPlace.location.latitude,
+      lng: targetPlace.location.longitude,
+    },
+  };
+}
 
 /** 지도가 무엇을 보여줄지. `view`가 없으면(검색 전) 아무것도 노출하지 않는다. */
 function getValidView(value: string | null): ListMode | null {
@@ -87,7 +131,11 @@ export default function MainMapScreen() {
   const { data: recommendationData } = useRecommendationSearch(searchRequest);
   const shouldLoadJoinData = searchRequest != null || hasSearchResult;
   const { data: propertyList } = usePropertyList(shouldLoadJoinData);
-  const { data: targetPlaceData } = useTargetPlaces(shouldLoadJoinData);
+  const {
+    data: targetPlaceData,
+    isPending: isTargetPlacesPending,
+  } = useTargetPlaces();
+  const shouldWaitForTargetPlaces = isTargetPlacesPending && !targetPlaceData;
   const propertyById = useMemo(
     () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
     [propertyList]
@@ -100,6 +148,13 @@ export default function MainMapScreen() {
           place,
         ])
       ),
+    [targetPlaceData]
+  );
+  const mainTargetPlaceMarker = useMemo(
+    () =>
+      toTargetPlaceMarker(
+        getMainTargetPlace(targetPlaceData?.targetPlaces ?? [])
+      ) ?? DEFAULT_TARGET_PLACE,
     [targetPlaceData]
   );
   const recommendationMapperOptions = useMemo(
@@ -169,14 +224,31 @@ export default function MainMapScreen() {
           property.routePlaceName != null
       );
 
+    const routePlaceLat = routePlaceProperty?.routePlaceLat;
+    const routePlaceLng = routePlaceProperty?.routePlaceLng;
+
+    if (isValidCoordinate(routePlaceLat) && isValidCoordinate(routePlaceLng)) {
+      return {
+        label: routePlaceProperty?.routePlaceName ?? mainTargetPlaceMarker.label,
+        position: {
+          lat: routePlaceLat,
+          lng: routePlaceLng,
+        },
+      };
+    }
+
+    if (routePlaceProperty?.routePlaceName) {
+      return {
+        label: routePlaceProperty.routePlaceName,
+        position: mainTargetPlaceMarker.position,
+      };
+    }
+
     return {
-      label: routePlaceProperty?.routePlaceName ?? DEFAULT_TARGET_PLACE.label,
-      position: {
-        lat: routePlaceProperty?.routePlaceLat ?? DEFAULT_TARGET_PLACE.position.lat,
-        lng: routePlaceProperty?.routePlaceLng ?? DEFAULT_TARGET_PLACE.position.lng,
-      },
+      label: mainTargetPlaceMarker.label,
+      position: mainTargetPlaceMarker.position,
     };
-  }, [selectedProperty, visibleProperties]);
+  }, [selectedProperty, visibleProperties, mainTargetPlaceMarker]);
 
   // imperative 지도 init 코드가 최신 노출 여부를 읽도록 ref에 동기화한다.
   useEffect(() => {
@@ -244,10 +316,20 @@ export default function MainMapScreen() {
     []
   );
 
+  const updateMapCenter = useCallback((position: TargetPlaceMarker["position"]) => {
+    const map = mapRef.current;
+    const tmap = window.Tmapv2;
+
+    if (!map || !tmap || typeof map.setCenter !== "function") return;
+
+    map.setCenter(new tmap.LatLng(position.lat, position.lng));
+  }, []);
+
   useEffect(() => {
     targetPlaceMarkerRef.current = targetPlaceMarker;
     renderTargetPlaceMarker(targetPlaceMarker);
-  }, [targetPlaceMarker, renderTargetPlaceMarker]);
+    updateMapCenter(targetPlaceMarker.position);
+  }, [targetPlaceMarker, renderTargetPlaceMarker, updateMapCenter]);
 
   const resetMapContainer = useCallback(() => {
     clearInfraMarkers(infraMarkersRef);
@@ -357,6 +439,8 @@ export default function MainMapScreen() {
   }, [visibleProperties, renderPropertyMarkers]);
 
   useEffect(() => {
+    if (shouldWaitForTargetPlaces) return;
+
     let timeoutId: number | null = null;
     let cancelled = false;
 
@@ -371,9 +455,10 @@ export default function MainMapScreen() {
 
       mapContainer.innerHTML = "";
       isMapInitializedRef.current = true;
+      const initialCenter = targetPlaceMarkerRef.current.position;
 
       const map = new tmap.Map("map_div", {
-        center: new tmap.LatLng(MAP_CENTER.lat, MAP_CENTER.lng),
+        center: new tmap.LatLng(initialCenter.lat, initialCenter.lng),
         width: "100%",
         height: "100%",
         zoom: 17,
@@ -425,7 +510,12 @@ export default function MainMapScreen() {
 
       resetMapContainer();
     };
-  }, [renderPropertyMarkers, resetMapContainer, resolveProperties]);
+  }, [
+    renderPropertyMarkers,
+    resetMapContainer,
+    resolveProperties,
+    shouldWaitForTargetPlaces,
+  ]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">

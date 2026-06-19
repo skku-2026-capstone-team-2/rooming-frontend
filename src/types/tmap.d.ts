@@ -12,6 +12,7 @@ declare global {
 
   type TmapMap = {
     getCenter?: () => TmapLatLng;
+    setCenter?: (center: TmapLatLng) => void;
   };
 
   type TmapMarker = {
