@@ -370,7 +370,11 @@ export default function PropertyDetailScreen() {
                     label="관리비"
                     value={property.maintenanceFeeLabel}
                   />
-                  <InfoRow label="주소" value={property.address} />
+                  <InfoRow
+                    label="주소"
+                    value={property.address}
+                    breakOnComma
+                  />
                 </div>
               </div>
 
@@ -410,11 +414,34 @@ function DistanceItem({ place, distance }: { place: string; distance: string }) 
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function InfoRow({
+  label,
+  value,
+  breakOnComma = false,
+}: {
+  label: string;
+  value: string;
+  breakOnComma?: boolean;
+}) {
+  const segments = breakOnComma ? value.split(",") : [value];
+
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-beige-300 bg-green-300 px-4 py-3">
-      <span className="text-sm font-medium text-accent">{label}</span>
-      <span className="text-base font-semibold text-text-secondary">{value}</span>
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-beige-300 bg-green-300 px-4 py-3">
+      <span className="shrink-0 whitespace-nowrap text-sm font-medium text-accent">
+        {label}
+      </span>
+      <span className="break-keep text-left text-base font-semibold text-text-secondary">
+        {segments.map((segment, index) => (
+          <span key={index}>
+            {segment.trim()}
+            {index < segments.length - 1 && (
+              <>
+                ,<br />
+              </>
+            )}
+          </span>
+        ))}
+      </span>
     </div>
   );
 }
