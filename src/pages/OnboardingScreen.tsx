@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useNavigate, useSearchParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
   Bus,
@@ -15,6 +16,10 @@ import {
 import PreferenceBoard from "../components/PreferenceBoard";
 import { useOnboardingDraft } from "../hooks/useOnboardingDraft";
 import {
+  targetPlaceKeys,
+  useTargetPlaces,
+} from "../hooks/queries/targetPlaceQueries";
+import {
   PLACE_CATEGORY_LABELS,
   REQUIRED_PLACE_CATEGORY,
   toRecommendationPreferences,
@@ -27,6 +32,14 @@ import {
 } from "../utils/recommendationSearch";
 import { targetPlaceApi } from "../api/targetPlaceApi";
 import type { PlaceCategory } from "../types";
+
+/**
+ * 화면에서 편집하는 주요 장소 한 건.
+ *
+ * 온보딩(신규 등록)에서는 `targetPlaceId`가 없고, 마이페이지에서 진입한
+ * 수정 모드(`?mode=edit`)에서는 서버에 이미 존재하는 장소에 한해 id를 가진다.
+ */
+type EditablePlace = OnboardingPlaceDraft & { targetPlaceId?: number };
 
 type PlaceSearchResult = {
   placeName: string;
@@ -147,10 +160,63 @@ async function searchPlacesByKeyword(
 
 export default function OnboardingScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+
+  // 마이페이지에서 "주요 장소 수정"으로 진입하면 수정 모드로 동작한다.
+  const isEditMode = searchParams.get("mode") === "edit";
 
   // 화면 이동·새로고침 시 유지되는 입력(주요 장소·선호 조건)은 draft 훅에서 관리한다.
-  const { places, preferences, setPlaces, setPreferences } =
-    useOnboardingDraft();
+  const {
+    places: draftPlaces,
+    preferences,
+    setPlaces: setDraftPlaces,
+    setPreferences,
+  } = useOnboardingDraft();
+
+  // 수정 모드에서는 draft를 건드리지 않고, 서버 장소를 시드한 로컬 상태로 다룬다.
+  const targetPlacesQuery = useTargetPlaces(isEditMode);
+  const [editPlaces, setEditPlaces] = useState<EditablePlace[]>([]);
+  const originalPlacesRef = useRef<EditablePlace[]>([]);
+  const seededRef = useRef(false);
+
+  useEffect(() => {
+    if (!isEditMode || seededRef.current) return;
+
+    const serverPlaces = targetPlacesQuery.data?.targetPlaces;
+    if (!serverPlaces) return;
+
+    const mapped = serverPlaces.map<EditablePlace>((item) => ({
+      targetPlaceId: item.targetPlaceId,
+      category: item.category,
+      placeName: item.placeName,
+      roadAddress: item.roadAddress ?? "",
+      location: item.location,
+      memo: item.memo ?? "",
+    }));
+
+    setEditPlaces(mapped);
+    originalPlacesRef.current = mapped;
+    seededRef.current = true;
+  }, [isEditMode, targetPlacesQuery.data]);
+
+  const places: EditablePlace[] = isEditMode ? editPlaces : draftPlaces;
+  const setPlaces = (
+    updater:
+      | EditablePlace[]
+      | ((prev: EditablePlace[]) => EditablePlace[])
+  ) => {
+    if (isEditMode) {
+      setEditPlaces(updater);
+    } else {
+      setDraftPlaces(
+        updater as
+          | OnboardingPlaceDraft[]
+          | ((prev: OnboardingPlaceDraft[]) => OnboardingPlaceDraft[])
+      );
+    }
+  };
+
   const [placeType, setPlaceType] = useState<PlaceCategory>(
     REQUIRED_PLACE_CATEGORY
   );
@@ -269,17 +335,64 @@ export default function OnboardingScreen() {
     navigate("/map");
   };
 
+  // 수정 모드: 시드한 원본과 비교해 추가된 장소는 생성, 제거된 장소는 삭제한다.
+  const handleSaveEdit = async () => {
+    if (!isUniversityRegistered) {
+      alert("학교 건물은 필수로 등록해야 합니다.");
+      return;
+    }
+
+    const currentIds = new Set(
+      editPlaces
+        .map((place) => place.targetPlaceId)
+        .filter((id): id is number => id !== undefined)
+    );
+    const placesToDelete = originalPlacesRef.current.filter(
+      (place) =>
+        place.targetPlaceId !== undefined &&
+        !currentIds.has(place.targetPlaceId)
+    );
+    const placesToCreate = editPlaces.filter(
+      (place) => place.targetPlaceId === undefined
+    );
+
+    try {
+      setIsSubmitting(true);
+
+      await Promise.all([
+        ...placesToCreate.map((place) =>
+          targetPlaceApi.createTargetPlace(toTargetPlaceCreateRequest(place))
+        ),
+        ...placesToDelete.map((place) =>
+          targetPlaceApi.deleteTargetPlace(place.targetPlaceId as number)
+        ),
+      ]);
+
+      await queryClient.invalidateQueries({ queryKey: targetPlaceKeys.list });
+    } catch (error) {
+      console.error(error);
+      alert("주요 장소 수정에 실패했습니다. 다시 시도해 주세요.");
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+
+    navigate("/my");
+  };
+
   return (
     <div className="h-screen overflow-hidden bg-background">
       <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-6 py-6">
         {/* 페이지 헤더 */}
         <div className="mb-5 shrink-0">
           <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-text-muted">
-            Onboarding
+            {isEditMode ? "Edit" : "Onboarding"}
           </p>
 
           <h1 className="text-2xl font-bold text-green-800">
-            주요 장소를 등록해주세요
+            {isEditMode
+              ? "주요 장소를 수정해주세요"
+              : "주요 장소를 등록해주세요"}
           </h1>
 
           <p className="mt-1.5 text-sm text-text-tertiary">
@@ -570,7 +683,7 @@ export default function OnboardingScreen() {
         <div className="mt-5 flex shrink-0 items-center justify-between">
           <button
             type="button"
-            onClick={() => navigate("/")}
+            onClick={() => navigate(isEditMode ? "/my" : "/")}
             className="rounded-xl border border-border bg-card px-5 py-2.5 text-sm font-semibold text-text-secondary transition-all hover:border-beige-200 hover:bg-background"
           >
             뒤로가기
@@ -578,12 +691,12 @@ export default function OnboardingScreen() {
 
           <button
             type="button"
-            onClick={handleNext}
+            onClick={isEditMode ? handleSaveEdit : handleNext}
             disabled={isSubmitting}
             className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-beige-200"
           >
             {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-            다음으로
+            {isEditMode ? "저장" : "다음으로"}
           </button>
         </div>
       </div>
