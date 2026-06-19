@@ -17,7 +17,6 @@ import {
   formatWalkingLabel,
   mapRecommendationToCardView,
 } from "../api/mappers/recommendationMapper";
-import { usePropertyList } from "../hooks/queries/propertyQueries";
 import {
   useRecommendationSearch,
   useToggleFavorite,
@@ -30,7 +29,6 @@ export default function AIResultScreen() {
 
   const request = useSearchRequest();
   const { data, isPending, isError } = useRecommendationSearch(request);
-  const { data: propertyList } = usePropertyList(request != null);
   const { data: targetPlaceData } = useTargetPlaces(request != null);
   const toggleFavoriteMutation = useToggleFavorite();
 
@@ -41,13 +39,6 @@ export default function AIResultScreen() {
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   const results = useMemo(() => data?.results ?? [], [data]);
-  const propertyById = useMemo(
-    () =>
-      new Map(
-        (propertyList ?? []).map((property) => [property.propertyId, property])
-      ),
-    [propertyList]
-  );
   const targetPlaceById = useMemo(
     () =>
       new Map(
@@ -59,8 +50,8 @@ export default function AIResultScreen() {
     [targetPlaceData]
   );
   const recommendationMapperOptions = useMemo(
-    () => ({ propertyById, targetPlaceById }),
-    [propertyById, targetPlaceById]
+    () => ({ targetPlaceById }),
+    [targetPlaceById]
   );
 
   const selectedResult =

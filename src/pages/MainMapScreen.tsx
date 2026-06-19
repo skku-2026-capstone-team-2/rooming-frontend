@@ -31,7 +31,6 @@ import {
   useFavorites,
   useRecommendationSearch,
 } from "../hooks/queries/recommendationQueries";
-import { usePropertyList } from "../hooks/queries/propertyQueries";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
 import type { PropertyCardView, TargetPlaceResponseItem } from "../types";
@@ -135,24 +134,11 @@ export default function MainMapScreen() {
   // 저장된 검색 요청을 키로 추천 결과 화면과 React Query 캐시를 공유한다.
   const searchRequest = useMemo(() => loadSearchRequest(), []);
   const { data: recommendationData } = useRecommendationSearch(searchRequest);
-  const shouldLoadJoinData = searchRequest != null || hasSearchResult;
-  const { data: propertyList } = usePropertyList(shouldLoadJoinData);
   const {
     data: targetPlaceData,
     isPending: isTargetPlacesPending,
   } = useTargetPlaces();
   const shouldWaitForTargetPlaces = isTargetPlacesPending && !targetPlaceData;
-
-  const propertyById = useMemo(
-    () =>
-      new Map(
-        (propertyList ?? []).map((property) => [
-          property.propertyId,
-          property,
-        ])
-      ),
-    [propertyList]
-  );
 
   const targetPlaceById = useMemo(
     () =>
@@ -174,8 +160,8 @@ export default function MainMapScreen() {
   );
 
   const recommendationMapperOptions = useMemo(
-    () => ({ propertyById, targetPlaceById }),
-    [propertyById, targetPlaceById]
+    () => ({ targetPlaceById }),
+    [targetPlaceById]
   );
 
   const recommendedProperties = useMemo<PropertyCardView[]>(

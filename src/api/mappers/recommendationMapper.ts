@@ -3,13 +3,12 @@
  *
  * - 추천 결과(`RecommendationResult`)를 지도/리스트 카드(`PropertyCardView`)로 변환한다.
  * - 가격/면적 라벨은 property mapper를 재사용한다.
- * - 추천 응답에는 매물 제목·주소·면적·이미지가 없으므로(스키마 한계) 해당 필드는
- *   합성하거나 "정보 없음"으로 둔다. (전체 매물 상세는 propertyApi로 별도 조회)
+ * - 매물 제목 등 표시 필드는 추천 응답(`result.property`)에서 직접 사용한다.
+ *   (값이 비어 있으면 합성하거나 "정보 없음"으로 둔다.)
  */
 
 import type {
   CoordinateDto,
-  Property,
   RecommendationInfrastructureDetails,
   RecommendationResult,
   RecommendationRouteSubPathSummary,
@@ -27,7 +26,6 @@ import type {
 import { formatAreaLabel, formatPriceLabel } from "./propertyMapper";
 
 export interface RecommendationCardMapperOptions {
-  propertyById?: ReadonlyMap<number, Property>;
   targetPlaceById?: ReadonlyMap<number, TargetPlaceResponseItem>;
 }
 
@@ -152,25 +150,18 @@ export function mapRecommendationToCardView(
   options: RecommendationCardMapperOptions = {}
 ): PropertyCardView {
   const property = result.property;
-  const joinedProperty = options.propertyById?.get(result.propertyId);
   const routePlace = getRecommendationRoutePlace(
     result.firstTargetPlaceRoute,
     options
   );
 
-  const title = firstValue(
-    property.title,
-    joinedProperty?.title,
-    `추천 매물 #${result.propertyId}`
-  ) ?? `추천 매물 #${result.propertyId}`;
-  const address = firstValue(property.address, joinedProperty?.address, "") ?? "";
-  const areaM2 = firstValue(property.areaM2, joinedProperty?.areaM2);
-  const imageUrl = firstValue(
-    property.imageUrl,
-    property.imageUrls?.[0],
-    joinedProperty?.imageUrls?.[0]
-  );
-  const has3DModel = firstValue(property.has3DModel, joinedProperty?.has3DModel);
+  const title =
+    firstValue(property.title, `추천 매물 #${result.propertyId}`) ??
+    `추천 매물 #${result.propertyId}`;
+  const address = property.address ?? "";
+  const areaM2 = property.areaM2 ?? null;
+  const imageUrl = firstValue(property.imageUrl, property.imageUrls?.[0]);
+  const has3DModel = property.has3DModel ?? null;
 
   return {
     propertyId: result.propertyId,
@@ -183,11 +174,11 @@ export function mapRecommendationToCardView(
       property.monthlyRent
     ),
     areaLabel: formatAreaLabel(areaM2),
-    description: firstValue(property.description, joinedProperty?.description),
+    description: property.description,
     imageUrl,
-    lat: firstValue(property.location?.latitude, joinedProperty?.latitude),
-    lng: firstValue(property.location?.longitude, joinedProperty?.longitude),
-    tags: firstValue(property.tags, joinedProperty?.tags, []) ?? [],
+    lat: property.location?.latitude ?? null,
+    lng: property.location?.longitude ?? null,
+    tags: property.tags ?? [],
     has3DModel: has3DModel ?? false,
     favorite: result.favorite,
     recommendationId: result.recommendationId,

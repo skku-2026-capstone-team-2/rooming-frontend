@@ -23,7 +23,6 @@ import {
   mapInfrastructureToMarkerView,
   mapRecommendationToCardView,
 } from "../api/mappers/recommendationMapper";
-import { usePropertyList } from "../hooks/queries/propertyQueries";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { createPropertyMarkerHTML } from "../utils/createPropertyMarkerHTML";
 import {
@@ -94,7 +93,6 @@ export default function InfraViewScreen() {
   const request = useMemo(() => loadSearchRequest(), []);
   const { data, isPending, isError } = useRecommendationSearch(request);
   const { data: favoriteData } = useFavorites();
-  const { data: propertyList } = usePropertyList(request != null);
   const { data: targetPlaceData } = useTargetPlaces(request != null);
   const results = useMemo(
     () => [
@@ -102,10 +100,6 @@ export default function InfraViewScreen() {
       ...(favoriteData?.results ?? []),
     ],
     [data, favoriteData]
-  );
-  const propertyById = useMemo(
-    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
-    [propertyList]
   );
   const targetPlaceById = useMemo(
     () =>
@@ -118,8 +112,8 @@ export default function InfraViewScreen() {
     [targetPlaceData]
   );
   const recommendationMapperOptions = useMemo(
-    () => ({ propertyById, targetPlaceById }),
-    [propertyById, targetPlaceById]
+    () => ({ targetPlaceById }),
+    [targetPlaceById]
   );
 
   const recommendationIdParam = Number(searchParams.get("recommendationId"));

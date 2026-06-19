@@ -15,7 +15,6 @@ import {
   useSearchRequest,
 } from "../utils/recommendationSearch";
 import { useRecommendationSearch } from "../hooks/queries/recommendationQueries";
-import { usePropertyList } from "../hooks/queries/propertyQueries";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import {
   formatRouteDurationLabel,
@@ -136,14 +135,9 @@ function EmptyAIResult() {
 function AIResultContent() {
   const request = loadSearchRequest();
   const { data, isPending, isError } = useRecommendationSearch(request);
-  const { data: propertyList } = usePropertyList(request != null);
   const { data: targetPlaceData } = useTargetPlaces(request != null);
 
   const results = useMemo(() => data?.results ?? [], [data]);
-  const propertyById = useMemo(
-    () => new Map((propertyList ?? []).map((property) => [property.propertyId, property])),
-    [propertyList]
-  );
   const targetPlaceById = useMemo(
     () =>
       new Map(
@@ -155,8 +149,8 @@ function AIResultContent() {
     [targetPlaceData]
   );
   const recommendationMapperOptions = useMemo(
-    () => ({ propertyById, targetPlaceById }),
-    [propertyById, targetPlaceById]
+    () => ({ targetPlaceById }),
+    [targetPlaceById]
   );
   const cards = useMemo(
     () =>
