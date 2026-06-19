@@ -24,6 +24,10 @@ import {
 import type { ListMode } from "../utils/propertyListItems";
 import { loadSearchRequest } from "../utils/recommendationSearch";
 import {
+  addSearchedProperties,
+  useSearchedProperties,
+} from "../utils/searchedProperties";
+import {
   useFavorites,
   useRecommendationSearch,
 } from "../hooks/queries/recommendationQueries";
@@ -183,6 +187,15 @@ export default function MainMapScreen() {
   );
   const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
 
+  // 이번 세션에서 검색된 추천 매물을 누적한다(propertyId 기준 중복 제거).
+  // 사용자가 여러 번 검색해도 그동안 본 매물들을 함께 볼 수 있다.
+  const searchedProperties = useSearchedProperties();
+  useEffect(() => {
+    if (recommendedProperties.length > 0) {
+      addSearchedProperties(recommendedProperties);
+    }
+  }, [recommendedProperties]);
+
   // 찜(MY) 매물은 favorites 쿼리를 단일 출처로 사용한다.
   // (토글 mutation 연동은 #30)
   const { data: favoriteData } = useFavorites();
@@ -213,8 +226,8 @@ export default function MainMapScreen() {
 
   const currentProperties = useMemo(
     () =>
-      listMode === "favorites" ? favoriteProperties : recommendedProperties,
-    [listMode, favoriteProperties, recommendedProperties]
+      listMode === "favorites" ? favoriteProperties : searchedProperties,
+    [listMode, favoriteProperties, searchedProperties]
   );
 
   const visibleProperties = useMemo(() => {
@@ -275,10 +288,10 @@ export default function MainMapScreen() {
     hasSearchResultRef.current = hasSearchResult;
   }, [hasSearchResult]);
 
-  // imperative 마커 코드가 최신 목록을 읽도록 query 결과를 ref에 동기화한다.
+  // imperative 마커 코드가 최신 목록을 읽도록 누적 결과를 ref에 동기화한다.
   useEffect(() => {
-    recommendedPropertiesRef.current = recommendedProperties;
-  }, [recommendedProperties]);
+    recommendedPropertiesRef.current = searchedProperties;
+  }, [searchedProperties]);
 
   useEffect(() => {
     favoritePropertiesRef.current = favoriteProperties;

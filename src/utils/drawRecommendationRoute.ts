@@ -73,6 +73,12 @@ export function drawRecommendationRoute({
   let drawnPointCount = 0;
   const emptySegments: EmptySegment[] = [];
 
+  // 도보만으로 이루어진 경로는 실선으로 그린다.
+  // (대중교통이 섞인 경로에서는 도보 구간을 점선으로 구분 표시)
+  const isWalkOnlyRoute = path.pathList.every(
+    (subPath) => subPath.type === "WALK"
+  );
+
   // 각 pathList 구간의 좌표 범위 미리 계산
   const segmentBounds = path.pathList.map((subPath, index) => {
     const points = subPath.points ?? [];
@@ -105,7 +111,8 @@ export function drawRecommendationRoute({
       strokeColor,
       strokeWeight: 5,
       strokeOpacity: 0.9,
-      strokeStyle: segment.subPath.type === "WALK" ? "dash" : "solid",
+      strokeStyle:
+        segment.subPath.type === "WALK" && !isWalkOnlyRoute ? "dash" : "solid",
       map,
     });
 
