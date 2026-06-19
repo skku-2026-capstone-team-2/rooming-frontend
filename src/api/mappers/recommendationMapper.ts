@@ -194,5 +194,7 @@ export function mapRecommendationToCardView(
     explanation: result.explanation,
     routeDurationLabel: formatRouteDurationLabel(result.firstTargetPlaceRoute),
     routePlaceName: routePlace?.placeName ?? null,
+    routePlaceLat: routePlace?.location?.latitude ?? null,
+    routePlaceLng: routePlace?.location?.longitude ?? null,
   };
 }

@@ -35,9 +35,12 @@ const MAP_CENTER = {
   lng: 126.9936,
 };
 
-const SCHOOL_LOCATION = {
-  lat: 37.5849,
-  lng: 126.9953,
+const DEFAULT_TARGET_PLACE = {
+  label: "성균관대 정문",
+  position: {
+    lat: 37.5849,
+    lng: 126.9953,
+  },
 };
 
 const DEFAULT_INFRA_CONDITION: InfraSearchCondition = {
@@ -65,6 +68,7 @@ export default function MainMapScreen() {
   const propertyMarkersRef = useRef<any[]>([]);
 
   const setSearchParamsRef = useRef(setSearchParams);
+  const targetPlaceMarkerRef = useRef(DEFAULT_TARGET_PLACE);
 
   // view 없음(null) = 검색 전 빈 상태, "recommended"/"favorites" = 해당 목록 노출.
   // (검색 완료 여부를 sessionStorage 플래그 대신 URL로 표현 → 새로고침/딥링크 안전)
@@ -155,6 +159,25 @@ export default function MainMapScreen() {
     );
   }, [currentProperties, selectedPropertyId, hasSearchResult]);
 
+  const targetPlaceMarker = useMemo(() => {
+    const routePlaceProperty =
+      selectedProperty ??
+      visibleProperties.find(
+        (property) =>
+          property.routePlaceLat != null ||
+          property.routePlaceLng != null ||
+          property.routePlaceName != null
+      );
+
+    return {
+      label: routePlaceProperty?.routePlaceName ?? DEFAULT_TARGET_PLACE.label,
+      position: {
+        lat: routePlaceProperty?.routePlaceLat ?? DEFAULT_TARGET_PLACE.position.lat,
+        lng: routePlaceProperty?.routePlaceLng ?? DEFAULT_TARGET_PLACE.position.lng,
+      },
+    };
+  }, [selectedProperty, visibleProperties]);
+
   // imperative 지도 init 코드가 최신 노출 여부를 읽도록 ref에 동기화한다.
   useEffect(() => {
     hasSearchResultRef.current = hasSearchResult;
@@ -205,6 +228,26 @@ export default function MainMapScreen() {
     },
     [visibleProperties]
   );
+
+  const renderTargetPlaceMarker = useCallback(
+    (marker = targetPlaceMarkerRef.current) => {
+      if (!mapRef.current) return;
+
+      clearSingleMarker(schoolMarkerRef, "목적지 마커");
+      loadSchoolMarker({
+        map: mapRef.current,
+        markerRef: schoolMarkerRef,
+        position: marker.position,
+        label: marker.label,
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    targetPlaceMarkerRef.current = targetPlaceMarker;
+    renderTargetPlaceMarker(targetPlaceMarker);
+  }, [targetPlaceMarker, renderTargetPlaceMarker]);
 
   const resetMapContainer = useCallback(() => {
     clearInfraMarkers(infraMarkersRef);
@@ -340,8 +383,8 @@ export default function MainMapScreen() {
       loadSchoolMarker({
         map,
         markerRef: schoolMarkerRef,
-        position: SCHOOL_LOCATION,
-        label: "성균관대 정문",
+        position: targetPlaceMarkerRef.current.position,
+        label: targetPlaceMarkerRef.current.label,
       });
 
       const initialProperties = hasSearchResultRef.current
@@ -354,7 +397,7 @@ export default function MainMapScreen() {
         map,
         markersRef: infraMarkersRef,
         condition: DEFAULT_INFRA_CONDITION,
-        center: MAP_CENTER,
+        center: targetPlaceMarkerRef.current.position,
       });
 
       console.log("지도 생성 완료");
