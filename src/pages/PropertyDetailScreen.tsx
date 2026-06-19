@@ -1,26 +1,91 @@
-import { useMemo } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useMemo, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Phone, ArrowLeft } from "lucide-react";
 
+import MyFavoriteButton from "../components/MyFavoriteButton";
 import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 
 import { ApiError } from "../api";
 import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
 import {
+  useFavorites,
+  useRecommendationSearch,
+  useRecommendations,
+  useToggleFavorite,
+} from "../hooks/queries/recommendationQueries";
+import {
   useProperty,
   usePropertyImages,
 } from "../hooks/queries/propertyQueries";
+import { useSearchRequest } from "../utils/recommendationSearch";
+import type { RecommendationResult } from "../types";
+
+function parseRecommendationId(value: string | null): number | null {
+  const id = Number(value);
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+function findRecommendationForProperty({
+  propertyId,
+  recommendationId,
+  groups,
+}: {
+  propertyId: number;
+  recommendationId: number | null;
+  groups: RecommendationResult[][];
+}): RecommendationResult | null {
+  const recommendations = groups.flat();
+
+  if (recommendationId != null) {
+    const matchedById = recommendations.find(
+      (recommendation) =>
+        recommendation.recommendationId === recommendationId &&
+        recommendation.propertyId === propertyId
+    );
+    if (matchedById) return matchedById;
+  }
+
+  return (
+    recommendations.find(
+      (recommendation) =>
+        recommendation.propertyId === propertyId && recommendation.favorite
+    ) ??
+    recommendations.find(
+      (recommendation) => recommendation.propertyId === propertyId
+    ) ??
+    null
+  );
+}
 
 export default function PropertyDetailScreen() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
 
   const propertyId = Number(id);
   const isValidId = !!id && !Number.isNaN(propertyId);
+  const recommendationId = parseRecommendationId(
+    searchParams.get("recommendationId")
+  );
+  const searchRequest = useSearchRequest();
 
   // id가 유효할 때만 쿼리를 실행한다. (mock 토글·mapper는 훅 내부에서 재사용)
   const detailQuery = useProperty(propertyId, isValidId);
   const imagesQuery = usePropertyImages(propertyId, isValidId);
+  const { data: savedRecommendationData, isPending: isSavedRecommendationsPending } =
+    useRecommendations(isValidId);
+  const { data: favoriteData, isPending: isFavoritesPending } =
+    useFavorites(isValidId);
+  const {
+    data: searchRecommendationData,
+    isPending: isSearchRecommendationsPending,
+  } = useRecommendationSearch(isValidId ? searchRequest : null);
+  const toggleFavoriteMutation = useToggleFavorite();
+
+  const [optimisticFavorites, setOptimisticFavorites] = useState<
+    Record<number, boolean>
+  >({});
+  const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   const property = useMemo(
     () =>
@@ -33,6 +98,85 @@ export default function PropertyDetailScreen() {
         : null,
     [detailQuery.data, imagesQuery.data]
   );
+
+  const recommendationForProperty = useMemo(
+    () =>
+      isValidId
+        ? findRecommendationForProperty({
+            propertyId,
+            recommendationId,
+            groups: [
+              favoriteData?.results ?? [],
+              searchRecommendationData?.results ?? [],
+              savedRecommendationData?.results ?? [],
+            ],
+          })
+        : null,
+    [
+      favoriteData,
+      isValidId,
+      propertyId,
+      recommendationId,
+      savedRecommendationData,
+      searchRecommendationData,
+    ]
+  );
+
+  const recommendationIdForMy =
+    recommendationForProperty?.recommendationId ?? null;
+  const isRecommendationLookupPending =
+    !recommendationForProperty &&
+    (isSavedRecommendationsPending ||
+      isFavoritesPending ||
+      (searchRequest != null && isSearchRecommendationsPending));
+  const isFavoritePending =
+    toggleFavoriteMutation.isPending &&
+    toggleFavoriteMutation.variables?.recommendationId === recommendationIdForMy;
+  const selectedIsFavorite =
+    recommendationIdForMy != null
+      ? optimisticFavorites[recommendationIdForMy] ??
+        recommendationForProperty?.favorite ??
+        false
+      : false;
+
+  const handleToggleMy = () => {
+    if (!recommendationForProperty) return;
+
+    const nextRecommendationId = recommendationForProperty.recommendationId;
+    const previousFavorite =
+      optimisticFavorites[nextRecommendationId] ??
+      recommendationForProperty.favorite;
+    const nextFavorite = !previousFavorite;
+
+    setFavoriteError(null);
+    setOptimisticFavorites((prev) => ({
+      ...prev,
+      [nextRecommendationId]: nextFavorite,
+    }));
+
+    toggleFavoriteMutation.mutate(
+      {
+        recommendationId: nextRecommendationId,
+        favorite: nextFavorite,
+      },
+      {
+        onError: () => {
+          setOptimisticFavorites((prev) => {
+            const next = { ...prev };
+            if (previousFavorite === recommendationForProperty.favorite) {
+              delete next[nextRecommendationId];
+            } else {
+              next[nextRecommendationId] = previousFavorite;
+            }
+            return next;
+          });
+          setFavoriteError(
+            "MY 상태를 업데이트하지 못했어요. 잠시 후 다시 시도해 주세요."
+          );
+        },
+      }
+    );
+  };
 
   // 상태 판단은 상세(detail) 쿼리 기준. (이미지 실패는 화면 실패로 보지 않음)
   const isNotFound =
@@ -177,6 +321,44 @@ export default function PropertyDetailScreen() {
                 >
                   3D 보기
                 </button>
+              </div>
+
+              <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+                <h3 className="mb-2 text-lg font-bold text-foreground">
+                  MY 매물
+                </h3>
+
+                <p className="mb-4 text-sm leading-6 text-text-tertiary">
+                  이 매물을 MY 매물로 선택할까요?
+                </p>
+
+                <MyFavoriteButton
+                  selected={selectedIsFavorite}
+                  pending={isFavoritePending}
+                  disabled={
+                    isRecommendationLookupPending || !recommendationForProperty
+                  }
+                  onClick={handleToggleMy}
+                />
+
+                {isRecommendationLookupPending && (
+                  <p className="mt-3 text-sm text-text-tertiary">
+                    MY 상태를 확인하는 중이에요.
+                  </p>
+                )}
+
+                {!isRecommendationLookupPending &&
+                  !recommendationForProperty && (
+                    <p className="mt-3 text-sm text-text-tertiary">
+                      추천 기록이 있는 매물만 MY에 추가할 수 있어요.
+                    </p>
+                  )}
+
+                {favoriteError && (
+                  <p className="mt-3 text-sm text-destructive">
+                    {favoriteError}
+                  </p>
+                )}
               </div>
 
               <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">

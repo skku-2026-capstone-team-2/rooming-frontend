@@ -20,6 +20,8 @@ export const recommendationKeys = {
   /** 추천 경로 geometry (detail 단계별) */
   route: (recommendationId: number, detail: RouteGeometryDetail) =>
     ["recommendations", recommendationId, "route", detail] as const,
+  /** 서버에 저장된 추천 목록 */
+  list: ["recommendations", "list"] as const,
   /** 찜(MY) 추천 목록 */
   favorites: ["recommendations", "favorites"] as const,
 };
@@ -65,16 +67,26 @@ export function useRecommendationRoute(
   });
 }
 
+/** 서버에 저장된 추천 목록. direct 상세 진입에서도 propertyId로 추천 컨텍스트를 복원한다. */
+export function useRecommendations(enabled = true) {
+  return useQuery({
+    queryKey: recommendationKeys.list,
+    queryFn: () => recommendationApi.getRecommendations(),
+    enabled,
+  });
+}
+
 /**
  * 찜(MY) 추천 목록.
  *
  * `GET /api/v1/recommendations/favorites`를 단일 출처로 사용한다.
  * 원시 응답을 캐시하고 `select`로 카드 view model로 변환한다.
  */
-export function useFavorites() {
+export function useFavorites(enabled = true) {
   return useQuery({
     queryKey: recommendationKeys.favorites,
     queryFn: () => recommendationApi.getFavorites(),
+    enabled,
   });
 }
 
@@ -99,6 +111,7 @@ export function useToggleFavorite() {
         ? recommendationApi.addFavorite(recommendationId)
         : recommendationApi.removeFavorite(recommendationId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recommendationKeys.list });
       queryClient.invalidateQueries({ queryKey: recommendationKeys.favorites });
       queryClient.invalidateQueries({
         queryKey: ["recommendations", "search"],

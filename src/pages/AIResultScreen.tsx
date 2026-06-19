@@ -3,13 +3,13 @@ import { useNavigate } from "react-router";
 import {
   CheckCircle2,
   Footprints,
-  Heart,
   Map as MapIcon,
   MapPin,
   Sparkles,
 } from "lucide-react";
 
 import CenteredMessage from "../components/CenteredMessage";
+import MyFavoriteButton from "../components/MyFavoriteButton";
 import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
 import {
   formatRouteDurationLabel,
@@ -396,30 +396,11 @@ export default function AIResultScreen() {
               </p>
             </div>
 
-            <button
-              type="button"
+            <MyFavoriteButton
+              selected={selectedIsFavorite}
+              pending={isFavoritePending}
               onClick={handleToggleMy}
-              disabled={isFavoritePending}
-              style={{
-                borderColor: "var(--token-color-my)",
-                backgroundColor: selectedIsFavorite
-                  ? "var(--token-color-my)"
-                  : "var(--token-color-white)",
-                color: selectedIsFavorite
-                  ? "var(--token-color-text-white)"
-                  : "var(--token-color-my)",
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border px-6 py-3 text-base font-bold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <Heart
-                className={`h-5 w-5 ${selectedIsFavorite ? "fill-current" : ""}`}
-              />
-              {isFavoritePending
-                ? "저장 중..."
-                : selectedIsFavorite
-                  ? "MY 선택됨"
-                  : "MY로 선택"}
-            </button>
+            />
 
             {favoriteError && (
               <p className="mt-3 text-sm text-destructive">{favoriteError}</p>

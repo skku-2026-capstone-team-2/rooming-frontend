@@ -406,7 +406,15 @@ export default function MainMapScreen() {
   //   모달이 다시 열리는 대신 깨끗한 지도(?view=..., 모달 닫힘)로 복귀한다.
   const handleClickPropertyDetail = () => {
     if (!selectedProperty) return;
-    navigate(`/property/${selectedProperty.propertyId}`, { replace: true });
+    const params = new URLSearchParams();
+    if (selectedProperty.recommendationId != null) {
+      params.set("recommendationId", String(selectedProperty.recommendationId));
+    }
+    const query = params.toString();
+    navigate(
+      `/property/${selectedProperty.propertyId}${query ? `?${query}` : ""}`,
+      { replace: true }
+    );
   };
 
   const handleClickInfra = () => {
