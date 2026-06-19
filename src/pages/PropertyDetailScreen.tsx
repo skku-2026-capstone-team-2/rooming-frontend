@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { Phone, ArrowLeft } from "lucide-react";
+import { ArrowLeft, Phone, X } from "lucide-react";
 
 import MyFavoriteButton from "../components/MyFavoriteButton";
 import PropertyImagePlaceholder from "../components/PropertyImagePlaceholder";
-import BrokerContactModal from "../components/BrokerContactModal";
 
 import { ApiError } from "../api";
 import { mapPropertyDetailToView } from "../api/mappers/propertyMapper";
@@ -14,7 +13,6 @@ import {
   useRecommendations,
   useToggleFavorite,
 } from "../hooks/queries/recommendationQueries";
-import { useBrokerContact } from "../hooks/queries/brokerQueries";
 import {
   useProperty,
   usePropertyImages,
@@ -53,14 +51,9 @@ export default function PropertyDetailScreen() {
     Record<number, boolean>
   >({});
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
+  const [isBrokerDemoModalOpen, setIsBrokerDemoModalOpen] = useState(false);
 
   // "부동산 연결하기" 모달은 열릴 때만 연락처를 lazy 하게 조회한다.
-  const [isBrokerModalOpen, setIsBrokerModalOpen] = useState(false);
-  const brokerContactQuery = useBrokerContact(
-    propertyId,
-    isValidId && isBrokerModalOpen
-  );
-
   const property = useMemo(
     () =>
       detailQuery.data
@@ -388,7 +381,7 @@ export default function PropertyDetailScreen() {
 
                 <button
                   type="button"
-                  onClick={() => setIsBrokerModalOpen(true)}
+                  onClick={() => setIsBrokerDemoModalOpen(true)}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-base font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg"
                 >
                   <Phone className="h-4 w-4" />
@@ -400,12 +393,9 @@ export default function PropertyDetailScreen() {
         </div>
       </div>
 
-      <BrokerContactModal
-        isOpen={isBrokerModalOpen}
-        contact={brokerContactQuery.data ?? null}
-        isLoading={brokerContactQuery.isPending}
-        isError={brokerContactQuery.isError}
-        onClose={() => setIsBrokerModalOpen(false)}
+      <BrokerDemoFallbackModal
+        isOpen={isBrokerDemoModalOpen}
+        onClose={() => setIsBrokerDemoModalOpen(false)}
       />
     </div>
   );
@@ -425,6 +415,52 @@ function InfoRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between rounded-2xl border border-beige-300 bg-green-300 px-4 py-3">
       <span className="text-sm font-medium text-accent">{label}</span>
       <span className="text-base font-semibold text-text-secondary">{value}</span>
+    </div>
+  );
+}
+
+function BrokerDemoFallbackModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-3 top-3 rounded-lg p-2 text-text-tertiary transition hover:bg-background hover:text-foreground"
+          aria-label="닫기"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-green-300 text-green-900">
+          <Phone className="h-5 w-5" />
+        </div>
+
+        <h2 className="text-center text-lg font-bold text-foreground">
+          부동산 연결하기
+        </h2>
+
+        <p className="mt-3 text-center text-sm leading-6 text-text-tertiary">
+          담당 부동산 연결을 준비 중이에요.
+          <br />
+          잠시 후 다시 확인해 주세요.
+        </p>
+
+      </div>
     </div>
   );
 }

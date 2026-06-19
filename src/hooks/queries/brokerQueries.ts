@@ -17,7 +17,6 @@ import type {
 /** 중개사 queryKey 컨벤션. */
 export const brokerKeys = {
   /** 매물 담당 중개사 연락처 */
-  contact: (propertyId: number) => ["broker", "contact", propertyId] as const,
   /** 현재 로그인한 중개사 프로필 */
   profile: ["broker", "profile"] as const,
   /** 선택 가능한 중개사무소 목록 */
@@ -30,14 +29,6 @@ export const brokerKeys = {
  * 매물 담당 중개사 연락처. `propertyId`가 유효하고 `enabled`일 때만 실행한다.
  * (모달을 열 때 lazy 하게 조회하기 위해 `enabled`로 제어)
  */
-export function useBrokerContact(propertyId: number, enabled = true) {
-  return useQuery({
-    queryKey: brokerKeys.contact(propertyId),
-    queryFn: () => brokerApi.getBrokerContact(propertyId),
-    enabled,
-  });
-}
-
 /** 현재 로그인한 중개사 프로필(인증 상태 포함). */
 export function useBrokerProfile(enabled = true) {
   return useQuery({

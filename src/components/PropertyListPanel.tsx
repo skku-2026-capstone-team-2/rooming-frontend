@@ -180,7 +180,7 @@ function PropertyCard({ property, isFavoriteMode }: PropertyCardProps) {
       </div>
 
       {property.description && (
-        <div className="mt-1 line-clamp-1 rounded-lg bg-muted px-2 py-1 text-[11px] text-text-secondary">
+        <div className="mt-1 whitespace-normal break-keep rounded-lg bg-muted px-2 py-1 text-[11px] leading-4 text-text-secondary">
           {property.description}
         </div>
       )}
