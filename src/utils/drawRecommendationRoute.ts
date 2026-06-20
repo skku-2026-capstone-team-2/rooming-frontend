@@ -1,7 +1,9 @@
 /**
  * 추천 경로(`GET /api/v1/recommendations/{id}/route`)의 geometry를 Tmap 지도에 그린다.
  *
- * - 백엔드가 내려준 구간별 좌표(`pathList[].points`)를 구간 유형별 색으로 폴리라인 표시한다.
+ * - 백엔드가 내려준 구간별 좌표(`pathList[].points`)를 폴리라인으로 표시한다.
+ * - 전체 도보 경로는 하나의 폴리라인으로 병합해 총 도보 시간을 보여준다.
+ * - 대중교통이 섞인 경로는 구간 유형별 색으로 나누어 표시한다.
  * - Tmap 보행자 경로 API(`drawPedestrianRoute`)는 사용자가 지도에서 직접 그리는 경로용이고,
  *   이 유틸은 추천 응답에 포함된 "저장된 경로"를 그대로 시각화하는 역할로 구분된다.
  * - 그린 좌표 개수를 반환하므로, 0이면 호출부에서 fallback(직선/요약 라벨)을 띄울 수 있다.
@@ -42,6 +44,52 @@ const SUBPATH_TYPE_LABEL: Record<RouteSubPathType, string> = {
   WALK: "도보",
   UNKNOWN: "이동",
 };
+
+function drawPolylineWithHoverLabel({
+  map,
+  tmap,
+  latLngs,
+  strokeColor,
+  strokeStyle = "solid",
+  label,
+}: {
+  map: TmapMap;
+  tmap: TmapNamespace;
+  latLngs: TmapLatLng[];
+  strokeColor: string;
+  strokeStyle?: "dash" | "solid";
+  label: string;
+}) {
+  const polyline = new tmap.Polyline({
+    path: latLngs,
+    strokeColor,
+    strokeWeight: 5,
+    strokeOpacity: 0.9,
+    strokeStyle,
+    map,
+  });
+
+  const middlePosition = latLngs[Math.floor(latLngs.length / 2)];
+
+  let labelMarker: TmapMarker | null = null;
+
+  polyline.addListener("mouseenter", () => {
+    if (labelMarker) return;
+    labelMarker = new tmap.Marker({
+      position: middlePosition,
+      map,
+      iconHTML: createDistanceLabelHTML(label),
+      iconSize: new tmap.Size(72, 28),
+      iconAnchor: new tmap.Point(36, 14),
+    });
+  });
+
+  polyline.addListener("mouseleave", () => {
+    if (!labelMarker) return;
+    labelMarker.setMap(null);
+    labelMarker = null;
+  });
+}
 
 /**
  * 두 좌표 간 비교용 거리(제곱). 위도에 따른 경도 축소를 반영하므로
@@ -97,6 +145,39 @@ export function drawRecommendationRoute({
     return { index, startLat, startLng, endLat, endLng, points, subPath };
   });
 
+  const canDrawSingleWalkPolyline =
+    isWalkOnlyRoute &&
+    segmentBounds.length > 0 &&
+    segmentBounds.every((segment) => segment.points.length >= 2);
+
+  if (canDrawSingleWalkPolyline) {
+    const latLngs: TmapLatLng[] = [];
+    let prevLat: number | null = null;
+    let prevLng: number | null = null;
+
+    segmentBounds.forEach((segment) => {
+      segment.points.forEach((point) => {
+        if (point.latitude === prevLat && point.longitude === prevLng) return;
+
+        latLngs.push(new tmap.LatLng(point.latitude, point.longitude));
+        prevLat = point.latitude;
+        prevLng = point.longitude;
+      });
+    });
+
+    if (latLngs.length >= 2) {
+      drawPolylineWithHoverLabel({
+        map,
+        tmap,
+        latLngs,
+        strokeColor: colorByType?.WALK ?? defaultColor,
+        label: `도보 ${path.totalTime}분`,
+      });
+
+      return { drawnPoints: latLngs.length, emptySegments };
+    }
+  }
+
   // points가 있는 구간들을 그린다.
   for (const segment of segmentBounds) {
     if (segment.points.length < 2) continue;
@@ -106,40 +187,17 @@ export function drawRecommendationRoute({
     );
     const strokeColor = colorByType?.[segment.subPath.type] ?? defaultColor;
 
-    const polyline = new tmap.Polyline({
-      path: latLngs,
+    drawPolylineWithHoverLabel({
+      map,
+      tmap,
+      latLngs,
       strokeColor,
-      strokeWeight: 5,
-      strokeOpacity: 0.9,
       strokeStyle:
         segment.subPath.type === "WALK" && !isWalkOnlyRoute ? "dash" : "solid",
-      map,
+      label: `${SUBPATH_TYPE_LABEL[segment.subPath.type]} ${segment.subPath.time}분`,
     });
 
     drawnPointCount += latLngs.length;
-
-    // 라벨 마커 추가
-    const label = `${SUBPATH_TYPE_LABEL[segment.subPath.type]} ${segment.subPath.time}분`;
-    const middlePosition = latLngs[Math.floor(latLngs.length / 2)];
-
-    let labelMarker: TmapMarker | null = null;
-
-    polyline.addListener("mouseenter", () => {
-      if (labelMarker) return;
-      labelMarker = new tmap.Marker({
-        position: middlePosition,
-        map,
-        iconHTML: createDistanceLabelHTML(label),
-        iconSize: new tmap.Size(72, 28),
-        iconAnchor: new tmap.Point(36, 14),
-      });
-    });
-
-    polyline.addListener("mouseleave", () => {
-      if (!labelMarker) return;
-      labelMarker.setMap(null);
-      labelMarker = null;
-    });
   }
 
   // 경계 도보 구간의 빈 쪽을 채울 단말 후보(매물/목적지).
