@@ -729,7 +729,7 @@ function PropertyGroupPanel({
       <div className="mb-3 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-base font-bold text-foreground">
-            같은 주소 매물 {properties.length}개
+            근처 매물 {properties.length}개
           </h3>
           {address && (
             <p className="mt-1 line-clamp-2 text-xs leading-5 text-text-tertiary">
@@ -765,9 +765,6 @@ function PropertyGroupPanel({
                   {property.priceLabel}
                 </p>
               </div>
-              <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold text-text-tertiary">
-                {property.areaLabel}
-              </span>
             </div>
           </button>
         ))}

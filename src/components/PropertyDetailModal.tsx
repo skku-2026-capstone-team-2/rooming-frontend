@@ -92,8 +92,7 @@ export default function PropertyDetailModal({
             )}
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <CompactInfo label="면적" value={property.areaLabel} />
+          <div className="mt-3 grid grid-cols-2 gap-2">
             <CompactInfo
               label="거래"
               value={formatTradeTypeLabel(property.tradeType)}

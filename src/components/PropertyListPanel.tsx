@@ -174,10 +174,11 @@ function PropertyCard({ property, isFavoriteMode }: PropertyCardProps) {
         {property.priceLabel}
       </div>
 
+      {property.routeDurationLabel && (
       <div className="mt-0.5 text-[11px] text-text-tertiary">
-        {property.areaLabel}
         {property.routeDurationLabel ? ` · ${property.routeDurationLabel}` : ""}
       </div>
+      )}
 
       {property.description && (
         <div className="mt-1 whitespace-normal break-keep rounded-lg bg-muted px-2 py-1 text-[11px] leading-4 text-text-secondary">
