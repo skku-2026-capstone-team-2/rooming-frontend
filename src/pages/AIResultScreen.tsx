@@ -5,6 +5,7 @@ import {
   Footprints,
   Map as MapIcon,
   Sparkles,
+  Tag,
 } from "lucide-react";
 
 import CenteredMessage from "../components/CenteredMessage";
@@ -246,6 +247,14 @@ export default function AIResultScreen() {
                       text={selectedRoutePlaceLabel ?? selectedRouteLabel}
                     />
                   )}
+
+                  {selectedCard.tags.slice(0, 4).map((tag) => (
+                    <SimpleInfoBadge
+                      key={tag}
+                      icon={<Tag className="h-3.5 w-3.5" />}
+                      text={tag}
+                    />
+                  ))}
                 </div>
               </div>
 

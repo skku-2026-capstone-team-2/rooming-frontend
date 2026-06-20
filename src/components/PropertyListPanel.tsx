@@ -175,9 +175,22 @@ function PropertyCard({ property, isFavoriteMode }: PropertyCardProps) {
       </div>
 
       {property.routeDurationLabel && (
-      <div className="mt-0.5 text-[11px] text-text-tertiary">
-        {property.routeDurationLabel ? ` · ${property.routeDurationLabel}` : ""}
-      </div>
+        <div className="mt-0.5 text-[11px] text-text-tertiary">
+          {property.routeDurationLabel}
+        </div>
+      )}
+
+      {property.tags.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {property.tags.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-secondary"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
       )}
 
       {property.description && (

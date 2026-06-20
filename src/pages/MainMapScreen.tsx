@@ -764,6 +764,18 @@ function PropertyGroupPanel({
                 <p className="mt-1 text-xs font-semibold text-accent">
                   {property.priceLabel}
                 </p>
+                {property.tags.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {property.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold text-text-tertiary"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </button>

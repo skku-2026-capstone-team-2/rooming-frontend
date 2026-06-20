@@ -92,6 +92,19 @@ export default function PropertyDetailModal({
             )}
           </div>
 
+          {property.tags.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {property.tags.slice(0, 4).map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-card/80 px-2.5 py-0.5 text-[11px] font-medium text-text-secondary"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="mt-3 grid grid-cols-2 gap-2">
             <CompactInfo
               label="거래"
