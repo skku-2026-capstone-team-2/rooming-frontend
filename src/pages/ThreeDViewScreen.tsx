@@ -23,7 +23,6 @@ import {
   usePropertyImages,
 } from "../hooks/queries/propertyQueries";
 import {
-  formatAreaLabel,
   formatFloorLabel,
   formatRoomTypeLabel,
 } from "../api/mappers/propertyMapper";
@@ -69,9 +68,6 @@ export default function ThreeDViewScreen() {
   const spaceInfoItems = useMemo(() => {
     if (!detail) return [];
     const items: { label: string; value: string }[] = [];
-    if (detail.areaM2 != null) {
-      items.push({ label: "면적", value: formatAreaLabel(detail.areaM2) });
-    }
     if (detail.roomType) {
       items.push({ label: "구조", value: formatRoomTypeLabel(detail.roomType) });
     }

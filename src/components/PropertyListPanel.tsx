@@ -174,10 +174,24 @@ function PropertyCard({ property, isFavoriteMode }: PropertyCardProps) {
         {property.priceLabel}
       </div>
 
-      <div className="mt-0.5 text-[11px] text-text-tertiary">
-        {property.areaLabel}
-        {property.routeDurationLabel ? ` · ${property.routeDurationLabel}` : ""}
-      </div>
+      {property.routeDurationLabel && (
+        <div className="mt-0.5 text-[11px] text-text-tertiary">
+          {property.routeDurationLabel}
+        </div>
+      )}
+
+      {property.tags.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {property.tags.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-medium text-secondary"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
 
       {property.description && (
         <div className="mt-1 whitespace-normal break-keep rounded-lg bg-muted px-2 py-1 text-[11px] leading-4 text-text-secondary">

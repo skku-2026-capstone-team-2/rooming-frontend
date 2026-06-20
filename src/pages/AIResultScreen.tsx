@@ -4,8 +4,8 @@ import {
   CheckCircle2,
   Footprints,
   Map as MapIcon,
-  MapPin,
   Sparkles,
+  Tag,
 } from "lucide-react";
 
 import CenteredMessage from "../components/CenteredMessage";
@@ -241,17 +241,20 @@ export default function AIResultScreen() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <SimpleInfoBadge
-                    icon={<MapPin className="h-3.5 w-3.5" />}
-                    text={selectedCard.areaLabel}
-                  />
-
                   {selectedRouteLabel && (
                     <SimpleInfoBadge
                       icon={<Footprints className="h-3.5 w-3.5" />}
                       text={selectedRoutePlaceLabel ?? selectedRouteLabel}
                     />
                   )}
+
+                  {selectedCard.tags.slice(0, 4).map((tag) => (
+                    <SimpleInfoBadge
+                      key={tag}
+                      icon={<Tag className="h-3.5 w-3.5" />}
+                      text={tag}
+                    />
+                  ))}
                 </div>
               </div>
 

@@ -408,7 +408,6 @@ export default function PropertyDetailScreen() {
                 </h3>
 
                 <div className="space-y-3">
-                  <InfoRow label="면적" value={property.areaLabel} />
                   <InfoRow label="층수" value={property.floorLabel} />
                   <InfoRow
                     label="관리비"

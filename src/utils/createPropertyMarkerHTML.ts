@@ -139,3 +139,64 @@ export function createPropertyMarkerHTML(
     </div>
   `;
 }
+
+export function createPropertyGroupMarkerHTML(
+  count: number,
+  variant: PropertyMarkerVariant = "default"
+) {
+  const safeCount = escapeHTML(String(count));
+  const color = propertyMarkerColors[variant];
+
+  return `
+    <div
+      style="
+        position: relative;
+        width: 50px;
+        height: 58px;
+        transform: translate(-50%, -100%);
+        cursor: pointer;
+      "
+    >
+      <div
+        class="property-marker-body"
+        style="
+          position: absolute;
+          left: 50%;
+          top: 0;
+          transform: translateX(-50%) scale(1);
+          width: 50px;
+          height: 50px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: ${color};
+          border-radius: 999px;
+          border: 3px solid var(--token-color-white);
+          box-shadow: 0 10px 22px color-mix(in srgb, ${color} 30%, var(--token-color-transparent));
+          color: var(--token-color-text-white);
+          font-size: 16px;
+          font-weight: 800;
+          transition: transform 0.18s ease;
+          z-index: 2;
+        "
+      >
+        ${safeCount}
+      </div>
+
+      <div
+        style="
+          position: absolute;
+          left: 50%;
+          top: 48px;
+          transform: translateX(-50%);
+          width: 0;
+          height: 0;
+          border-left: 7px solid var(--token-color-transparent);
+          border-right: 7px solid var(--token-color-transparent);
+          border-top: 9px solid ${color};
+          z-index: 1;
+        "
+      ></div>
+    </div>
+  `;
+}

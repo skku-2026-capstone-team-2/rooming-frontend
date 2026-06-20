@@ -186,7 +186,6 @@ function PropertyDetailPanel({ propertyId }: { propertyId: number }) {
       <div className="grid gap-3 md:grid-cols-2">
         <InfoRow label="가격" value={view.priceLabel} />
         <InfoRow label="구조" value={view.roomTypeLabel} />
-        <InfoRow label="면적" value={view.areaLabel} />
         <InfoRow label="층수" value={view.floorLabel} />
         <InfoRow label="관리비" value={view.maintenanceFeeLabel} />
         <InfoRow label="3D" value={view.has3DModel ? "가능" : "없음"} />
