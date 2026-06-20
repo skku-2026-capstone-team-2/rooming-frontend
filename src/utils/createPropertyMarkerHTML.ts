@@ -156,59 +156,7 @@ export function createPropertyGroupMarkerHTML(
         transform: translate(-50%, -100%);
         cursor: pointer;
       "
-      onmouseover="
-        this.querySelector('.property-marker-label').style.opacity='1';
-        this.querySelector('.property-marker-body').style.transform='translateX(-50%) scale(1.08)';
-      "
-      onmouseout="
-        this.querySelector('.property-marker-label').style.opacity='0';
-        this.querySelector('.property-marker-body').style.transform='translateX(-50%) scale(1)';
-      "
     >
-      <div
-        class="property-marker-label"
-        style="
-          position: absolute;
-          left: 50%;
-          bottom: 64px;
-          transform: translateX(-50%);
-          opacity: 0;
-          transition: opacity 0.18s ease;
-          white-space: nowrap;
-          pointer-events: none;
-          z-index: 3;
-        "
-      >
-        <div
-          style="
-            background: ${color};
-            color: var(--token-color-text-white);
-            font-size: 12px;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-weight: 700;
-            box-shadow: 0 6px 14px color-mix(in srgb, ${color} 22%, var(--token-color-transparent));
-            text-align: center;
-          "
-        >
-          ${safeCount}개 매물
-        </div>
-
-        <div
-          style="
-            position: absolute;
-            left: 50%;
-            top: 100%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 4px solid var(--token-color-transparent);
-            border-right: 4px solid var(--token-color-transparent);
-            border-top: 5px solid ${color};
-          "
-        ></div>
-      </div>
-
       <div
         class="property-marker-body"
         style="
