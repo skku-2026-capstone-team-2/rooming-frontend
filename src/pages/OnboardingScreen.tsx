@@ -31,7 +31,7 @@ import {
   saveSearchRequest,
 } from "../utils/recommendationSearch";
 import { targetPlaceApi } from "../api/targetPlaceApi";
-import type { PlaceCategory } from "../types";
+import type { PlaceCategory, TargetPlaceResponseItem } from "../types";
 
 /**
  * 화면에서 편집하는 주요 장소 한 건.
@@ -40,6 +40,7 @@ import type { PlaceCategory } from "../types";
  * 수정 모드(`?mode=edit`)에서는 서버에 이미 존재하는 장소에 한해 id를 가진다.
  */
 type EditablePlace = OnboardingPlaceDraft & { targetPlaceId?: number };
+type RegisteredEditablePlace = EditablePlace & { targetPlaceId: number };
 
 type PlaceSearchResult = {
   placeName: string;
@@ -70,6 +71,23 @@ type TmapPoiSearchResponse = {
 };
 
 const MAX_PLACE_COUNT = 3;
+
+function hasTargetPlaceId(
+  place: EditablePlace
+): place is RegisteredEditablePlace {
+  return place.targetPlaceId !== undefined;
+}
+
+function toEditablePlace(item: TargetPlaceResponseItem): EditablePlace {
+  return {
+    targetPlaceId: item.targetPlaceId,
+    category: item.category,
+    placeName: item.placeName,
+    roadAddress: item.roadAddress ?? "",
+    location: item.location,
+    memo: item.memo ?? "",
+  };
+}
 
 const placeTypeOptions: {
   type: PlaceCategory;
@@ -174,31 +192,31 @@ export default function OnboardingScreen() {
     setPreferences,
   } = useOnboardingDraft();
 
-  // 수정 모드에서는 draft를 건드리지 않고, 서버 장소를 시드한 로컬 상태로 다룬다.
-  const targetPlacesQuery = useTargetPlaces(isEditMode);
+  // 서버에 등록된 장소를 온보딩/수정 모드의 초기값으로 사용한다.
+  const targetPlacesQuery = useTargetPlaces();
   const [editPlaces, setEditPlaces] = useState<EditablePlace[]>([]);
   const originalPlacesRef = useRef<EditablePlace[]>([]);
   const seededRef = useRef(false);
 
   useEffect(() => {
-    if (!isEditMode || seededRef.current) return;
+    if (seededRef.current) return;
 
     const serverPlaces = targetPlacesQuery.data?.targetPlaces;
     if (!serverPlaces) return;
 
-    const mapped = serverPlaces.map<EditablePlace>((item) => ({
-      targetPlaceId: item.targetPlaceId,
-      category: item.category,
-      placeName: item.placeName,
-      roadAddress: item.roadAddress ?? "",
-      location: item.location,
-      memo: item.memo ?? "",
-    }));
-
-    setEditPlaces(mapped);
+    const mapped = serverPlaces.map(toEditablePlace);
     originalPlacesRef.current = mapped;
     seededRef.current = true;
-  }, [isEditMode, targetPlacesQuery.data]);
+
+    if (isEditMode) {
+      setEditPlaces(mapped);
+      return;
+    }
+
+    if (mapped.length > 0) {
+      setDraftPlaces(mapped);
+    }
+  }, [isEditMode, setDraftPlaces, targetPlacesQuery.data]);
 
   const places: EditablePlace[] = isEditMode ? editPlaces : draftPlaces;
   const setPlaces = (
@@ -304,7 +322,33 @@ export default function OnboardingScreen() {
     setPlaces((prev) => prev.filter((_, placeIndex) => placeIndex !== index));
   };
 
+  const syncTargetPlaces = async (nextPlaces: EditablePlace[]) => {
+    const currentIds = new Set(
+      nextPlaces.filter(hasTargetPlaceId).map((place) => place.targetPlaceId)
+    );
+    const placesToDelete = originalPlacesRef.current.filter(
+      (place): place is RegisteredEditablePlace =>
+        hasTargetPlaceId(place) && !currentIds.has(place.targetPlaceId)
+    );
+    const placesToCreate = nextPlaces.filter(
+      (place) => !hasTargetPlaceId(place)
+    );
+
+    await Promise.all([
+      ...placesToCreate.map((place) =>
+        targetPlaceApi.createTargetPlace(toTargetPlaceCreateRequest(place))
+      ),
+      ...placesToDelete.map((place) =>
+        targetPlaceApi.deleteTargetPlace(place.targetPlaceId)
+      ),
+    ]);
+
+    await queryClient.invalidateQueries({ queryKey: targetPlaceKeys.list });
+  };
+
   const handleNext = async () => {
+    if (targetPlacesQuery.isPending) return;
+
     if (!isUniversityRegistered) {
       alert("학교 건물은 필수로 등록해야 합니다.");
       return;
@@ -313,11 +357,7 @@ export default function OnboardingScreen() {
     try {
       setIsSubmitting(true);
 
-      await Promise.all(
-        places.map((place) =>
-          targetPlaceApi.createTargetPlace(toTargetPlaceCreateRequest(place))
-        )
-      );
+      await syncTargetPlaces(places);
     } catch (error) {
       console.error(error);
       alert("장소 등록에 실패했습니다. 다시 시도해 주세요.");
@@ -337,38 +377,17 @@ export default function OnboardingScreen() {
 
   // 수정 모드: 시드한 원본과 비교해 추가된 장소는 생성, 제거된 장소는 삭제한다.
   const handleSaveEdit = async () => {
+    if (targetPlacesQuery.isPending) return;
+
     if (!isUniversityRegistered) {
       alert("학교 건물은 필수로 등록해야 합니다.");
       return;
     }
 
-    const currentIds = new Set(
-      editPlaces
-        .map((place) => place.targetPlaceId)
-        .filter((id): id is number => id !== undefined)
-    );
-    const placesToDelete = originalPlacesRef.current.filter(
-      (place) =>
-        place.targetPlaceId !== undefined &&
-        !currentIds.has(place.targetPlaceId)
-    );
-    const placesToCreate = editPlaces.filter(
-      (place) => place.targetPlaceId === undefined
-    );
-
     try {
       setIsSubmitting(true);
 
-      await Promise.all([
-        ...placesToCreate.map((place) =>
-          targetPlaceApi.createTargetPlace(toTargetPlaceCreateRequest(place))
-        ),
-        ...placesToDelete.map((place) =>
-          targetPlaceApi.deleteTargetPlace(place.targetPlaceId as number)
-        ),
-      ]);
-
-      await queryClient.invalidateQueries({ queryKey: targetPlaceKeys.list });
+      await syncTargetPlaces(editPlaces);
     } catch (error) {
       console.error(error);
       alert("주요 장소 수정에 실패했습니다. 다시 시도해 주세요.");
@@ -692,10 +711,12 @@ export default function OnboardingScreen() {
           <button
             type="button"
             onClick={isEditMode ? handleSaveEdit : handleNext}
-            disabled={isSubmitting}
+            disabled={isSubmitting || targetPlacesQuery.isPending}
             className="flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 hover:shadow-lg disabled:cursor-not-allowed disabled:bg-beige-200"
           >
-            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {(isSubmitting || targetPlacesQuery.isPending) && (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            )}
             {isEditMode ? "저장" : "다음으로"}
           </button>
         </div>
