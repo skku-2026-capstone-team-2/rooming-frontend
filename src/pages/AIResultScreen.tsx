@@ -21,6 +21,7 @@ import {
   useRecommendationSearch,
   useToggleFavorite,
 } from "../hooks/queries/recommendationQueries";
+import { usePropertyImagesByIds } from "../hooks/queries/propertyQueries";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { useSearchRequest } from "../utils/recommendationSearch";
 
@@ -39,6 +40,14 @@ export default function AIResultScreen() {
   const [favoriteError, setFavoriteError] = useState<string | null>(null);
 
   const results = useMemo(() => data?.results ?? [], [data]);
+  const propertyIds = useMemo(
+    () => results.map((result) => result.propertyId),
+    [results]
+  );
+  const { imageUrlsByPropertyId } = usePropertyImagesByIds(
+    propertyIds,
+    results.length > 0
+  );
   const targetPlaceById = useMemo(
     () =>
       new Map(
@@ -50,8 +59,8 @@ export default function AIResultScreen() {
     [targetPlaceData]
   );
   const recommendationMapperOptions = useMemo(
-    () => ({ targetPlaceById }),
-    [targetPlaceById]
+    () => ({ targetPlaceById, propertyImagesById: imageUrlsByPropertyId }),
+    [targetPlaceById, imageUrlsByPropertyId]
   );
 
   const selectedResult =

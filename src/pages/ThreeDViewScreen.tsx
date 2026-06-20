@@ -217,6 +217,7 @@ function PropertyPhotoViewer({ photoUrls }: { photoUrls: string[] }) {
 
   // 사진 목록이 바뀌면 선택 인덱스를 안전 범위로 보정한다.
   const activeIndex = Math.min(selectedIndex, Math.max(photoUrls.length - 1, 0));
+  const hasMultiplePhotos = photoUrls.length > 1;
 
   if (photoUrls.length === 0) {
     return (
@@ -237,36 +238,40 @@ function PropertyPhotoViewer({ photoUrls }: { photoUrls: string[] }) {
   }
 
   return (
-    <div className="flex h-full w-full flex-col bg-green-900">
-      <div className="flex flex-1 items-center justify-center overflow-hidden p-6">
+    <div className="flex h-full w-full items-center justify-center bg-green-900 p-6 pb-24">
+      <div className="flex max-h-[calc(100vh-7.5rem)] max-w-full items-center justify-center gap-3">
         <img
           src={photoUrls[activeIndex]}
           alt={`매물 사진 ${activeIndex + 1}`}
-          className="max-h-full max-w-full rounded-2xl object-contain shadow-xl"
+          className={`h-auto w-auto rounded-2xl object-contain shadow-xl ${
+            hasMultiplePhotos
+              ? "max-h-[calc(100vh-7.5rem)] max-w-[calc(100vw-8.75rem)]"
+              : "max-h-[calc(100vh-7.5rem)] max-w-[calc(100vw-3rem)]"
+          }`}
         />
-      </div>
 
-      {photoUrls.length > 1 && (
-        <div className="flex justify-center gap-2 overflow-x-auto px-6 pb-6">
-          {photoUrls.map((url, index) => (
-            <button
-              key={url}
-              type="button"
-              onClick={() => setSelectedIndex(index)}
-              className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${index === activeIndex
-                ? "border-background"
-                : "border-green-800 opacity-70 hover:opacity-100"
-                }`}
-            >
-              <img
-                src={url}
-                alt={`매물 사진 썸네일 ${index + 1}`}
-                className="h-full w-full object-cover"
-              />
-            </button>
-          ))}
-        </div>
-      )}
+        {hasMultiplePhotos && (
+          <div className="flex max-h-[calc(100vh-7.5rem)] w-16 shrink-0 flex-col gap-2 overflow-y-auto">
+            {photoUrls.map((url, index) => (
+              <button
+                key={url}
+                type="button"
+                onClick={() => setSelectedIndex(index)}
+                className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${index === activeIndex
+                  ? "border-background"
+                  : "border-green-800 opacity-70 hover:opacity-100"
+                  }`}
+              >
+                <img
+                  src={url}
+                  alt={`매물 사진 썸네일 ${index + 1}`}
+                  className="h-full w-full object-cover"
+                />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -442,7 +447,7 @@ function Empty3DState({
         <p className="mt-2 text-sm leading-6 text-text-muted">
           {isError
             ? "잠시 후 다시 시도해 주세요."
-            : "이 매물은 아직 3D 모델이 준비되지 않았어요. 평면도 보기를 이용해 주세요."}
+            : "이 매물은 아직 3D 모델이 준비되지 않았어요. 사진 보기를 이용해 주세요."}
         </p>
       </div>
     </div>

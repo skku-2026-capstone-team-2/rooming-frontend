@@ -27,6 +27,7 @@ import { formatAreaLabel, formatPriceLabel } from "./propertyMapper";
 
 export interface RecommendationCardMapperOptions {
   targetPlaceById?: ReadonlyMap<number, TargetPlaceResponseItem>;
+  propertyImagesById?: ReadonlyMap<number, readonly string[]>;
 }
 
 export interface RecommendationRoutePlaceView {
@@ -160,7 +161,11 @@ export function mapRecommendationToCardView(
     `추천 매물 #${result.propertyId}`;
   const address = property.address ?? "";
   const areaM2 = property.areaM2 ?? null;
-  const imageUrl = firstValue(property.imageUrl, property.imageUrls?.[0]);
+  const imageUrl = firstValue(
+    property.imageUrl,
+    property.imageUrls?.[0],
+    options.propertyImagesById?.get(result.propertyId)?.[0]
+  );
   const has3DModel = property.has3DModel ?? null;
 
   return {

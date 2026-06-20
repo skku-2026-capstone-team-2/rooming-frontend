@@ -6,13 +6,14 @@
  * - 화면은 `useState`/`useEffect` 패칭 대신 이 훅들의 상태(data/isLoading/error)를 사용한다.
  */
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { propertyApi } from "../../api";
 import {
   mapProperty3DToView,
   mapPropertyToCardView,
 } from "../../api/mappers/propertyMapper";
-import type { PropertyCardView, Property3DView } from "../../types";
+import type { PropertyCardView, Property3DView, PropertyImagesData } from "../../types";
 
 /** 매물 queryKey 컨벤션. */
 export const propertyKeys = {
@@ -64,6 +65,50 @@ export function usePropertyImages(id: number, enabled = true) {
     queryFn: () => propertyApi.getPropertyImages(id),
     enabled,
     retry: false,
+  });
+}
+
+function getUniquePropertyIds(propertyIds: number[]): number[] {
+  return Array.from(new Set(propertyIds.filter(Number.isFinite)));
+}
+
+function mapImageUrls(data: PropertyImagesData | undefined): string[] {
+  return [...(data?.images ?? [])]
+    .sort((a, b) => a.imageOrder - b.imageOrder)
+    .map((image) => image.imageUrl);
+}
+
+/** 여러 추천 매물의 대표 이미지를 보강하기 위한 이미지 조회. 실패한 매물은 빈 이미지로 둔다. */
+export function usePropertyImagesByIds(propertyIds: number[], enabled = true) {
+  const uniquePropertyIds = useMemo(
+    () => getUniquePropertyIds(propertyIds),
+    [propertyIds]
+  );
+
+  return useQueries({
+    queries: uniquePropertyIds.map((id) => ({
+      queryKey: propertyKeys.images(id),
+      queryFn: () => propertyApi.getPropertyImages(id),
+      enabled: enabled && uniquePropertyIds.length > 0,
+      retry: false,
+      staleTime: Infinity,
+    })),
+    combine: (results) => {
+      const imageUrlsByPropertyId = new Map<number, string[]>();
+
+      results.forEach((result, index) => {
+        const propertyId = uniquePropertyIds[index];
+        if (propertyId == null || !result.data) return;
+        imageUrlsByPropertyId.set(propertyId, mapImageUrls(result.data));
+      });
+
+      return {
+        imageUrlsByPropertyId,
+        isPending: results.some((result) => result.isPending),
+        isFetching: results.some((result) => result.isFetching),
+        isError: results.some((result) => result.isError),
+      };
+    },
   });
 }
 

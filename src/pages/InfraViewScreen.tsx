@@ -16,6 +16,7 @@ import {
   useFavorites,
   useRecommendations,
 } from "../hooks/queries/recommendationQueries";
+import { usePropertyImagesByIds } from "../hooks/queries/propertyQueries";
 import { loadSearchRequest } from "../utils/recommendationSearch";
 import {
   findRecommendationForProperty,
@@ -156,6 +157,17 @@ export default function InfraViewScreen() {
     () => [savedRecommendationData?.results ?? []],
     [savedRecommendationData]
   );
+  const propertyIds = useMemo(
+    () =>
+      [...primaryRecommendationGroups, ...savedRecommendationGroups]
+        .flat()
+        .map((recommendation) => recommendation.propertyId),
+    [primaryRecommendationGroups, savedRecommendationGroups]
+  );
+  const { imageUrlsByPropertyId } = usePropertyImagesByIds(
+    propertyIds,
+    propertyIds.length > 0
+  );
   const targetPlaceById = useMemo(
     () =>
       new Map(
@@ -167,8 +179,8 @@ export default function InfraViewScreen() {
     [targetPlaceData]
   );
   const recommendationMapperOptions = useMemo(
-    () => ({ targetPlaceById }),
-    [targetPlaceById]
+    () => ({ targetPlaceById, propertyImagesById: imageUrlsByPropertyId }),
+    [targetPlaceById, imageUrlsByPropertyId]
   );
 
   const savedSelectedResult = (() => {
