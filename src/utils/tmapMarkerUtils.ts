@@ -1,14 +1,29 @@
 import type { MutableRefObject } from "react";
-import { createPropertyMarkerHTML } from "./createPropertyMarkerHTML";
+import {
+  createPropertyGroupMarkerHTML,
+  createPropertyMarkerHTML,
+} from "./createPropertyMarkerHTML";
 import { createSchoolMarkerHTML } from "./createSchoolMarkerHTML";
 import type { PropertyCardView } from "../types";
+import { getTmapAddressLookupKey } from "../api/tmapGeocode";
 
 export type MapCenter = {
   lat: number;
   lng: number;
 };
 
-type SearchParamsSetter = (params: Record<string, string>) => void;
+type PropertyMarkerClickParams = {
+  propertyId: string;
+  propertyIds?: string[];
+};
+
+type SearchParamsSetter = (params: PropertyMarkerClickParams) => void;
+
+type PropertyMarkerGroup = {
+  key: string;
+  properties: PropertyCardView[];
+  position: MapCenter;
+};
 
 export function getLatFromTmapCenter(center: TmapLatLng | null): number | null {
   if (!center) return null;
@@ -132,6 +147,94 @@ export function getPropertyViewportZoom(
   return 17;
 }
 
+function getPropertyPosition(property: PropertyCardView): MapCenter | null {
+  if (
+    typeof property.lat !== "number" ||
+    !Number.isFinite(property.lat) ||
+    typeof property.lng !== "number" ||
+    !Number.isFinite(property.lng)
+  ) {
+    return null;
+  }
+
+  return {
+    lat: property.lat,
+    lng: property.lng,
+  };
+}
+
+
+function getPropertyMarkerGroupKey(property: PropertyCardView) {
+  const addressKey = getTmapAddressLookupKey(property.address);
+
+  if (addressKey) {
+    return `address:${addressKey}`;
+  }
+
+  const position = getPropertyPosition(property);
+
+  if (!position) return null;
+
+  return `position:${position.lat.toFixed(6)},${position.lng.toFixed(6)}`;
+}
+
+function getGroupPosition(properties: PropertyCardView[]): MapCenter | null {
+  const positions = properties
+    .map(getPropertyPosition)
+    .filter((position): position is MapCenter => position !== null);
+
+  if (positions.length === 0) return null;
+
+  const sum = positions.reduce(
+    (acc, position) => ({
+      lat: acc.lat + position.lat,
+      lng: acc.lng + position.lng,
+    }),
+    { lat: 0, lng: 0 }
+  );
+
+  return {
+    lat: sum.lat / positions.length,
+    lng: sum.lng / positions.length,
+  };
+}
+
+function groupPropertiesForMarkers(
+  properties: PropertyCardView[]
+): PropertyMarkerGroup[] {
+  const groups = new Map<string, PropertyCardView[]>();
+
+  properties.forEach((property) => {
+    if (!getPropertyPosition(property)) return;
+
+    const key = getPropertyMarkerGroupKey(property);
+
+    if (!key) return;
+
+    const group = groups.get(key);
+
+    if (group) {
+      group.push(property);
+    } else {
+      groups.set(key, [property]);
+    }
+  });
+
+  return Array.from(groups.entries())
+    .map(([key, groupProperties]) => {
+      const position = getGroupPosition(groupProperties);
+
+      if (!position) return null;
+
+      return {
+        key,
+        properties: groupProperties,
+        position,
+      };
+    })
+    .filter((group): group is PropertyMarkerGroup => group !== null);
+}
+
 export function clearMarkers(
   markersRef: MutableRefObject<TmapMarker[]>,
   label = "마커"
@@ -205,30 +308,37 @@ export function loadPropertyMarkers({
 
   if (!enabled) return;
 
-  properties.forEach((property) => {
-    if (
-      typeof property.lat !== "number" ||
-      !Number.isFinite(property.lat) ||
-      typeof property.lng !== "number" ||
-      !Number.isFinite(property.lng)
-    ) {
-      return;
-    }
+  groupPropertiesForMarkers(properties).forEach((group) => {
+    const [primaryProperty] = group.properties;
+    const isGroup = group.properties.length > 1;
+    const isFavoriteMarker = group.properties.some(
+      (property) => property.favorite
+    );
 
     const marker = new tmap.Marker({
-      position: new tmap.LatLng(property.lat, property.lng),
+      position: new tmap.LatLng(group.position.lat, group.position.lng),
       map,
-      title: property.title,
-      iconHTML: createPropertyMarkerHTML(
-        property.priceLabel,
-        property.favorite ? "my" : "default"
-      ),
+      title: isGroup
+        ? `${group.properties.length}개 매물`
+        : primaryProperty.title,
+      iconHTML: isGroup
+        ? createPropertyGroupMarkerHTML(
+            group.properties.length,
+            isFavoriteMarker ? "my" : "default"
+          )
+        : createPropertyMarkerHTML(
+            primaryProperty.priceLabel,
+            isFavoriteMarker ? "my" : "default"
+          ),
       zIndex: 30,
     });
 
     marker.addListener?.("click", () => {
       onClickProperty({
-        propertyId: String(property.propertyId),
+        propertyId: String(primaryProperty.propertyId),
+        propertyIds: isGroup
+          ? group.properties.map((property) => String(property.propertyId))
+          : undefined,
       });
     });
 

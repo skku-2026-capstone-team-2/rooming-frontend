@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { UserRound } from "lucide-react";
+import { UserRound, X } from "lucide-react";
 
 import PropertyListPanel from "../components/PropertyListPanel";
 import InfraSearchWidget from "../components/InfraSearchWidget";
@@ -26,6 +26,10 @@ import type { ListMode } from "../utils/propertyListItems";
 import { useTargetPlaces } from "../hooks/queries/targetPlaceQueries";
 import { useRecommendationManagement } from "../hooks/useRecommendationManagement";
 import { mapRecommendationToCardView } from "../api/mappers/recommendationMapper";
+import {
+  geocodeTmapAddress,
+  getTmapAddressLookupKey,
+} from "../api/tmapGeocode";
 import type { PropertyCardView, TargetPlaceResponseItem } from "../types";
 
 const MAP_CENTER = {
@@ -39,6 +43,11 @@ type TargetPlaceMarker = {
     lat: number;
     lng: number;
   };
+};
+
+type AddressCoordinate = {
+  lat: number;
+  lng: number;
 };
 
 const DEFAULT_TARGET_PLACE: TargetPlaceMarker = {
@@ -91,6 +100,10 @@ function toTargetPlaceMarker(
   };
 }
 
+function getPropertyAddressKey(property: PropertyCardView) {
+  return getTmapAddressLookupKey(property.address);
+}
+
 /** 지도가 무엇을 보여줄지. `view`가 없으면(검색 전) 아무것도 노출하지 않는다. */
 function getValidView(value: string | null): ListMode | null {
   if (value === "recommended") return "recommended";
@@ -126,6 +139,12 @@ export default function MainMapScreen() {
 
   const [showPropertyMarkers, setShowPropertyMarkers] = useState(true);
   const showPropertyMarkersRef = useRef(true);
+  const [addressCoordinatesByKey, setAddressCoordinatesByKey] = useState<
+    Record<string, AddressCoordinate>
+  >({});
+  const [selectedGroupPropertyIds, setSelectedGroupPropertyIds] = useState<
+    string[]
+  >([]);
 
   const {
     data: targetPlaceData,
@@ -145,16 +164,16 @@ export default function MainMapScreen() {
     // 동일 매물이 여러 조건에서 추천될 수 있어 propertyId 기준으로 한 번만 표시한다.
     const seen = new Set<PropertyCardView["propertyId"]>();
     return recommendations
-      .map((result) =>
-        mapRecommendationToCardView(result, recommendationMapperOptions)
-      )
+      .map((result) => ({
+        ...mapRecommendationToCardView(result, recommendationMapperOptions),
+        favorite: false,
+      }))
       .filter((property) => {
         if (seen.has(property.propertyId)) return false;
         seen.add(property.propertyId);
         return true;
       });
   }, [recommendations, recommendationMapperOptions]);
-  const recommendedPropertiesRef = useRef<PropertyCardView[]>([]);
 
   const favoriteProperties = useMemo<PropertyCardView[]>(() => {
     // 서버 응답에 동일 propertyId가 중복으로 내려오는 경우가 있어
@@ -170,21 +189,11 @@ export default function MainMapScreen() {
         return true;
       });
   }, [favorites, recommendationMapperOptions]);
-  const favoritePropertiesRef = useRef<PropertyCardView[]>([]);
 
   // 추천/MY 중 하나라도 데이터가 있으면 목록·마커를 노출한다.
   const hasSearchResult =
     recommendedProperties.length > 0 || favoriteProperties.length > 0;
   const hasSearchResultRef = useRef(hasSearchResult);
-
-  // 마커 갱신 등 imperative 코드에서 최신 목록을 읽기 위한 resolver.
-  const resolveProperties = useCallback(
-    (mode: ListMode): PropertyCardView[] =>
-      mode === "favorites"
-        ? favoritePropertiesRef.current
-        : recommendedPropertiesRef.current,
-    []
-  );
 
   const currentProperties = useMemo(
     () =>
@@ -195,6 +204,35 @@ export default function MainMapScreen() {
   const visibleProperties = useMemo(() => {
     return hasSearchResult ? currentProperties : [];
   }, [hasSearchResult, currentProperties]);
+  const markerProperties = useMemo(
+    () =>
+      visibleProperties.map((property) => {
+        const addressKey = getPropertyAddressKey(property);
+        const coordinate = addressKey
+          ? addressCoordinatesByKey[addressKey]
+          : null;
+
+        if (!coordinate) return property;
+
+        return {
+          ...property,
+          lat: coordinate.lat,
+          lng: coordinate.lng,
+        };
+      }),
+    [visibleProperties, addressCoordinatesByKey]
+  );
+  const markerPropertiesRef = useRef<PropertyCardView[]>([]);
+
+  const selectedGroupProperties = useMemo(() => {
+    if (selectedGroupPropertyIds.length === 0) return [];
+
+    const selectedIds = new Set(selectedGroupPropertyIds);
+
+    return visibleProperties.filter((property) =>
+      selectedIds.has(String(property.propertyId))
+    );
+  }, [selectedGroupPropertyIds, visibleProperties]);
 
   const selectedPropertyId = searchParams.get("propertyId");
 
@@ -250,15 +288,6 @@ export default function MainMapScreen() {
     hasSearchResultRef.current = hasSearchResult;
   }, [hasSearchResult]);
 
-  // imperative 마커 코드가 최신 목록을 읽도록 추천 결과를 ref에 동기화한다.
-  useEffect(() => {
-    recommendedPropertiesRef.current = recommendedProperties;
-  }, [recommendedProperties]);
-
-  useEffect(() => {
-    favoritePropertiesRef.current = favoriteProperties;
-  }, [favoriteProperties]);
-
   useEffect(() => {
     setSearchParamsRef.current = setSearchParams;
   }, [setSearchParams]);
@@ -270,6 +299,62 @@ export default function MainMapScreen() {
   useEffect(() => {
     showPropertyMarkersRef.current = showPropertyMarkers;
   }, [showPropertyMarkers]);
+
+  useEffect(() => {
+    const missingAddressKeys = new Set<string>();
+
+    visibleProperties.forEach((property) => {
+      const addressKey = getPropertyAddressKey(property);
+
+      if (addressKey && !addressCoordinatesByKey[addressKey]) {
+        missingAddressKeys.add(addressKey);
+      }
+    });
+
+    if (missingAddressKeys.size === 0) return;
+
+    let cancelled = false;
+
+    Promise.all(
+      Array.from(missingAddressKeys).map(async (address) => {
+        try {
+          return await geocodeTmapAddress(address);
+        } catch (error) {
+          console.warn("Tmap address geocoding failed:", error);
+          return null;
+        }
+      })
+    ).then((results) => {
+      if (cancelled) return;
+
+      setAddressCoordinatesByKey((prev) => {
+        let next = prev;
+
+        results.forEach((result) => {
+          if (!result || prev[result.address]) return;
+
+          if (next === prev) {
+            next = { ...prev };
+          }
+
+          next[result.address] = {
+            lat: result.lat,
+            lng: result.lng,
+          };
+        });
+
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visibleProperties, addressCoordinatesByKey]);
+
+  useEffect(() => {
+    markerPropertiesRef.current = markerProperties;
+  }, [markerProperties]);
 
   const renderPropertyMarkers = useCallback(
     (
@@ -284,6 +369,18 @@ export default function MainMapScreen() {
         markersRef: propertyMarkersRef,
         enabled,
         onClickProperty: (nextParams) => {
+          if (nextParams.propertyIds && nextParams.propertyIds.length > 1) {
+            setSelectedGroupPropertyIds(nextParams.propertyIds);
+            setSearchParamsRef.current((prev) => {
+              const params = new URLSearchParams(prev);
+              params.set("view", listModeRef.current);
+              params.delete("propertyId");
+              return params;
+            });
+            return;
+          }
+
+          setSelectedGroupPropertyIds([]);
           setSearchParamsRef.current((prev) => {
             const params = new URLSearchParams(prev);
             params.set("view", listModeRef.current);
@@ -360,6 +457,7 @@ export default function MainMapScreen() {
   const handleChangeListMode = (mode: ListMode) => {
     listModeRef.current = mode;
     hasSearchResultRef.current = true;
+    setSelectedGroupPropertyIds([]);
 
     setSearchParams((prev) => {
       const params = new URLSearchParams(prev);
@@ -376,7 +474,7 @@ export default function MainMapScreen() {
       showPropertyMarkersRef.current = next;
 
       const nextProperties = hasSearchResult
-        ? resolveProperties(listModeRef.current)
+        ? markerPropertiesRef.current
         : [];
 
       renderPropertyMarkers(nextProperties, next);
@@ -403,6 +501,21 @@ export default function MainMapScreen() {
     setSearchParams((prev) => {
       const params = new URLSearchParams(prev);
       params.delete("propertyId");
+      return params;
+    });
+  };
+
+  const handleClosePropertyGroup = () => {
+    setSelectedGroupPropertyIds([]);
+  };
+
+  const handleSelectGroupedProperty = (property: PropertyCardView) => {
+    setSelectedGroupPropertyIds([]);
+
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set("view", listModeRef.current);
+      params.set("propertyId", String(property.propertyId));
       return params;
     });
   };
@@ -455,12 +568,12 @@ export default function MainMapScreen() {
   };
 
   useEffect(() => {
-    renderPropertyMarkers(visibleProperties, showPropertyMarkersRef.current);
-  }, [visibleProperties, renderPropertyMarkers]);
+    renderPropertyMarkers(markerProperties, showPropertyMarkersRef.current);
+  }, [markerProperties, renderPropertyMarkers]);
 
   useEffect(() => {
-    updateMapViewport(visibleProperties, targetPlaceMarker.position);
-  }, [visibleProperties, targetPlaceMarker.position, updateMapViewport]);
+    updateMapViewport(markerProperties, targetPlaceMarker.position);
+  }, [markerProperties, targetPlaceMarker.position, updateMapViewport]);
 
   useEffect(() => {
     if (shouldWaitForTargetPlaces) return;
@@ -482,7 +595,7 @@ export default function MainMapScreen() {
       isMapInitializedRef.current = true;
 
       const initialProperties = hasSearchResultRef.current
-        ? resolveProperties(listModeRef.current)
+        ? markerPropertiesRef.current
         : [];
 
       const initialCenter = getPropertiesCenter(
@@ -544,7 +657,6 @@ export default function MainMapScreen() {
   }, [
     renderPropertyMarkers,
     resetMapContainer,
-    resolveProperties,
     shouldWaitForTargetPlaces,
   ]);
 
@@ -578,6 +690,14 @@ export default function MainMapScreen() {
           />
         )}
 
+        {selectedGroupProperties.length > 1 && (
+          <PropertyGroupPanel
+            properties={selectedGroupProperties}
+            onClose={handleClosePropertyGroup}
+            onSelect={handleSelectGroupedProperty}
+          />
+        )}
+
         <PropertyDetailModal
           isOpen={!!selectedProperty}
           property={selectedProperty}
@@ -589,6 +709,69 @@ export default function MainMapScreen() {
       </main>
 
       <AIPanel />
+    </div>
+  );
+}
+
+function PropertyGroupPanel({
+  properties,
+  onClose,
+  onSelect,
+}: {
+  properties: PropertyCardView[];
+  onClose: () => void;
+  onSelect: (property: PropertyCardView) => void;
+}) {
+  const address = properties[0]?.address ?? "";
+
+  return (
+    <div className="absolute left-1/2 top-1/2 z-40 w-[340px] max-w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-4 shadow-2xl">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-base font-bold text-foreground">
+            같은 주소 매물 {properties.length}개
+          </h3>
+          {address && (
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-text-tertiary">
+              {address}
+            </p>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 rounded-lg p-2 text-text-tertiary transition hover:bg-background hover:text-foreground"
+          aria-label="닫기"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+        {properties.map((property) => (
+          <button
+            key={property.recommendationId ?? property.propertyId}
+            type="button"
+            onClick={() => onSelect(property)}
+            className="w-full rounded-xl border border-beige-300 bg-background px-3 py-2.5 text-left transition hover:border-purple-500 hover:bg-purple-50"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-text-secondary">
+                  {property.title}
+                </p>
+                <p className="mt-1 text-xs font-semibold text-accent">
+                  {property.priceLabel}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold text-text-tertiary">
+                {property.areaLabel}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
