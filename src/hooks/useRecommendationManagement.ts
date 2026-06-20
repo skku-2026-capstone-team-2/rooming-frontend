@@ -16,6 +16,7 @@ import {
   useRecommendations,
   useToggleFavorite,
 } from "./queries/recommendationQueries";
+import { usePropertyImagesByIds } from "./queries/propertyQueries";
 import { useTargetPlaces } from "./queries/targetPlaceQueries";
 
 /** 찜 토글에 필요한 최소 정보. RecommendationResult/PropertyCardView 모두 충족한다. */
@@ -41,13 +42,24 @@ export function useRecommendationManagement() {
       ),
     [targetPlacesQuery.data]
   );
-  const mapperOptions = useMemo<RecommendationCardMapperOptions>(
-    () => ({ targetPlaceById }),
-    [targetPlaceById]
-  );
 
   const recommendations = recommendationsQuery.data?.results ?? [];
   const favorites = favoritesQuery.data?.results ?? [];
+  const propertyIds = useMemo(
+    () => [
+      ...recommendations.map((recommendation) => recommendation.propertyId),
+      ...favorites.map((recommendation) => recommendation.propertyId),
+    ],
+    [recommendations, favorites]
+  );
+  const { imageUrlsByPropertyId } = usePropertyImagesByIds(
+    propertyIds,
+    propertyIds.length > 0
+  );
+  const mapperOptions = useMemo<RecommendationCardMapperOptions>(
+    () => ({ targetPlaceById, propertyImagesById: imageUrlsByPropertyId }),
+    [targetPlaceById, imageUrlsByPropertyId]
+  );
 
   const favoriteRecommendationIds = useMemo(
     () =>
