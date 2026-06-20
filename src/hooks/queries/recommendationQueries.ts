@@ -9,6 +9,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { recommendationApi } from "../../api";
 import type {
+  RecommendationData,
   RecommendationRequest,
   RouteGeometryDetail,
 } from "../../types";
@@ -96,10 +97,27 @@ export function useFavorites(enabled = true) {
 }
 
 /**
+ * 검색 결과 캐시(`["recommendations","search", ...]`)를 재요청 없이 직접 패치한다.
+ *
+ * 검색 쿼리는 AI 추천(POST)을 query로 모델링한 것이라 invalidate하면 화면에 활성
+ * 옵저버가 있는 동안 즉시 refetch → 추천 검색이 통째로 재실행된다. favorite/삭제는
+ * 결과 집합의 부분 변경일 뿐이므로 캐시를 직접 갱신해 불필요한 재검색을 막는다.
+ */
+function patchSearchCaches(
+  queryClient: ReturnType<typeof useQueryClient>,
+  updater: (results: RecommendationData["results"]) => RecommendationData["results"]
+) {
+  queryClient.setQueriesData<RecommendationData>(
+    { queryKey: ["recommendations", "search"] },
+    (data) => (data ? { ...data, results: updater(data.results) } : data)
+  );
+}
+
+/**
  * 찜 토글 mutation.
  *
- * #24에서는 인터페이스만 정의한다(낙관적 업데이트·에러 롤백·실제 화면 연동은 #30).
- * 성공 시 favorites 목록과 검색 결과 캐시를 무효화해 favorite 상태를 재동기화한다.
+ * 성공 시 favorites/list 목록은 무효화해 재동기화하되, 검색 결과 캐시는 invalidate 대신
+ * favorite 플래그만 직접 패치한다(재검색 방지).
  */
 export function useToggleFavorite() {
   const queryClient = useQueryClient();
@@ -115,12 +133,16 @@ export function useToggleFavorite() {
       favorite
         ? recommendationApi.addFavorite(recommendationId)
         : recommendationApi.removeFavorite(recommendationId),
-    onSuccess: () => {
+    onSuccess: (_data, { recommendationId, favorite }) => {
       queryClient.invalidateQueries({ queryKey: recommendationKeys.list });
       queryClient.invalidateQueries({ queryKey: recommendationKeys.favorites });
-      queryClient.invalidateQueries({
-        queryKey: ["recommendations", "search"],
-      });
+      patchSearchCaches(queryClient, (results) =>
+        results.map((result) =>
+          result.recommendationId === recommendationId
+            ? { ...result, favorite }
+            : result
+        )
+      );
     },
   });
 }
@@ -131,12 +153,12 @@ export function useDeleteRecommendation() {
   return useMutation({
     mutationFn: (recommendationId: number) =>
       recommendationApi.deleteRecommendation(recommendationId),
-    onSuccess: () => {
+    onSuccess: (_data, recommendationId) => {
       queryClient.invalidateQueries({ queryKey: recommendationKeys.list });
       queryClient.invalidateQueries({ queryKey: recommendationKeys.favorites });
-      queryClient.invalidateQueries({
-        queryKey: ["recommendations", "search"],
-      });
+      patchSearchCaches(queryClient, (results) =>
+        results.filter((result) => result.recommendationId !== recommendationId)
+      );
     },
   });
 }

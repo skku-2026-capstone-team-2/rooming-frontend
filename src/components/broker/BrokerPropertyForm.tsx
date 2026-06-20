@@ -46,6 +46,7 @@ export default function BrokerPropertyForm({ onCreated }: BrokerPropertyFormProp
 
   // 직전 등록 성공 안내(같은 화면 상단 배너).
   const [doneId, setDoneId] = useState<number | null>(null);
+  const [validationMessage, setValidationMessage] = useState<string | null>(null);
 
   const isMonthly = tradeType === "MONTHLY_RENT";
   const isSubmitting = createMutation.isPending || uploadImagesMutation.isPending;
@@ -100,8 +101,13 @@ export default function BrokerPropertyForm({ onCreated }: BrokerPropertyFormProp
   };
 
   const handleSubmit = () => {
-    if (!canSubmit) return;
+    if (isSubmitting) return;
+    if (!canSubmit) {
+      setValidationMessage("필수 항목을 모두 입력해 주세요.");
+      return;
+    }
     setDoneId(null);
+    setValidationMessage(null);
 
     const body: BrokerPropertyCreateRequest = {
       title: title.trim(),
@@ -379,12 +385,17 @@ export default function BrokerPropertyForm({ onCreated }: BrokerPropertyFormProp
               : "매물은 등록됐지만 사진 업로드에 실패했어요. 잠시 후 다시 시도해 주세요."}
           </p>
         )}
+        {validationMessage && (
+          <p className="mb-4 text-sm font-medium text-text-tertiary">
+            {validationMessage}
+          </p>
+        )}
 
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!canSubmit || isSubmitting}
-          className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 disabled:opacity-60"
+          disabled={isSubmitting}
+          className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitLabel}
         </button>
